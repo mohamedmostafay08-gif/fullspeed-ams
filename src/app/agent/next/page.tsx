@@ -33,7 +33,6 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
   const sp = await searchParams;
   const skip = String(sp.skip ?? "").split(",").filter((s) => UUID.test(s)).slice(-50);
   const { now, retryBefore } = clock();
-  await supabase.rpc("fire_due_reminders");
 
   const base = () => {
     let q = supabase.from("leads").select(SELECT).eq("agent_id", profile.id);

@@ -1,9 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { GeoGate } from "@/components/geo-gate";
 import { PresenceBeacon } from "@/components/presence";
-import { requireRole } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { getUnreadCount } from "@/lib/data";
+import { getSession, requireRole } from "@/lib/auth";
 import { pendingLocationCheck } from "@/lib/location-gate";
 
 const NAV = [
@@ -18,9 +16,9 @@ const NAV = [
 
 export default async function AgentLayout({ children }: LayoutProps<"/agent">) {
   const profile = await requireRole("agent");
-  // Reminder fallback for hosts without pg_cron: due call-backs/interviews notify on navigation.
-  await (await createClient()).rpc("fire_due_reminders");
-  const [unread, mustCheckIn] = await Promise.all([getUnreadCount(profile.id), pendingLocationCheck(profile)]);
+  const session = (await getSession())!;
+  const unread = session.unread;
+  const mustCheckIn = pendingLocationCheck(session);
   return (
     <AppShell profile={profile} nav={[...NAV]} unread={unread} notificationsHref="/agent/notifications">
       <PresenceBeacon userId={profile.id} />

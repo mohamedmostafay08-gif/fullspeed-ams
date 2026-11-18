@@ -1,7 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { GeoGate } from "@/components/geo-gate";
-import { requireRole, STAFF } from "@/lib/auth";
-import { getUnreadCount } from "@/lib/data";
+import { getSession, requireRole, STAFF } from "@/lib/auth";
 import { pendingLocationCheck } from "@/lib/location-gate";
 import type { Role } from "@/lib/types";
 
@@ -29,7 +28,9 @@ const NAV: Item[] = [
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const profile = await requireRole(...STAFF);
-  const [unread, mustCheckIn] = await Promise.all([getUnreadCount(profile.id), pendingLocationCheck(profile)]);
+  const session = (await getSession())!;
+  const unread = session.unread;
+  const mustCheckIn = pendingLocationCheck(session);
   const nav = NAV.filter((n) => !n.roles || n.roles.includes(profile.role)).map(({ href, label, icon, exact, mobile, desktop }) => ({ href, label, icon, exact, mobile, desktop }));
   return (
     <AppShell profile={profile} nav={nav} unread={unread} notificationsHref="/admin/notifications">

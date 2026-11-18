@@ -35,7 +35,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
 
   const [start, end] = cairoRange(from, to);
   const supabase = await createClient();
-  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes] = await Promise.all([
+  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes, pushKey, passkeysRes] = await Promise.all([
     supabase.rpc("performance_summary", { p_from: from, p_to: to }),
     supabase.from("profiles").select("id, full_name, role, team_id, is_active").eq("role", "agent").eq("is_active", true).order("full_name"),
     supabase.from("companies").select("id, name, logo_path").order("name"),
@@ -43,6 +43,8 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
     supabase.from("teams").select("id, name"),
     supabase.from("leads").select("id", { count: "exact", head: true }).is("agent_id", null),
     supabase.from("agent_breaks").select("status, ends_at").in("status", ["pending", "active"]),
+    getPushPublicKey(),
+    supabase.from("passkeys").select("id", { count: "exact", head: true }),
   ]);
   const pendingBreaks = (breaksRes.data ?? []).filter((b) => b.status === "pending").length;
   const onBreak = (breaksRes.data ?? []).filter((b) => b.status === "active" && b.ends_at && new Date(b.ends_at) > new Date()).length;
@@ -91,7 +93,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   return (
     <>
       <LiveRefresh channel="admin-overview" />
-      <DeviceSetupBanner publicKey={await getPushPublicKey()} hasPasskey={((await supabase.from("passkeys").select("id", { count: "exact", head: true })).count ?? 0) > 0} />
+      <DeviceSetupBanner publicKey={pushKey} hasPasskey={(passkeysRes.count ?? 0) > 0} />
       <PageHeader title={t("أهلاً {0}", profile.full_name.split(" ")[0])} subtitle={from === to ? t("أداء يوم {0}", from) : t("الأداء من {0} إلى {1}", from, to)}>
         <div className="scroll-row -mx-4 w-[calc(100%+2rem)] px-4 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
           {presets.map((p) => (

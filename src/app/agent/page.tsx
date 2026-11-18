@@ -28,7 +28,7 @@ export default async function AgentHome() {
   const today = cairoToday();
   const supabase = await createClient();
   const [dayStart, dayEnd] = cairoRange(today, today);
-  const [companies, perfRes, tasksRes, annRes, followRes, breaksRes, callbacksRes, interviewsRes, boardRes, statsRes] = await Promise.all([
+  const [companies, perfRes, tasksRes, annRes, followRes, breaksRes, callbacksRes, interviewsRes, boardRes, statsRes, pushKey, passkeysRes] = await Promise.all([
     getAssignedCompanies(profile.id),
     supabase.rpc("performance_report", { p_from: today, p_to: today, p_agent: profile.id }),
     supabase
@@ -76,6 +76,8 @@ export default async function AgentHome() {
       .order("interview_at"),
     supabase.rpc("leaderboard", { p_from: today, p_to: today }),
     supabase.rpc("agent_stats", { p_agent: profile.id }),
+    getPushPublicKey(),
+    supabase.from("passkeys").select("id", { count: "exact", head: true }),
   ]);
 
   const perf = (perfRes.data ?? []) as PerfRow[];
@@ -106,7 +108,7 @@ export default async function AgentHome() {
         hired={sum("hired_count")}
         hiredTarget={sum("target_hired")}
       />
-      <DeviceSetupBanner publicKey={await getPushPublicKey()} hasPasskey={((await supabase.from("passkeys").select("id", { count: "exact", head: true })).count ?? 0) > 0} />
+      <DeviceSetupBanner publicKey={pushKey} hasPasskey={(passkeysRes.count ?? 0) > 0} />
       <PageHeader title={t("صباح الفل يا {0}", profile.full_name.split(" ")[0])} subtitle={t("ده أداءك النهارده — {0}", today)}>
         {stats.streak > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-2 text-sm font-bold text-orange-700" title={t("{0} يوم ورا بعض محقق هدفه", stats.streak)}>

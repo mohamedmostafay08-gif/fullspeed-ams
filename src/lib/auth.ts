@@ -7,19 +7,18 @@ import type { Profile, Role } from "@/lib/types";
 export const STAFF: Role[] = ["admin", "manager", "team_leader"];
 export const MANAGERS: Role[] = ["admin", "manager"];
 
-export const getProfile = cache(async (): Promise<Profile | null> => {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
-  if (!userId) return null;
+export type Session = { profile: Profile; unread: number; locationOk: boolean; locationName: string | null };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, full_name, phone, role, team_id, is_active, location_id, allow_anywhere")
-    .eq("id", userId)
-    .single();
-  return profile?.is_active ? profile : null;
+/** Profile + unread count + location state in a single database round trip (cached per request). */
+export const getSession = cache(async (): Promise<Session | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_session");
+  const s = data as { profile: Profile; unread: number; location_ok: boolean; location_name: string | null } | null;
+  if (!s?.profile?.is_active) return null;
+  return { profile: s.profile, unread: s.unread, locationOk: s.location_ok, locationName: s.location_name };
 });
+
+export const getProfile = cache(async (): Promise<Profile | null> => (await getSession())?.profile ?? null);
 
 // A signed-in user without an active profile must not bounce between "/" and "/login".
 export const NO_PROFILE_URL = "/login?e=inactive";
