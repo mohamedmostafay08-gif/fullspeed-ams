@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, X } from "lucide-react";
@@ -42,7 +43,8 @@ export function NotificationBell({ userId, initial: count, href }: { userId: str
           </span>
         )}
       </Link>
-      {toast && (
+      {toast &&
+        createPortal(
         <div
           role="status"
           className="fixed bottom-20 left-4 z-50 flex max-w-sm animate-rise items-start gap-3 rounded-2xl bg-ink px-4 py-3 text-sm text-white shadow-2xl shadow-ink/30 md:bottom-6 md:left-6"
@@ -54,8 +56,10 @@ export function NotificationBell({ userId, initial: count, href }: { userId: str
           <button onClick={() => setToast(null)} className="text-slate-ink hover:text-white" aria-label="إغلاق">
             <X size={16} />
           </button>
-        </div>
-      )}
+        </div>,
+          // Portalled: the sticky header's backdrop-filter would otherwise anchor this "fixed" toast to the header.
+          document.body,
+        )}
     </>
   );
 }
