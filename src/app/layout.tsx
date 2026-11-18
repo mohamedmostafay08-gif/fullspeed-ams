@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
+import { ServiceWorkerRegistrar } from "@/components/pwa";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale, getTheme } from "@/lib/i18n/server";
 import { dirOf } from "@/lib/i18n/translate";
@@ -10,6 +11,10 @@ const cairo = Cairo({ variable: "--font-cairo", subsets: ["arabic", "latin"] });
 export const metadata: Metadata = {
   title: "Full Speed — Acquisition",
   description: "Full Speed acquisition team system",
+  applicationName: "Full Speed",
+  appleWebApp: { capable: true, title: "Full Speed", statusBarStyle: "black-translucent" },
+  icons: { icon: [{ url: "/icons/favicon-32.png", sizes: "32x32" }, { url: "/icons/icon-192.png", sizes: "192x192" }], apple: "/icons/apple-touch-icon.png" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
@@ -35,6 +40,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>{theme === "system" && <script dangerouslySetInnerHTML={{ __html: SYSTEM_THEME }} />}</head>
       <body className="min-h-full font-sans">
         <I18nProvider locale={locale}>{children}</I18nProvider>
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

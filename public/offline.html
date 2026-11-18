@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0b1020" />
+<title>Full Speed — Offline</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b1020; color: #ece8de;
+         font-family: system-ui, "Segoe UI", Tahoma, sans-serif; text-align: center; padding: 24px; box-sizing: border-box; }
+  .mark { width: 72px; height: 72px; border-radius: 20px; background: #ea580c; display: grid; place-items: center; margin: 0 auto 20px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  p { color: #94a3b8; margin: 4px 0; line-height: 1.7; }
+  button { margin-top: 20px; background: #ea580c; color: #fff; border: 0; border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+  <main>
+    <div class="mark"><img src="/icons/badge-96.png" width="44" height="44" alt="" /></div>
+    <h1>مفيش إنترنت دلوقتي</h1>
+    <p>السيستم هيرجع يشتغل أول ما النت يرجع.</p>
+    <p dir="ltr">You're offline — the app will reconnect automatically.</p>
+    <button onclick="location.reload()">جرّب تاني · Retry</button>
+  </main>
+  <script>addEventListener("online", () => location.reload());</script>
+</body>
+</html>

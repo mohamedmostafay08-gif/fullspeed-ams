@@ -1,4 +1,6 @@
 import { TargetCelebration } from "@/components/celebrate";
+import { DeviceSetupBanner } from "@/components/pwa";
+import { getPushPublicKey } from "@/lib/push";
 import { BadgesCard, Leaderboard } from "@/components/leaderboard";
 import { badgesFor, type AgentStats, type BoardRow } from "@/lib/badges";
 import Link from "next/link";
@@ -104,6 +106,7 @@ export default async function AgentHome() {
         hired={sum("hired_count")}
         hiredTarget={sum("target_hired")}
       />
+      <DeviceSetupBanner publicKey={await getPushPublicKey()} />
       <PageHeader title={t("صباح الفل يا {0}", profile.full_name.split(" ")[0])} subtitle={t("ده أداءك النهارده — {0}", today)}>
         {stats.streak > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-2 text-sm font-bold text-orange-700" title={t("{0} يوم ورا بعض محقق هدفه", stats.streak)}>

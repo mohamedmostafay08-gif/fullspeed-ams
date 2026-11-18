@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { DeviceSetupBanner } from "@/components/pwa";
+import { getPushPublicKey } from "@/lib/push";
 import { AlertTriangle, Building2, Coffee, CheckCircle2, PieChart, TrendingUp, Trophy, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live";
@@ -89,6 +91,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   return (
     <>
       <LiveRefresh channel="admin-overview" />
+      <DeviceSetupBanner publicKey={await getPushPublicKey()} />
       <PageHeader title={t("أهلاً {0}", profile.full_name.split(" ")[0])} subtitle={from === to ? t("أداء يوم {0}", from) : t("الأداء من {0} إلى {1}", from, to)}>
         <div className="flex flex-wrap gap-1.5">
           {presets.map((p) => (

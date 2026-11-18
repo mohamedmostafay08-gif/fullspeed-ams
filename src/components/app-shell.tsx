@@ -7,6 +7,7 @@ import { BottomNav, SideNav, type NavItem } from "@/components/nav-links";
 import { NotificationBell } from "@/components/notification-bell";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
 import { PrefsControls } from "@/components/prefs";
+import { InstallButton } from "@/components/pwa";
 import { getT, getTheme } from "@/lib/i18n/server";
 
 function initials(name: string) {
@@ -67,6 +68,7 @@ export async function AppShell({
             <span className="text-sm font-extrabold">Full Speed</span>
           </div>
           <div className="ms-auto flex items-center gap-1">
+            <InstallButton />
             <PrefsControls theme={theme} sound />
             <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
             <form action={signOut} className="md:hidden">
