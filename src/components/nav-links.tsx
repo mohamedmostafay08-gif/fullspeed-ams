@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   Bell,
+  Coffee,
+  MapPin,
   Building2,
   CheckSquare,
   Gift,
@@ -25,6 +28,9 @@ const ICONS: Record<string, LucideIcon> = {
   crm: PlugZap,
   add: PlusCircle,
   bell: Bell,
+  analytics: BarChart3,
+  coffee: Coffee,
+  location: MapPin,
 };
 
 export interface NavItem {

@@ -3,11 +3,11 @@ import { createCompany } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo } from "@/components/ui";
-import { requireRole } from "@/lib/auth";
+import { requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function CompaniesPage() {
-  const profile = await requireRole("admin", "team_leader");
+  const profile = await requireRole(...STAFF);
   const supabase = await createClient();
   const [{ data: companies }, { data: assignments }] = await Promise.all([
     supabase.from("companies").select("id, name, logo_path, is_active, form_schema").order("name"),

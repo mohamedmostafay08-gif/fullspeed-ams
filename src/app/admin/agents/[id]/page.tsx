@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { saveAssignments, saveTargets, updateUser } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
-import { cairoToday, requireRole } from "@/lib/auth";
+import { cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, ROLE_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/types";
@@ -11,24 +11,27 @@ import { PRIORITY_LABELS, ROLE_LABELS, TASK_STATUS_LABELS, type TaskPriority, ty
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function AgentPage({ params, searchParams }: PageProps<"/admin/agents/[id]">) {
-  const me = await requireRole("admin", "team_leader");
+  const me = await requireRole(...STAFF);
   const { id } = await params;
   const sp = await searchParams;
   const date = typeof sp.date === "string" && DATE_RE.test(sp.date) ? sp.date : cairoToday();
   const supabase = await createClient();
 
-  const { data: agent } = await supabase.from("profiles").select("id, full_name, phone, role, team_id, is_active").eq("id", id).maybeSingle();
+  const { data: agent } = await supabase.from("profiles").select("id, full_name, phone, role, team_id, is_active, location_id, allow_anywhere").eq("id", id).maybeSingle();
   if (!agent) notFound();
 
   const weekAgo = new Date(new Date(`${date}T12:00:00Z`).getTime() - 6 * 86_400_000).toISOString().slice(0, 10);
-  const [companies, assignedRes, targetsRes, perfRes, tasksRes, teamsRes] = await Promise.all([
+  const [companies, assignedRes, targetsRes, perfRes, tasksRes, teamsRes, locationsRes] = await Promise.all([
     getCompanies(true),
     supabase.from("agent_companies").select("company_id").eq("agent_id", id),
     supabase.from("daily_targets").select("company_id, target_leads, target_hired").eq("agent_id", id).eq("date", date),
     supabase.rpc("performance_report", { p_from: weekAgo, p_to: date, p_agent: id }),
     supabase.from("tasks").select("id, title, status, priority, due_date").eq("agent_id", id).order("created_at", { ascending: false }).limit(15),
     supabase.from("teams").select("id, name"),
+    supabase.from("work_locations").select("id, name").order("name"),
   ]);
+  const canManage = me.role === "admin" || (me.role === "manager" && agent.role !== "admin");
+  const roleOptions = Object.entries(ROLE_LABELS).filter(([v]) => me.role === "admin" || v !== "admin");
   const assigned = new Set((assignedRes.data ?? []).map((r) => r.company_id));
   const targets = new Map((targetsRes.data ?? []).map((t) => [t.company_id, t]));
   const perf = ((perfRes.data ?? []) as { day: string; agent_id: string; company_id: string; leads_count: number; hired_count: number; target_leads: number; target_hired: number }[]).filter((r) => r.agent_id === id);
@@ -153,9 +156,9 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
           )}
         </section>
 
-        {me.role === "admin" && (
+        {canManage && (
           <section className="card lg:col-span-2">
-            <h2 className="mb-3 font-semibold">بيانات الحساب</h2>
+            <h2 className="card-title">بيانات الحساب ومكان الشغل</h2>
             <form action={updateUser} className="grid gap-3 sm:grid-cols-3">
               <input type="hidden" name="id" value={agent.id} />
               <div>
@@ -173,7 +176,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
               <div>
                 <label className="label">الصلاحية</label>
                 <select name="role" defaultValue={agent.role} className="input" disabled={agent.id === me.id}>
-                  {Object.entries(ROLE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  {roleOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
                 {agent.id === me.id && <input type="hidden" name="role" value={agent.role} />}
               </div>
@@ -184,6 +187,16 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                   {(teamsRes.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="label">مكان الشغل</label>
+                <select name="location_id" defaultValue={agent.location_id ?? ""} className="input">
+                  <option value="">بدون — يفتح من أي مكان</option>
+                  {(locationsRes.data ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+              <label className="flex items-center gap-2 self-end rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-900">
+                <input type="checkbox" name="allow_anywhere" defaultChecked={agent.allow_anywhere} className="accent-brand-600" /> مسموح يفتح من أي مكان
+              </label>
               <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
                 <input type="checkbox" name="is_active" defaultChecked={agent.is_active} disabled={agent.id === me.id} className="accent-brand-600" /> الحساب نشط
                 {agent.id === me.id && <input type="hidden" name="is_active" value="on" />}

@@ -3,7 +3,7 @@ import { AlertTriangle, Building2, CheckCircle2, PieChart, TrendingUp, Trophy, U
 import { PageHeader } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
-import { cairoRange, cairoToday, requireRole } from "@/lib/auth";
+import { cairoRange, cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { MISSING_SERVICE_KEY, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
@@ -23,7 +23,7 @@ const STATUS_BAR: Record<LeadStatus, string> = {
 };
 
 export default async function AdminOverview({ searchParams }: PageProps<"/admin">) {
-  const profile = await requireRole("admin", "team_leader");
+  const profile = await requireRole(...STAFF);
   const sp = await searchParams;
   const today = cairoToday();
   const from = typeof sp.from === "string" && DATE_RE.test(sp.from) ? sp.from : today;

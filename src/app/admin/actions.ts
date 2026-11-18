@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth";
+import { MANAGERS, requireRole, STAFF } from "@/lib/auth";
 import { parseSchema } from "@/lib/forms";
 import { MISSING_SERVICE_KEY, createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -19,14 +19,15 @@ function done(path: string, ok = "تم الحفظ"): ActionState {
 
 // ───────── People ─────────
 export async function createUser(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireRole("admin");
+  const me = await requireRole(...MANAGERS);
   const email = str(form, "email").toLowerCase();
   const password = str(form, "password");
   const fullName = str(form, "full_name");
   const role = str(form, "role") as Role;
   if (!fullName || !email) return { error: "الاسم والإيميل مطلوبين" };
   if (password.length < 8) return { error: "كلمة السر لازم 8 حروف على الأقل" };
-  if (!["admin", "team_leader", "agent"].includes(role)) return { error: "اختار الصلاحية" };
+  if (!["admin", "manager", "team_leader", "agent"].includes(role)) return { error: "اختار الصلاحية" };
+  if (role === "admin" && me.role !== "admin") return { error: "الأدمن بس هو اللي يقدر يعمل أدمن" };
   if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
   const { data, error } = await createAdminClient().auth.admin.createUser({
@@ -40,36 +41,48 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
   const supabase = await createClient();
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ role, team_id: str(form, "team_id") || null, is_active: true })
+    .update({
+      role,
+      team_id: str(form, "team_id") || null,
+      location_id: str(form, "location_id") || null,
+      allow_anywhere: form.get("allow_anywhere") === "on",
+      is_active: true,
+    })
     .eq("id", data.user.id);
   if (profileError) return { error: "الحساب اتعمل بس الصلاحية متحفظتش — عدّلها من صفحة الموظف" };
   return done("/admin/agents", `تم إنشاء حساب ${fullName}`);
 }
 
 export async function updateUser(form: FormData) {
-  await requireRole("admin");
+  const me = await requireRole(...MANAGERS);
   const supabase = await createClient();
+  const id = str(form, "id");
   const role = str(form, "role") as Role;
+  const allowedRoles: Role[] = me.role === "admin" ? ["admin", "manager", "team_leader", "agent"] : ["manager", "team_leader", "agent"];
+  const self = id === me.id;
   await supabase
     .from("profiles")
     .update({
       full_name: str(form, "full_name"),
       phone: str(form, "phone") || null,
-      role: ["admin", "team_leader", "agent"].includes(role) ? role : undefined,
+      // Nobody demotes or deactivates themselves by accident.
+      role: !self && allowedRoles.includes(role) ? role : undefined,
+      is_active: self ? undefined : form.get("is_active") === "on",
       team_id: str(form, "team_id") || null,
-      is_active: form.get("is_active") === "on",
+      location_id: str(form, "location_id") || null,
+      allow_anywhere: form.get("allow_anywhere") === "on",
     })
-    .eq("id", str(form, "id"));
+    .eq("id", id);
 
   const password = str(form, "password");
   if (password.length >= 8 && hasServiceKey()) {
-    await createAdminClient().auth.admin.updateUserById(str(form, "id"), { password });
+    await createAdminClient().auth.admin.updateUserById(id, { password });
   }
   revalidatePath("/admin", "layout");
 }
 
 export async function createTeam(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireRole("admin");
+  await requireRole(...MANAGERS);
   const supabase = await createClient();
   const name = str(form, "name");
   if (!name) return { error: "اكتب اسم التيم" };
@@ -81,7 +94,7 @@ export async function createTeam(_prev: ActionState, form: FormData): Promise<Ac
 }
 
 export async function updateTeam(form: FormData) {
-  await requireRole("admin");
+  await requireRole(...MANAGERS);
   const supabase = await createClient();
   const id = str(form, "id");
   const leaderId = str(form, "leader_id") || null;
@@ -92,7 +105,7 @@ export async function updateTeam(form: FormData) {
 
 // ───────── Assignments & targets ─────────
 export async function saveAssignments(form: FormData) {
-  const me = await requireRole("admin", "team_leader");
+  const me = await requireRole(...STAFF);
   const supabase = await createClient();
   const agentId = str(form, "agent_id");
   const wanted = new Set(form.getAll("company_id").map(String));
@@ -107,7 +120,7 @@ export async function saveAssignments(form: FormData) {
 }
 
 export async function saveTargets(form: FormData) {
-  await requireRole("admin", "team_leader");
+  await requireRole(...STAFF);
   const supabase = await createClient();
   const agentId = str(form, "agent_id");
   const date = str(form, "date");
@@ -209,7 +222,7 @@ export async function saveFormSchema(_prev: ActionState, form: FormData): Promis
 
 // ───────── Announcements, notifications, tasks ─────────
 export async function createAnnouncement(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const me = await requireRole("admin", "team_leader");
+  const me = await requireRole(...STAFF);
   const title = str(form, "title");
   const companyId = str(form, "company_id");
   if (!title || !companyId) return { error: "اختار الشركة واكتب العنوان" };
@@ -230,7 +243,7 @@ export async function createAnnouncement(_prev: ActionState, form: FormData): Pr
 }
 
 export async function sendMessage(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireRole("admin", "team_leader");
+  await requireRole(...STAFF);
   const title = str(form, "title");
   const recipients = form.getAll("user_id").map(String).filter(Boolean);
   if (!title || recipients.length === 0) return { error: "اختار المستلمين واكتب الرسالة" };
@@ -243,7 +256,7 @@ export async function sendMessage(_prev: ActionState, form: FormData): Promise<A
 }
 
 export async function createTask(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const me = await requireRole("admin", "team_leader");
+  const me = await requireRole(...STAFF);
   const title = str(form, "title");
   const agentIds = form.getAll("agent_id").map(String).filter(Boolean);
   if (!title || agentIds.length === 0) return { error: "اختار الأجنت واكتب التاسك" };
@@ -271,7 +284,7 @@ const GOV_HEADERS = ["governorate", "city", "المحافظة", "محافظة"];
 const REGION_HEADERS = ["region", "area", "المنطقة", "منطقة"];
 
 export async function importLeads(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const me = await requireRole("admin", "team_leader");
+  const me = await requireRole(...STAFF);
   const file = form.get("file") as File | null;
   const companyId = str(form, "company_id");
   const distribute = str(form, "distribute");
@@ -368,8 +381,40 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
 }
 
 export async function deleteTask(form: FormData) {
-  await requireRole("admin", "team_leader");
+  await requireRole(...STAFF);
   const supabase = await createClient();
   await supabase.from("tasks").delete().eq("id", str(form, "id"));
   revalidatePath("/admin/tasks");
+}
+
+// ───────── Work locations ─────────
+export async function createLocation(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireRole(...MANAGERS);
+  const name = str(form, "name");
+  const radius = Math.round(Number(form.get("radius_m")) || 300);
+  if (!name) return { error: "اكتب اسم المكان (مثلاً: مصر الجديدة)" };
+  if (radius < 50 || radius > 5000) return { error: "نص القطر لازم يكون بين 50 و 5000 متر" };
+  const { parseLocation } = await import("@/lib/geo");
+  const coords = await parseLocation(str(form, "location"));
+  if (!coords) return { error: "مقدرتش أقرا اللوكيشن — ابعت لينك جوجل ماب أو الإحداثيات بالشكل ده: 30.0911, 31.3220" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("work_locations").insert({ name, lat: coords.lat, lng: coords.lng, radius_m: radius });
+  if (error) return { error: error.code === "23505" ? "الاسم ده موجود قبل كده" : "مقدرتش أحفظ المكان" };
+  return done("/admin/locations", `اتضاف ${name} (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})`);
+}
+
+export async function updateLocationRadius(form: FormData) {
+  await requireRole(...MANAGERS);
+  const radius = Math.round(Number(form.get("radius_m")));
+  if (radius < 50 || radius > 5000) return;
+  const supabase = await createClient();
+  await supabase.from("work_locations").update({ radius_m: radius }).eq("id", str(form, "id"));
+  revalidatePath("/admin/locations");
+}
+
+export async function deleteLocation(form: FormData) {
+  await requireRole(...MANAGERS);
+  const supabase = await createClient();
+  await supabase.from("work_locations").delete().eq("id", str(form, "id"));
+  revalidatePath("/admin", "layout");
 }

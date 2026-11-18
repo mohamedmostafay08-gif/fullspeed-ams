@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/app-shell";
+import { GeoGate } from "@/components/geo-gate";
 import { requireRole } from "@/lib/auth";
 import { getUnreadCount } from "@/lib/data";
+import { pendingLocationCheck } from "@/lib/location-gate";
 
 const NAV = [
   { href: "/agent", label: "يومي", icon: "dashboard", exact: true },
@@ -12,10 +14,10 @@ const NAV = [
 
 export default async function AgentLayout({ children }: LayoutProps<"/agent">) {
   const profile = await requireRole("agent");
-  const unread = await getUnreadCount(profile.id);
+  const [unread, mustCheckIn] = await Promise.all([getUnreadCount(profile.id), pendingLocationCheck(profile)]);
   return (
     <AppShell profile={profile} nav={[...NAV]} unread={unread} notificationsHref="/agent/notifications">
-      {children}
+      {mustCheckIn ? <GeoGate locationName={mustCheckIn} /> : children}
     </AppShell>
   );
 }

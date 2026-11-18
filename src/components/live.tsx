@@ -6,7 +6,7 @@ import { updateLead } from "@/app/actions/leads";
 import { subscribeAsUser } from "@/lib/supabase/client";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
-/** Re-renders the current page when leads, tasks or targets change (RLS limits what each user hears about). */
+/** Re-renders the current page when leads, tasks or breaks change (RLS limits what each user hears about). */
 export function LiveRefresh({ channel }: { channel: string }) {
   const router = useRouter();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -19,7 +19,8 @@ export function LiveRefresh({ channel }: { channel: string }) {
     const unsubscribe = subscribeAsUser(`live:${channel}`, (ch) =>
       ch
         .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, refresh)
-        .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, refresh),
+        .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "agent_breaks" }, refresh),
     );
     return () => {
       if (timer.current) clearTimeout(timer.current);

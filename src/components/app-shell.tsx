@@ -69,7 +69,7 @@ export function AppShell({
             </form>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl animate-rise px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="w-full animate-rise px-4 py-6 md:px-8 md:py-8 2xl:px-10">{children}</main>
       </div>
 
       <BottomNav items={nav} />

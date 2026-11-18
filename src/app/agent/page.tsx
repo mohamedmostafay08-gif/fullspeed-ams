@@ -2,10 +2,11 @@ import Link from "next/link";
 import { BellRing, CheckCircle2, ClipboardList, Gift, Plus, UserPlus } from "lucide-react";
 import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
+import { BreakWidget, type BreakRow } from "@/components/breaks";
 import { ContactButtons } from "@/components/leads-table";
 import { LeadStatusSelect, LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, Progress, StatCard, formatDate } from "@/components/ui";
-import { cairoToday, requireRole } from "@/lib/auth";
+import { cairoRange, cairoToday, requireRole } from "@/lib/auth";
 import { getAssignedCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, type LeadStatus, type TaskPriority } from "@/lib/types";
@@ -18,7 +19,8 @@ export default async function AgentHome() {
   const profile = await requireRole("agent");
   const today = cairoToday();
   const supabase = await createClient();
-  const [companies, perfRes, tasksRes, annRes, followRes] = await Promise.all([
+  const [dayStart, dayEnd] = cairoRange(today, today);
+  const [companies, perfRes, tasksRes, annRes, followRes, breaksRes] = await Promise.all([
     getAssignedCompanies(profile.id),
     supabase.rpc("performance_report", { p_from: today, p_to: today, p_agent: profile.id }),
     supabase
@@ -41,6 +43,13 @@ export default async function AgentHome() {
       .in("status", ["new", "no_answer"])
       .order("created_at", { ascending: true })
       .limit(8),
+    supabase
+      .from("agent_breaks")
+      .select("id, status, requested_at, started_at, ends_at")
+      .eq("agent_id", profile.id)
+      .gte("requested_at", dayStart)
+      .lt("requested_at", dayEnd)
+      .order("requested_at"),
   ]);
 
   const perf = (perfRes.data ?? []) as PerfRow[];
@@ -114,6 +123,8 @@ export default async function AgentHome() {
         </section>
 
         <div className="space-y-6">
+          <BreakWidget today={(breaksRes.data ?? []) as BreakRow[]} />
+
           <section className="card">
             <h2 className="card-title"><BellRing size={18} className="text-brand-600" /> كلّمهم النهارده</h2>
             {follow.length === 0 ? (

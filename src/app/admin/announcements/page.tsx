@@ -2,14 +2,14 @@ import { createAnnouncement, sendMessage } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
-import { requireRole } from "@/lib/auth";
+import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 
 const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
 
 export default async function AnnouncementsPage() {
-  await requireRole("admin", "team_leader");
+  await requireRole(...STAFF);
   const supabase = await createClient();
   const [companies, { data: anns }, { data: people }] = await Promise.all([
     getCompanies(true),

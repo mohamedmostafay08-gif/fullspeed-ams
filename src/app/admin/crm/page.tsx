@@ -24,7 +24,7 @@ const PULL = `GET /api/crm/leads?since=2026-11-18T00:00:00Z
 x-api-key: <CRM_WEBHOOK_SECRET>`;
 
 export default async function CrmPage() {
-  await requireRole("admin", "team_leader");
+  await requireRole("admin");
   const companies = await getCompanies(true);
   const configured = (process.env.CRM_WEBHOOK_SECRET ?? "").length >= 24;
 

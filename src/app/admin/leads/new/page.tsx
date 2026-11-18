@@ -1,11 +1,11 @@
 import { PageHeader } from "@/components/app-shell";
 import { LeadForm } from "@/components/lead-form";
-import { requireRole } from "@/lib/auth";
+import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies, getGeo } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminNewLeadPage() {
-  await requireRole("admin", "team_leader");
+  await requireRole(...STAFF);
   const supabase = await createClient();
   const [companies, geo, { data: assignments }] = await Promise.all([
     getCompanies(true),

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/app-shell";
 import { FormBuilder } from "@/components/form-builder";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
-import { requireRole } from "@/lib/auth";
+import { requireRole, STAFF } from "@/lib/auth";
 import { getGeo } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField } from "@/lib/types";
@@ -13,7 +13,7 @@ import type { FormField } from "@/lib/types";
 const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
 
 export default async function CompanyPage({ params }: PageProps<"/admin/companies/[id]">) {
-  const profile = await requireRole("admin", "team_leader");
+  const profile = await requireRole(...STAFF);
   const { id } = await params;
   const supabase = await createClient();
   const { data: company } = await supabase

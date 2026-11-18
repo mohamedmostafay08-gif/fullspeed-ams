@@ -1,8 +1,9 @@
-export type Role = "admin" | "team_leader" | "agent";
+export type Role = "admin" | "manager" | "team_leader" | "agent";
 export type LeadStatus = "new" | "no_answer" | "contacted" | "interview" | "documents" | "hired" | "rejected";
 export type TaskStatus = "pending" | "in_progress" | "done" | "cancelled";
 export type TaskPriority = "low" | "medium" | "high";
-export type NotificationType = "bonus" | "rate" | "task" | "assignment" | "lead" | "info";
+export type NotificationType = "bonus" | "rate" | "task" | "assignment" | "lead" | "info" | "break";
+export type BreakStatus = "pending" | "active" | "ended" | "rejected" | "cancelled";
 
 export type FieldType = "text" | "number" | "phone" | "date" | "select" | "checkbox" | "textarea";
 
@@ -21,6 +22,8 @@ export interface Profile {
   role: Role;
   team_id: string | null;
   is_active: boolean;
+  location_id: string | null;
+  allow_anywhere: boolean;
 }
 
 export interface Company {
@@ -46,6 +49,7 @@ export interface Region {
 
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "أدمن",
+  manager: "مدير أكوزيشن",
   team_leader: "تيم ليدر",
   agent: "أجنت",
 };

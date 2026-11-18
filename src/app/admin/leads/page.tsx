@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app-shell";
 import { LeadsTable, type LeadRow } from "@/components/leads-table";
 import { LiveRefresh } from "@/components/live";
 import { StateForm } from "@/components/state-form";
-import { requireRole } from "@/lib/auth";
+import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { filtersToQuery, queryLeads, readFilters } from "@/lib/lead-query";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +13,7 @@ import { LEAD_STATUS_LABELS } from "@/lib/types";
 const PAGE_SIZE = 50;
 
 export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin/leads">) {
-  await requireRole("admin", "team_leader");
+  await requireRole(...STAFF);
   const f = readFilters(await searchParams);
   const supabase = await createClient();
   const [companies, { data: agents }, { data: leads, count }] = await Promise.all([

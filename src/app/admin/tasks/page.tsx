@@ -3,7 +3,7 @@ import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
 import { Empty, formatDate } from "@/components/ui";
-import { requireRole } from "@/lib/auth";
+import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/types";
@@ -16,7 +16,7 @@ const STATUS_CLS: Record<TaskStatus, string> = {
 };
 
 export default async function AdminTasksPage({ searchParams }: PageProps<"/admin/tasks">) {
-  await requireRole("admin", "team_leader");
+  await requireRole(...STAFF);
   const sp = await searchParams;
   const agentFilter = typeof sp.agent === "string" ? sp.agent : "";
   const statusFilter = typeof sp.status === "string" && sp.status in TASK_STATUS_LABELS ? sp.status : "";
