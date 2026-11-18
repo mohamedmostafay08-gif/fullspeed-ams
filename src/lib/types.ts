@@ -1,0 +1,94 @@
+export type Role = "admin" | "team_leader" | "agent";
+export type LeadStatus = "new" | "no_answer" | "contacted" | "interview" | "documents" | "hired" | "rejected";
+export type TaskStatus = "pending" | "in_progress" | "done" | "cancelled";
+export type TaskPriority = "low" | "medium" | "high";
+export type NotificationType = "bonus" | "rate" | "task" | "assignment" | "lead" | "info";
+
+export type FieldType = "text" | "number" | "phone" | "date" | "select" | "checkbox" | "textarea";
+
+export interface FormField {
+  key: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+  options?: string[];
+}
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  role: Role;
+  team_id: string | null;
+  is_active: boolean;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  logo_path: string | null;
+  description: string | null;
+  form_schema: FormField[];
+  is_active: boolean;
+}
+
+export interface Governorate {
+  id: number;
+  name_ar: string;
+}
+
+export interface Region {
+  id: number;
+  governorate_id: number;
+  name_ar: string;
+}
+
+export const ROLE_LABELS: Record<Role, string> = {
+  admin: "أدمن",
+  team_leader: "تيم ليدر",
+  agent: "أجنت",
+};
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  new: "جديد",
+  no_answer: "مردش",
+  contacted: "تم التواصل",
+  interview: "مقابلة",
+  documents: "استلام أوراق",
+  hired: "اشتغل",
+  rejected: "مرفوض",
+};
+
+export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
+  new: "bg-sky-100 text-sky-800",
+  no_answer: "bg-zinc-200 text-zinc-700",
+  contacted: "bg-indigo-100 text-indigo-800",
+  interview: "bg-amber-100 text-amber-800",
+  documents: "bg-violet-100 text-violet-800",
+  hired: "bg-emerald-100 text-emerald-800",
+  rejected: "bg-rose-100 text-rose-800",
+};
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  pending: "لم يبدأ",
+  in_progress: "جاري",
+  done: "تم",
+  cancelled: "ملغي",
+};
+
+export const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "عادي",
+  medium: "متوسط",
+  high: "عاجل",
+};
+
+export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
+  text: "نص",
+  number: "رقم",
+  phone: "تليفون",
+  date: "تاريخ",
+  select: "اختيار من قائمة",
+  checkbox: "نعم / لا",
+  textarea: "نص طويل",
+};

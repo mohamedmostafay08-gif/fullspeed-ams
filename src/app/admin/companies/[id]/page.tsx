@@ -1,0 +1,150 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createAnnouncement, updateCompany } from "@/app/admin/actions";
+import { PageHeader } from "@/components/app-shell";
+import { FormBuilder } from "@/components/form-builder";
+import { StateForm } from "@/components/state-form";
+import { CompanyLogo, Empty, formatDate } from "@/components/ui";
+import { requireRole } from "@/lib/auth";
+import { getGeo } from "@/lib/data";
+import { createClient } from "@/lib/supabase/server";
+import type { FormField } from "@/lib/types";
+
+const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
+
+export default async function CompanyPage({ params }: PageProps<"/admin/companies/[id]">) {
+  const profile = await requireRole("admin", "team_leader");
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: company } = await supabase
+    .from("companies")
+    .select("id, name, slug, logo_path, description, form_schema, is_active")
+    .eq("id", id)
+    .maybeSingle();
+  if (!company) notFound();
+
+  const [{ governorates }, hiringRes, annRes, agentsRes] = await Promise.all([
+    getGeo(),
+    supabase.from("company_governorates").select("governorate_id").eq("company_id", id),
+    supabase.from("company_announcements").select("id, type, title, body, amount, valid_to, created_at").eq("company_id", id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("agent_companies").select("profiles!agent_companies_agent_id_fkey(id, full_name)").eq("company_id", id),
+  ]);
+  const hiring = new Set((hiringRes.data ?? []).map((r) => r.governorate_id));
+  const agents = (agentsRes.data ?? []).map((r) => r.profiles as unknown as { id: string; full_name: string } | null).filter(Boolean) as { id: string; full_name: string }[];
+  const isAdmin = profile.role === "admin";
+
+  return (
+    <>
+      <PageHeader title={company.name} subtitle={company.is_active ? "شغالة" : "متوقفة"}>
+        <CompanyLogo name={company.name} src={company.logo_path} size={56} />
+      </PageHeader>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <section className="card">
+            <h2 className="mb-3 font-semibold">فورم التسجيل الخاص بالشركة</h2>
+            {isAdmin ? (
+              <FormBuilder companyId={company.id} initial={company.form_schema as FormField[]} />
+            ) : (
+              <ul className="list-disc space-y-1 pr-5 text-sm">
+                {(company.form_schema as FormField[]).map((f) => <li key={f.key}>{f.label}</li>)}
+              </ul>
+            )}
+          </section>
+
+          {isAdmin && (
+            <section className="card">
+              <h2 className="mb-3 font-semibold">بيانات الشركة ومناطق التعيين</h2>
+              <StateForm action={updateCompany} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="id" value={company.id} />
+                <input type="hidden" name="slug" value={company.slug} />
+                <div>
+                  <label className="label" htmlFor="name">الاسم</label>
+                  <input id="name" name="name" defaultValue={company.name} required className="input" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="logo">تغيير اللوجو</label>
+                  <input id="logo" name="logo" type="file" accept="image/*" className="input" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label" htmlFor="description">ملاحظات / شروط الشركة</label>
+                  <textarea id="description" name="description" defaultValue={company.description ?? ""} rows={3} className="input" />
+                </div>
+                <fieldset className="sm:col-span-2">
+                  <legend className="label">المحافظات اللي الشركة بتعيّن فيها</legend>
+                  <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+                    {governorates.map((g) => (
+                      <label key={g.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="governorate_id" value={g.id} defaultChecked={hiring.has(g.id)} className="accent-brand-600" />
+                        {g.name_ar}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" name="is_active" defaultChecked={company.is_active} className="accent-brand-600" /> الشركة شغالة
+                </label>
+              </StateForm>
+            </section>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <section className="card">
+            <h2 className="mb-1 font-semibold">نشر بونص / تعريفة</h2>
+            <p className="mb-3 text-xs text-zinc-500">بيوصل إشعار فوري لكل الأجنتس المتعينين على {company.name} ({agents.length})</p>
+            <StateForm action={createAnnouncement} className="space-y-3" submitLabel="نشر" resetOnSuccess>
+              <input type="hidden" name="company_id" value={company.id} />
+              <select name="type" className="input">
+                <option value="bonus">بونص</option>
+                <option value="rate">تعريفة جديدة</option>
+                <option value="info">معلومة / تحديث</option>
+              </select>
+              <input name="title" required placeholder="العنوان (مثلاً: بونص 500 جنيه لكل كابتن)" className="input" />
+              <textarea name="body" rows={3} placeholder="التفاصيل والشروط" className="input" />
+              <div className="grid grid-cols-2 gap-2">
+                <input name="amount" type="number" step="0.01" placeholder="المبلغ (ج.م)" className="input" />
+                <input name="valid_to" type="date" className="input" aria-label="ساري حتى" />
+              </div>
+            </StateForm>
+          </section>
+
+          <section className="card">
+            <h2 className="mb-3 font-semibold">آخر الإعلانات</h2>
+            {(annRes.data ?? []).length === 0 ? (
+              <Empty>مفيش</Empty>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {(annRes.data ?? []).map((a) => (
+                  <li key={a.id} className="rounded-lg bg-zinc-50 p-3">
+                    <p className="font-semibold">
+                      <span className="text-brand-700">{ANN_LABEL[a.type]}:</span> {a.title}
+                      {a.amount != null && ` — ${a.amount} ج.م`}
+                    </p>
+                    {a.body && <p className="mt-1 text-zinc-600">{a.body}</p>}
+                    <p className="mt-1 text-xs text-zinc-400">
+                      {formatDate(a.created_at)}{a.valid_to && ` · لحد ${a.valid_to}`}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="card">
+            <h2 className="mb-3 font-semibold">الأجنتس المتعينين</h2>
+            {agents.length === 0 ? (
+              <Empty>مفيش — عيّن من صفحة الأجنت</Empty>
+            ) : (
+              <ul className="space-y-1 text-sm">
+                {agents.map((a) => (
+                  <li key={a.id}><Link href={`/admin/agents/${a.id}`} className="hover:text-brand-700">{a.full_name}</Link></li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
+    </>
+  );
+}
