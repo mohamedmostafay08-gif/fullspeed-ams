@@ -5,7 +5,7 @@ import { StateForm } from "@/components/state-form";
 import { Empty } from "@/components/ui";
 import { requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ROLE_LABELS, type Role } from "@/lib/types";
+import { ROLE_LABELS, assignableRoles, type Role } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 
 export default async function AgentsPage() {
@@ -82,7 +82,7 @@ export default async function AgentsPage() {
                 <label className="label" htmlFor="role">{t("الصلاحية")}</label>
                 <select id="role" name="role" defaultValue="agent" className="input">
                   {Object.entries(ROLE_LABELS)
-                    .filter(([v]) => profile.role === "admin" || v !== "admin")
+                    .filter(([v]) => assignableRoles(profile.role).includes(v as Role))
                     .map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
                 </select>
               </div>

@@ -6,7 +6,7 @@ import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
 import { cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
-import { PRIORITY_LABELS, ROLE_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/types";
+import { PRIORITY_LABELS, ROLE_LABELS, TASK_STATUS_LABELS, assignableRoles, canManageRole, type Role, type TaskPriority, type TaskStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -32,8 +32,9 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
     supabase.from("teams").select("id, name"),
     supabase.from("work_locations").select("id, name").order("name"),
   ]);
-  const canManage = me.role === "admin" || (me.role === "manager" && agent.role !== "admin");
-  const roleOptions = Object.entries(ROLE_LABELS).filter(([v]) => me.role === "admin" || v !== "admin");
+  const canManage = canManageRole(me.role, agent.role as Role);
+  // Keep the current role visible even if this user may not assign it.
+  const roleOptions = Object.entries(ROLE_LABELS).filter(([v]) => assignableRoles(me.role).includes(v as Role) || v === agent.role);
   const assigned = new Set((assignedRes.data ?? []).map((r) => r.company_id));
   const targets = new Map((targetsRes.data ?? []).map((row) => [row.company_id, row]));
   const perf = ((perfRes.data ?? []) as { day: string; agent_id: string; company_id: string; leads_count: number; hired_count: number; target_leads: number; target_hired: number }[]).filter((r) => r.agent_id === id);

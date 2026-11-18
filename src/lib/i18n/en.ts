@@ -1,5 +1,6 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  "المدير يقدر يضيف تيم ليدر أو أجنت بس — المدير والأدمن بيضيفهم الأدمن": "A manager can add team leaders and agents only — managers and admins are added by an admin",
   "ثبّت التطبيق": "Install app",
   "ثبّت التطبيق على الآيفون": "Install the app on iPhone",
   "افتح السيستم من Safari": "Open the system in Safari",

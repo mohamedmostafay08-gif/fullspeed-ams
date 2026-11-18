@@ -111,3 +111,13 @@ export const DOC_KINDS = {
   criminal_record: "فيش جنائي",
   other: "أخرى",
 } as const;
+
+/** Who may give which role: only an admin creates admins and managers; a manager adds team leaders and agents. */
+export function assignableRoles(myRole: Role): Role[] {
+  if (myRole === "admin") return ["admin", "manager", "team_leader", "agent"];
+  if (myRole === "manager") return ["team_leader", "agent"];
+  return [];
+}
+
+/** Whether `myRole` may edit an account that currently has `targetRole`. */
+export const canManageRole = (myRole: Role, targetRole: Role) => myRole === "admin" || (myRole === "manager" && (targetRole === "team_leader" || targetRole === "agent"));

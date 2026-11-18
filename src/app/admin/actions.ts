@@ -6,7 +6,7 @@ import { MANAGERS, requireRole, STAFF } from "@/lib/auth";
 import { isValidEgyptMobile, normalizePhone, parseSchema } from "@/lib/forms";
 import { MISSING_SERVICE_KEY, createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { FormField, Role } from "@/lib/types";
+import { assignableRoles, canManageRole, type FormField, type Role } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -29,7 +29,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
   if (!fullName || !email) return { error: t("الاسم والإيميل مطلوبين") };
   if (password.length < 8) return { error: t("كلمة السر لازم 8 حروف على الأقل") };
   if (!["admin", "manager", "team_leader", "agent"].includes(role)) return { error: t("اختار الصلاحية") };
-  if (role === "admin" && me.role !== "admin") return { error: t("الأدمن بس هو اللي يقدر يعمل أدمن") };
+  if (!assignableRoles(me.role).includes(role)) return { error: t("المدير يقدر يضيف تيم ليدر أو أجنت بس — المدير والأدمن بيضيفهم الأدمن") };
   if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
   const { data, error } = await createAdminClient().auth.admin.createUser({
@@ -60,8 +60,11 @@ export async function updateUser(form: FormData) {
   const supabase = await createClient();
   const id = str(form, "id");
   const role = str(form, "role") as Role;
-  const allowedRoles: Role[] = me.role === "admin" ? ["admin", "manager", "team_leader", "agent"] : ["manager", "team_leader", "agent"];
+  const allowedRoles = assignableRoles(me.role);
   const self = id === me.id;
+  const { data: target } = await supabase.from("profiles").select("role").eq("id", id).maybeSingle();
+  // A manager can't touch other managers or admins (the database enforces the same rule).
+  if (!target || (!self && !canManageRole(me.role, target.role as Role))) return;
   await supabase
     .from("profiles")
     .update({
@@ -92,7 +95,8 @@ export async function createTeam(_prev: ActionState, form: FormData): Promise<Ac
   const leaderId = str(form, "leader_id") || null;
   const { data, error } = await supabase.from("teams").insert({ name, leader_id: leaderId }).select("id").single();
   if (error) return { error: t("اسم التيم موجود قبل كده") };
-  if (leaderId) await supabase.from("profiles").update({ team_id: data.id, role: "team_leader" }).eq("id", leaderId);
+  // Only agents/team leaders become a team's leader role; a manager picked as leader keeps their role.
+  if (leaderId) await supabase.from("profiles").update({ team_id: data.id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
   return done("/admin/agents", t("تم إنشاء التيم"));
 }
 
@@ -102,7 +106,7 @@ export async function updateTeam(form: FormData) {
   const id = str(form, "id");
   const leaderId = str(form, "leader_id") || null;
   await supabase.from("teams").update({ name: str(form, "name"), leader_id: leaderId }).eq("id", id);
-  if (leaderId) await supabase.from("profiles").update({ team_id: id, role: "team_leader" }).eq("id", leaderId);
+  if (leaderId) await supabase.from("profiles").update({ team_id: id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
   revalidatePath("/admin", "layout");
 }
 
