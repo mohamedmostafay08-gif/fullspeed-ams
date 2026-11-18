@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createAnnouncement, updateCompany } from "@/app/admin/actions";
+import { createAnnouncement, updateCompany, saveCallScript } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { FormBuilder } from "@/components/form-builder";
 import { StateForm } from "@/components/state-form";
@@ -21,7 +21,7 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
   const supabase = await createClient();
   const { data: company } = await supabase
     .from("companies")
-    .select("id, name, slug, logo_path, description, form_schema, is_active")
+    .select("id, name, slug, logo_path, description, form_schema, is_active, call_script")
     .eq("id", id)
     .maybeSingle();
   if (!company) notFound();
@@ -52,6 +52,28 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
               <ul className="list-disc space-y-1 ps-5 text-sm">
                 {(company.form_schema as FormField[]).map((f) => <li key={f.key}>{f.label}</li>)}
               </ul>
+            )}
+          </section>
+
+          <section className="card">
+            <h2 className="mb-1 font-semibold">{t("سكربت المكالمة")}</h2>
+            <p className="mb-3 text-xs text-zinc-500">{t("بيظهر للأجنت وهو بيكلم المتقدم. سطر يبدأ بـ # = عنوان · سطر يبدأ بـ ؟ = سؤال يعلّم عليه · أي سطر تاني = نقطة يقولها.")}</p>
+            {isAdmin ? (
+              <StateForm action={saveCallScript} className="space-y-3">
+                <input type="hidden" name="id" value={company.id} />
+                <textarea
+                  name="call_script"
+                  rows={9}
+                  maxLength={4000}
+                  defaultValue={company.call_script ?? ""}
+                  className="input font-mono text-sm leading-6"
+                  placeholder={"# البداية\nعرّف نفسك واسم الشركة\n؟ معاك موتوسيكل برخصة سارية؟\n؟ سنك كام؟\n# العرض\nالمرتب بيبدأ من … + بونص أسبوعي\n؟ تقدر تيجي المقابلة إمتى؟"}
+                />
+              </StateForm>
+            ) : company.call_script ? (
+              <p className="text-sm whitespace-pre-line text-zinc-700">{company.call_script}</p>
+            ) : (
+              <p className="text-sm text-zinc-400">{t("لسه مفيش سكربت")}</p>
             )}
           </section>
 

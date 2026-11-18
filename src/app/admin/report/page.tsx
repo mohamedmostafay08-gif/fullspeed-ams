@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, PhoneCall, TrendingUp, UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { TrendChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
 import { cairoToday, requireRole, STAFF } from "@/lib/auth";
@@ -8,7 +9,9 @@ import type { BoardRow } from "@/lib/badges";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
+type Period = "day" | "week" | "month";
 type Analytics = {
+  by_day?: { day: string; leads: number; hired: number }[];
   totals: { leads: number; contacted: number; no_answer: number; rejected: number; unassigned: number };
   hired: number;
   avg_hours_first_touch: number | null;
@@ -17,6 +20,20 @@ type Analytics = {
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** [from, to, prevFrom, prevTo] — weeks run Saturday → Friday. */
+function range(period: Period, d: string): [string, string, string, string] {
+  if (period === "day") return [d, d, shift(d, -1), shift(d, -1)];
+  if (period === "week") {
+    const dow = new Date(`${d}T12:00:00Z`).getUTCDay(); // 0 Sun … 6 Sat
+    const start = shift(d, -((dow + 1) % 7));
+    return [start, shift(start, 6), shift(start, -7), shift(start, -1)];
+  }
+  const start = `${d.slice(0, 7)}-01`;
+  const end = shift(`${shift(start, 32).slice(0, 7)}-01`, -1);
+  const prevEnd = shift(start, -1);
+  return [start, end, `${prevEnd.slice(0, 7)}-01`, prevEnd];
+}
+
 const shift = (d: string, days: number) => new Date(new Date(`${d}T12:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10);
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : "—");
 
@@ -26,28 +43,56 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
   const today = cairoToday();
   const asked = String((await searchParams).date ?? "");
   const day = DATE_RE.test(asked) && asked <= today ? asked : today;
+  const sp = await searchParams;
+  const period: Period = sp.period === "week" || sp.period === "month" ? sp.period : "day";
+  const anchor = day;
+  const [from, to, prevFrom, prevTo] = range(period, anchor);
   const supabase = await createClient();
-  const [aRes, bRes] = await Promise.all([
-    supabase.rpc("acquisition_analytics", { p_from: day, p_to: day }),
-    supabase.rpc("leaderboard", { p_from: day, p_to: day }),
+  const [aRes, bRes, pRes, pbRes, talkRes] = await Promise.all([
+    supabase.rpc("acquisition_analytics", { p_from: from, p_to: to }),
+    supabase.rpc("leaderboard", { p_from: from, p_to: to }),
+    supabase.rpc("acquisition_analytics", { p_from: prevFrom, p_to: prevTo }),
+    supabase.rpc("leaderboard", { p_from: prevFrom, p_to: prevTo }),
+    supabase.rpc("talk_time", { p_from: from, p_to: to }),
   ]);
   const a = aRes.data as Analytics | null;
+  const prev = pRes.data as Analytics | null;
   const board = ((bRes.data ?? []) as BoardRow[]).filter((r) => r.points > 0 || r.leads > 0);
+  const prevBoard = (pbRes.data ?? []) as BoardRow[];
+  const talk = new Map(((talkRes.data ?? []) as { agent_id: string; minutes: number }[]).map((r) => [r.agent_id, r.minutes]));
   const extra = new Map((a?.by_agent ?? []).map((r) => [r.id, r]));
   const calls = board.reduce((s, r) => s + r.calls, 0);
   const interviews = board.reduce((s, r) => s + r.interviews, 0);
+  const prevCalls = prevBoard.reduce((s, r) => s + r.calls, 0);
+  const prevInterviews = prevBoard.reduce((s, r) => s + r.interviews, 0);
   const hours = (h: number | null) => (h == null ? "—" : h < 1 ? t("{0} د", Math.round(h * 60)) : t("{0} س", Math.round(h * 10) / 10));
+  const delta = (now: number, before: number) => {
+    if (!before) return now ? t("جديد عن الفترة اللي قبلها") : t("زي الفترة اللي قبلها");
+    const d = Math.round(((now - before) / before) * 100);
+    return d === 0 ? t("زي الفترة اللي قبلها") : t("{0} {1}% عن الفترة اللي قبلها", d > 0 ? "▲" : "▼", Math.abs(d));
+  };
+  const titles: Record<Period, string> = { day: "التقرير اليومي", week: "التقرير الأسبوعي", month: "التقرير الشهري" };
+  const link = (pd: Period, d: string) => `/admin/report?period=${pd}&date=${d}`;
+  const step = period === "day" ? 1 : period === "week" ? 7 : 0;
+  const prevAnchor = period === "month" ? prevTo : shift(anchor, -step);
+  const nextAnchor = period === "month" ? shift(to, 1) : shift(anchor, step);
 
   return (
     <>
-      <PageHeader title={t("التقرير اليومي")} subtitle={t("ملخص يوم {0} — بيتبعت أوتوماتيك الساعة 9 بالليل", day)}>
+      <PageHeader title={t(titles[period])} subtitle={from === to ? t("ملخص يوم {0}", from) : t("من {0} إلى {1}", from, to)}>
+        <div className="no-print scroll-row">
+          {(["day", "week", "month"] as Period[]).map((pd) => (
+            <Link key={pd} href={link(pd, anchor)} className={`chip ${pd === period ? "chip-active" : ""}`}>{t({ day: "يوم", week: "أسبوع", month: "شهر" }[pd])}</Link>
+          ))}
+        </div>
         <div className="no-print flex min-w-0 flex-1 items-center gap-1 sm:flex-none">
-          <Link href={`/admin/report?date=${shift(day, -1)}`} className="btn-ghost px-2.5" aria-label={t("اليوم اللي قبله")}><ChevronRight size={17} className="ltr:rotate-180" /></Link>
+          <Link href={link(period, prevAnchor)} className="btn-ghost px-2.5" aria-label={t("اللي قبله")}><ChevronRight size={17} className="ltr:rotate-180" /></Link>
           <form className="flex min-w-0 flex-1 gap-1">
-            <input type="date" name="date" defaultValue={day} max={today} className="input py-2 sm:w-auto" aria-label={t("التاريخ")} />
+            <input type="hidden" name="period" value={period} />
+            <input type="date" name="date" defaultValue={anchor} max={today} className="input py-2 sm:w-auto" aria-label={t("التاريخ")} />
             <button className="btn-ghost"><CalendarDays size={16} /></button>
           </form>
-          {day < today && <Link href={`/admin/report?date=${shift(day, 1)}`} className="btn-ghost px-2.5" aria-label={t("اليوم اللي بعده")}><ChevronLeft size={17} className="ltr:rotate-180" /></Link>}
+          {to < today && <Link href={link(period, nextAnchor > today ? today : nextAnchor)} className="btn-ghost px-2.5" aria-label={t("اللي بعده")}><ChevronLeft size={17} className="ltr:rotate-180" /></Link>}
         </div>
         <PrintButton />
       </PageHeader>
@@ -57,12 +102,19 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
       ) : (
         <div className="space-y-6">
           <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <StatCard label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={t("{0} مش متوزعين", a.totals.unassigned)} />
-            <StatCard label={t("مكالمات")} value={calls} icon={PhoneCall} hint={t("أول رد في المتوسط: {0}", hours(a.avg_hours_first_touch))} />
-            <StatCard label={t("مقابلات")} value={interviews} icon={CalendarDays} tone="warn" />
-            <StatCard label={t("اشتغلوا")} value={a.hired} icon={CheckCircle2} tone="good" />
-            <StatCard label={t("نسبة التحويل")} value={pct(a.hired, a.totals.leads)} icon={TrendingUp} tone="brand" />
+            <StatCard label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={delta(a.totals.leads, prev?.totals.leads ?? 0)} />
+            <StatCard label={t("مكالمات")} value={calls} icon={PhoneCall} hint={delta(calls, prevCalls)} />
+            <StatCard label={t("مقابلات")} value={interviews} icon={CalendarDays} tone="warn" hint={delta(interviews, prevInterviews)} />
+            <StatCard label={t("اشتغلوا")} value={a.hired} icon={CheckCircle2} tone="good" hint={delta(a.hired, prev?.hired ?? 0)} />
+            <StatCard label={t("نسبة التحويل")} value={pct(a.hired, a.totals.leads)} icon={TrendingUp} tone="brand" hint={t("أول رد في المتوسط: {0}", hours(a.avg_hours_first_touch))} />
           </div>
+
+          {period !== "day" && a.by_day && (
+            <section className="card">
+              <h2 className="card-title">{t("يوم بيوم")}</h2>
+              <TrendChart data={a.by_day} />
+            </section>
+          )}
 
           <section className="card">
             <h2 className="card-title">{t("أداء الأجنتس")}</h2>
@@ -74,7 +126,7 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
                   <thead>
                     <tr>
                       <th>#</th><th>{t("الأجنت")}</th><th>{t("نقط")}</th><th>{t("ليدز")}</th><th>{t("مكالمات")}</th><th>{t("اتكلّموا")}</th>
-                      <th>{t("مردوش")}</th><th>{t("مقابلات")}</th><th>{t("اشتغلوا")}</th><th>{t("أول رد")}</th><th>{t("البريك")}</th>
+                      <th>{t("مردوش")}</th><th>{t("مقابلات")}</th><th>{t("اشتغلوا")}</th><th>{t("أول رد")}</th><th>{t("دقايق كلام")}</th><th>{t("البريك")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -92,6 +144,7 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
                           <td className="num">{r.interviews}</td>
                           <td className="num font-bold text-emerald-700">{r.hired}</td>
                           <td className="num">{hours(x?.first_touch_hours ?? null)}</td>
+                          <td className="num">{talk.get(r.agent_id) ?? 0}</td>
                           <td className="num">{x?.break_minutes ? t("{0} د", Math.round(x.break_minutes)) : "—"}</td>
                         </tr>
                       );

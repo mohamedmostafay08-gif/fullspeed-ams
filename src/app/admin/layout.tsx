@@ -23,6 +23,7 @@ const NAV: Item[] = [
   { href: "/admin/locations", label: "أماكن الشغل", icon: "location", roles: ["admin", "manager"] },
   { href: "/admin/audit", label: "سجل التعديلات", icon: "audit", roles: ["admin", "manager"] },
   { href: "/admin/crm", label: "ربط الـ CRM", icon: "crm", roles: ["admin"] },
+  { href: "/admin/integrations", label: "النسخ والتكاملات", icon: "backup", roles: ["admin"] },
   { href: "/admin/account", label: "حسابي", icon: "account" },
 ];
 

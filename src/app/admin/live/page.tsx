@@ -19,13 +19,15 @@ export default async function LivePage() {
   const [dayStart] = cairoRange(today, today);
   const slowBefore = minutesAgo(30);
 
-  const [activityRes, boardRes, teamsRes, breaksRes, waitingRes] = await Promise.all([
+  const [activityRes, boardRes, teamsRes, breaksRes, waitingRes, talkRes] = await Promise.all([
     supabase.rpc("team_activity_today"),
     supabase.rpc("leaderboard", { p_from: today, p_to: today }),
     supabase.from("profiles").select("id, full_name, teams!profiles_team_id_fkey(name)").eq("role", "agent").eq("is_active", true),
     supabase.from("agent_breaks").select("agent_id, status, ends_at").in("status", ["pending", "active"]).gte("requested_at", dayStart),
     supabase.from("leads").select("agent_id, created_at").eq("status", "new").eq("attempts", 0).not("agent_id", "is", null).limit(5000),
+    supabase.rpc("talk_time", { p_from: today, p_to: today }),
   ]);
+  const talk = new Map(((talkRes.data ?? []) as { agent_id: string; minutes: number }[]).map((r) => [r.agent_id, r.minutes]));
 
   type Act = { agent_id: string; last_at: string | null; last_note: string | null };
   const activity = new Map(((activityRes.data ?? []) as Act[]).map((a) => [a.agent_id, a]));
@@ -55,6 +57,7 @@ export default async function LivePage() {
       breakPending: breaks.some((x) => x.agent_id === id && x.status === "pending"),
       waiting: mine.length,
       slow: mine.filter((w) => w.created_at < slowBefore).length,
+      talkMin: talk.get(id) ?? 0,
     };
   });
 

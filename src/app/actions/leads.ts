@@ -211,3 +211,17 @@ export async function deleteDocument(form: FormData) {
 export async function clearSchedule(form: FormData) {
   await scheduleLead(undefined, form);
 }
+
+/** Called when the agent returns from the phone app; duration = time spent away. */
+export async function logCall(leadId: string, startedAt: string, durationS: number) {
+  const profile = await getProfile();
+  if (!profile) return;
+  const supabase = await createClient();
+  const seconds = Math.max(0, Math.min(14_400, Math.round(durationS)));
+  const started = Number.isNaN(Date.parse(startedAt)) ? new Date() : new Date(startedAt);
+  const { error } = await supabase.from("call_logs").insert({ lead_id: leadId, agent_id: profile.id, started_at: started.toISOString(), duration_s: seconds });
+  if (!error) {
+    const mmss = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    await supabase.rpc("log_lead_note", { p_lead: leadId, p_note: `⏱️ مدة المكالمة ${mmss}` });
+  }
+}

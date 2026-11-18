@@ -8,6 +8,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
 import { PrefsControls } from "@/components/prefs";
 import { InstallButton } from "@/components/pwa";
+import { CallReturnWatcher } from "@/components/call-timer";
 import { getT, getTheme } from "@/lib/i18n/server";
 
 function initials(name: string) {
@@ -81,6 +82,7 @@ export async function AppShell({
         <main className="w-full animate-rise px-4 py-5 md:px-8 md:py-8 2xl:px-10">{children}</main>
       </div>
 
+      <CallReturnWatcher />
       <BottomNav items={nav} profile={{ name: profile.full_name, role: ROLE_LABELS[profile.role] }} theme={theme} />
     </div>
   );

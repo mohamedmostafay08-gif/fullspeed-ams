@@ -22,6 +22,7 @@ export type LiveAgent = {
   breakPending: boolean;
   waiting: number;
   slow: number;
+  talkMin: number;
 };
 
 type State = "break" | "active" | "idle" | "away" | "off";
@@ -120,6 +121,7 @@ export function LiveBoard({ agents, base }: { agents: LiveAgent[]; base: string 
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
               {a.waiting > 0 && <span className="badge bg-sky-50 text-sky-800"><Phone size={11} /> {t("{0} مستنيين مكالمة", a.waiting)}</span>}
               {a.slow > 0 && <span className="badge bg-rose-50 text-rose-700"><AlertTriangle size={11} /> {t("{0} متأخرين +30 د", a.slow)}</span>}
+              {a.talkMin > 0 && <span className="badge bg-emerald-50 text-emerald-800"><Phone size={11} /> {t("{0} د كلام", a.talkMin)}</span>}
               {a.lastAt && <span className="ms-auto text-zinc-400">{cairoTime(a.lastAt, locale)} · {a.lastNote ? t(a.lastNote) : "—"}</span>}
             </div>
           </li>

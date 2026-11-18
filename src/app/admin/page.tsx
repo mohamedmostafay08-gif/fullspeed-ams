@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DeviceSetupBanner } from "@/components/pwa";
+import { ForecastCard, type Forecast } from "@/components/forecast";
 import { getPushPublicKey } from "@/lib/push";
 import { AlertTriangle, Building2, Coffee, CheckCircle2, PieChart, TrendingUp, Trophy, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
@@ -35,7 +36,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
 
   const [start, end] = cairoRange(from, to);
   const supabase = await createClient();
-  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes, pushKey, passkeysRes] = await Promise.all([
+  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes, pushKey, passkeysRes, forecastRes] = await Promise.all([
     supabase.rpc("performance_summary", { p_from: from, p_to: to }),
     supabase.from("profiles").select("id, full_name, role, team_id, is_active").eq("role", "agent").eq("is_active", true).order("full_name"),
     supabase.from("companies").select("id, name, logo_path").order("name"),
@@ -45,6 +46,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
     supabase.from("agent_breaks").select("status, ends_at").in("status", ["pending", "active"]),
     getPushPublicKey(),
     supabase.from("passkeys").select("id", { count: "exact", head: true }),
+    supabase.rpc("month_forecast"),
   ]);
   const pendingBreaks = (breaksRes.data ?? []).filter((b) => b.status === "pending").length;
   const onBreak = (breaksRes.data ?? []).filter((b) => b.status === "active" && b.ends_at && new Date(b.ends_at) > new Date()).length;
@@ -138,6 +140,8 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
         <StatCard label={t("نسبة التحويل")} value={`${conversion}%`} tone="brand" icon={TrendingUp} hint={t("اشتغلوا ÷ ليدز")} />
         <StatCard label={t("أجنتس نشطين")} value={agents.length} icon={Users} hint={t("{0} تيم", teamName.size)} />
       </div>
+
+      {forecastRes.data && <div className="mt-6"><ForecastCard f={forecastRes.data as Forecast} /></div>}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <section className="card xl:col-span-2">

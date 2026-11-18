@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Clock, Coffee, ExternalLink, Phone, PhoneCall, RotateCcw, SkipForward, Sparkles, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { CallPanel } from "@/components/call-panel";
+import { CallScript } from "@/components/call-script";
+import { CallButton } from "@/components/call-timer";
 import { CompanyLogo, Empty, StatusBadge, formatDate } from "@/components/ui";
 import { WhatsAppMenu } from "@/components/whatsapp-menu";
 import { requireRole } from "@/lib/auth";
@@ -13,7 +15,7 @@ import { placeName, type FormField, type LeadStatus } from "@/lib/types";
 import { templatesFor, type Template } from "@/lib/whatsapp";
 
 const SELECT =
-  "id, full_name, phone, status, notes, source, form_data, created_at, attempts, last_contact_at, callback_at, interview_at, interview_place, company_id, companies(name, logo_path, form_schema), governorates(name_ar, name_en), regions(name_ar)";
+  "id, full_name, phone, status, notes, source, form_data, created_at, attempts, last_contact_at, callback_at, interview_at, interview_place, company_id, companies(name, logo_path, form_schema, call_script), governorates(name_ar, name_en), regions(name_ar)";
 const RETRY_AFTER_MS = 2 * 3_600_000;
 const MAX_ATTEMPTS = 5;
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -105,7 +107,7 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
     );
   }
 
-  const company = lead.companies as unknown as { name: string; logo_path: string | null; form_schema: FormField[] };
+  const company = lead.companies as unknown as { name: string; logo_path: string | null; form_schema: FormField[]; call_script: string | null };
   const formData = (lead.form_data ?? {}) as Record<string, unknown>;
   const templates = templatesFor((tplRes.data ?? []) as Template[], lead.company_id);
   const vars = {
@@ -144,13 +146,15 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <a href={`tel:${lead.phone}`} className="btn-primary px-6 py-3.5 text-base">
+            <CallButton leadId={lead.id} name={lead.full_name} phone={lead.phone} className="btn-primary px-6 py-3.5 text-base">
               <PhoneCall size={20} /> <span dir="ltr" className="num">{lead.phone}</span>
-            </a>
+            </CallButton>
             <WhatsAppMenu leadId={lead.id} phone={lead.phone} templates={templates} vars={vars} />
             <Link href={`/agent/leads/${lead.id}`} className="btn-ghost"><ExternalLink size={16} /> {t("صفحة الليد")}</Link>
             <Link href={skipHref} className="btn-ghost ms-auto"><SkipForward size={16} /> {t("عدّي")}</Link>
           </div>
+
+          <CallScript script={company.call_script} />
 
           <div>
             <h3 className="mb-2 text-sm font-bold text-zinc-600">{t("نتيجة المكالمة")}</h3>

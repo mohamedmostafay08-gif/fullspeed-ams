@@ -1,5 +1,6 @@
 import { TargetCelebration } from "@/components/celebrate";
 import { DeviceSetupBanner } from "@/components/pwa";
+import { ForecastCard, type Forecast } from "@/components/forecast";
 import { getPushPublicKey } from "@/lib/push";
 import { BadgesCard, Leaderboard } from "@/components/leaderboard";
 import { badgesFor, type AgentStats, type BoardRow } from "@/lib/badges";
@@ -28,7 +29,7 @@ export default async function AgentHome() {
   const today = cairoToday();
   const supabase = await createClient();
   const [dayStart, dayEnd] = cairoRange(today, today);
-  const [companies, perfRes, tasksRes, annRes, followRes, breaksRes, callbacksRes, interviewsRes, boardRes, statsRes, pushKey, passkeysRes] = await Promise.all([
+  const [companies, perfRes, tasksRes, annRes, followRes, breaksRes, callbacksRes, interviewsRes, boardRes, statsRes, pushKey, passkeysRes, forecastRes] = await Promise.all([
     getAssignedCompanies(profile.id),
     supabase.rpc("performance_report", { p_from: today, p_to: today, p_agent: profile.id }),
     supabase
@@ -78,6 +79,7 @@ export default async function AgentHome() {
     supabase.rpc("agent_stats", { p_agent: profile.id }),
     getPushPublicKey(),
     supabase.from("passkeys").select("id", { count: "exact", head: true }),
+    supabase.rpc("month_forecast"),
   ]);
 
   const perf = (perfRes.data ?? []) as PerfRow[];
@@ -188,6 +190,8 @@ export default async function AgentHome() {
           <BreakWidget today={(breaksRes.data ?? []) as BreakRow[]} />
 
           <Leaderboard rows={board} me={profile.id} />
+
+          {(forecastRes.data as Forecast | null)?.agents?.length ? <ForecastCard f={forecastRes.data as Forecast} personal /> : null}
 
           <section className="card">
             <h2 className="card-title"><CalendarDays size={18} className="text-violet-500" /> {t("مواعيدي النهارده")}</h2>
