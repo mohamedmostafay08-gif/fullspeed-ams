@@ -1,18 +1,41 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
+import { I18nProvider } from "@/lib/i18n/client";
+import { getLocale, getTheme } from "@/lib/i18n/server";
+import { dirOf } from "@/lib/i18n/translate";
 import "./globals.css";
 
 const cairo = Cairo({ variable: "--font-cairo", subsets: ["arabic", "latin"] });
 
 export const metadata: Metadata = {
   title: "Full Speed — Acquisition",
-  description: "نظام إدارة فريق الأكوزيشن — Full Speed",
+  description: "Full Speed acquisition team system",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f6f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1020" },
+  ],
+};
+
+// Applies the OS colour scheme before first paint when the user has not picked one.
+const SYSTEM_THEME = `(function(){var m=window.matchMedia('(prefers-color-scheme: dark)');function a(){document.documentElement.classList.toggle('dark',m.matches)}a();m.addEventListener('change',a)})()`;
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const [locale, theme] = await Promise.all([getLocale(), getTheme()]);
   return (
-    <html lang="ar" dir="rtl" className={`${cairo.variable} h-full antialiased`}>
-      <body className="min-h-full font-sans">{children}</body>
+    <html
+      lang={locale}
+      dir={dirOf(locale)}
+      data-theme={theme}
+      className={`${cairo.variable} h-full antialiased ${theme === "dark" ? "dark" : ""}`}
+      suppressHydrationWarning
+    >
+      <head>{theme === "system" && <script dangerouslySetInnerHTML={{ __html: SYSTEM_THEME }} />}</head>
+      <body className="min-h-full font-sans">
+        <I18nProvider locale={locale}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }
