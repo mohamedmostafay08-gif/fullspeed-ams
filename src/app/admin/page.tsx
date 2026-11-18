@@ -91,18 +91,18 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   return (
     <>
       <LiveRefresh channel="admin-overview" />
-      <DeviceSetupBanner publicKey={await getPushPublicKey()} />
+      <DeviceSetupBanner publicKey={await getPushPublicKey()} hasPasskey={((await supabase.from("passkeys").select("id", { count: "exact", head: true })).count ?? 0) > 0} />
       <PageHeader title={t("أهلاً {0}", profile.full_name.split(" ")[0])} subtitle={from === to ? t("أداء يوم {0}", from) : t("الأداء من {0} إلى {1}", from, to)}>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="scroll-row -mx-4 w-[calc(100%+2rem)] px-4 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
           {presets.map((p) => (
             <Link key={p.label} href={`/admin?from=${p.from}&to=${p.to}`} className={`chip ${p.from === from && p.to === to ? "chip-active" : ""}`}>
               {p.label}
             </Link>
           ))}
         </div>
-        <form className="flex items-center gap-1.5">
-          <input type="date" name="from" defaultValue={from} className="input w-auto py-1.5" aria-label={t("من")} />
-          <input type="date" name="to" defaultValue={to} className="input w-auto py-1.5" aria-label={t("إلى")} />
+        <form className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:w-auto">
+          <input type="date" name="from" defaultValue={from} className="input min-w-0 px-2.5 py-1.5 sm:w-auto" aria-label={t("من")} />
+          <input type="date" name="to" defaultValue={to} className="input min-w-0 px-2.5 py-1.5 sm:w-auto" aria-label={t("إلى")} />
           <button className="btn-dark btn-sm">{t("عرض")}</button>
         </form>
       </PageHeader>

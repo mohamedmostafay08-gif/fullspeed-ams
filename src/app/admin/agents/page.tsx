@@ -29,11 +29,11 @@ export default async function AgentsPage() {
     <>
       <PageHeader title={t("الفريق")} subtitle={t("{0} أجنت نشط", (people ?? []).filter((p) => p.role === "agent" && p.is_active).length)} />
 
-      <section className="card overflow-x-auto">
+      <section className="card md:overflow-x-auto">
         {(people ?? []).length === 0 ? (
           <Empty>{t("مفيش حد لسه")}</Empty>
         ) : (
-          <table className="data-table">
+          <table className="data-table hidden md:table">
             <thead>
               <tr><th>{t("الاسم")}</th><th>{t("الصلاحية")}</th><th>{t("التيم")}</th><th>{t("المكان")}</th><th>{t("الشركات")}</th><th>{t("الموبايل")}</th><th>{t("الحالة")}</th></tr>
             </thead>
@@ -55,6 +55,30 @@ export default async function AgentsPage() {
             </tbody>
           </table>
         )}
+        {/* Phone: one card per person */}
+        <ul className="-my-1 divide-y divide-zinc-100 md:hidden">
+          {(people ?? []).map((p) => (
+            <li key={p.id} className={p.is_active ? "" : "opacity-50"}>
+              <Link href={`/admin/agents/${p.id}`} className="flex items-center gap-3 py-3 active:bg-zinc-50">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-sm font-bold text-white">
+                  {p.full_name.split(/\s+/).slice(0, 2).map((x: string) => x[0]).join("")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{p.full_name}</p>
+                  <p className="truncate text-xs text-zinc-500">
+                    {t(ROLE_LABELS[p.role as Role])}
+                    {p.team_id ? ` · ${teamName.get(p.team_id)}` : ""}
+                    {p.location_id ? ` · ${locationName.get(p.location_id)}` : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">{t("نشط")}</span> : <span className="badge bg-zinc-200">{t("موقوف")}</span>}
+                  <span className="text-[11px] text-zinc-400">{t("{0} شركة", companyCount.get(p.id) ?? 0)}</span>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {isAdmin && (

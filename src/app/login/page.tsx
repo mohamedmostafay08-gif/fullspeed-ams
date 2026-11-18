@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { BrandMark } from "@/components/app-shell";
 import { LoginForm } from "./login-form";
+import { PasskeyLoginButton } from "@/components/passkeys";
 import { PrefsControls } from "@/components/prefs";
 import { getT, getTheme } from "@/lib/i18n/server";
 
@@ -33,6 +34,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </p>
           )}
           <LoginForm />
+          <div className="mt-5 flex items-center gap-3 text-xs text-zinc-400">
+            <span className="h-px flex-1 bg-zinc-200" /> {t("أو")} <span className="h-px flex-1 bg-zinc-200" />
+          </div>
+          <div className="mt-5">
+            <PasskeyLoginButton />
+          </div>
         </div>
 
         <p className="text-xs text-zinc-400">© {new Date().getFullYear()} Full Speed Logistics — The future of logistics</p>

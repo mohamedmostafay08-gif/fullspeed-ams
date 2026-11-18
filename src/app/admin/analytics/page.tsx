@@ -82,17 +82,17 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   ];
   const header = (
     <PageHeader title={t("تحليلات الأكوزيشن")} subtitle={t("من {0} إلى {1}", from, to)}>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="scroll-row -mx-4 w-[calc(100%+2rem)] px-4 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
         {presets.map((p) => (
           <Link key={p.label} href={`/admin/analytics?from=${p.from}&to=${p.to}&sort=${sortKey}`} className={`chip ${p.from === from && p.to === to ? "chip-active" : ""}`}>
             {p.label}
           </Link>
         ))}
       </div>
-      <form className="flex items-center gap-1.5">
+      <form className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:w-auto">
         <input type="hidden" name="sort" value={sortKey} />
-        <input type="date" name="from" defaultValue={from} className="input w-auto py-1.5" aria-label={t("من")} />
-        <input type="date" name="to" defaultValue={to} className="input w-auto py-1.5" aria-label={t("إلى")} />
+        <input type="date" name="from" defaultValue={from} className="input min-w-0 px-2.5 py-1.5 sm:w-auto" aria-label={t("من")} />
+        <input type="date" name="to" defaultValue={to} className="input min-w-0 px-2.5 py-1.5 sm:w-auto" aria-label={t("إلى")} />
         <button className="btn-dark btn-sm">{t("عرض")}</button>
       </form>
     </PageHeader>

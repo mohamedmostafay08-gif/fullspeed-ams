@@ -41,10 +41,10 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
   return (
     <>
       <PageHeader title={t("التقرير اليومي")} subtitle={t("ملخص يوم {0} — بيتبعت أوتوماتيك الساعة 9 بالليل", day)}>
-        <div className="no-print flex items-center gap-1">
+        <div className="no-print flex min-w-0 flex-1 items-center gap-1 sm:flex-none">
           <Link href={`/admin/report?date=${shift(day, -1)}`} className="btn-ghost px-2.5" aria-label={t("اليوم اللي قبله")}><ChevronRight size={17} className="ltr:rotate-180" /></Link>
-          <form className="flex gap-1">
-            <input type="date" name="date" defaultValue={day} max={today} className="input w-auto py-2" aria-label={t("التاريخ")} />
+          <form className="flex min-w-0 flex-1 gap-1">
+            <input type="date" name="date" defaultValue={day} max={today} className="input py-2 sm:w-auto" aria-label={t("التاريخ")} />
             <button className="btn-ghost"><CalendarDays size={16} /></button>
           </form>
           {day < today && <Link href={`/admin/report?date=${shift(day, 1)}`} className="btn-ghost px-2.5" aria-label={t("اليوم اللي بعده")}><ChevronLeft size={17} className="ltr:rotate-180" /></Link>}

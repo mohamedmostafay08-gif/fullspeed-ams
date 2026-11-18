@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
 import { BellOff, BellRing, Download, Loader2, Share, Smartphone, X } from "lucide-react";
 import { removePushSubscription, savePushSubscription, sendTestPush } from "@/app/actions/push";
 import { useT } from "@/lib/i18n/client";
+import { PasskeyRegisterButton } from "@/components/passkeys";
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
@@ -61,7 +62,7 @@ function useInstall() {
 }
 
 /** Header button: native install prompt (Android/desktop Chrome) or Add-to-Home-Screen steps (iPhone). */
-export function InstallButton() {
+export function InstallButton({ compact = false }: { compact?: boolean }) {
   const t = useT();
   const { canPrompt, standalone, ios } = useInstall();
   const [help, setHelp] = useState(false);
@@ -78,9 +79,11 @@ export function InstallButton() {
             emit();
           } else setHelp(true);
         }}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-50 px-3 text-xs font-bold text-brand-700 transition hover:bg-brand-100 active:scale-95"
+        className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-brand-50 text-xs font-bold whitespace-nowrap text-brand-700 transition hover:bg-brand-100 active:scale-95 ${compact ? "w-9 justify-center md:w-auto md:px-3" : "px-3"}`}
+        aria-label={t("ثبّت التطبيق")}
+        title={t("ثبّت التطبيق")}
       >
-        <Download size={15} /> {t("ثبّت التطبيق")}
+        <Download size={15} /> <span className={compact ? "hidden md:inline" : ""}>{t("ثبّت التطبيق")}</span>
       </button>
       {help && <IosHelp onClose={() => setHelp(false)} />}
     </>
@@ -221,7 +224,7 @@ export function PushSettings({ publicKey }: { publicKey: string | null }) {
 }
 
 /** One-time nudge on dashboards until the device is set up (or dismissed). */
-export function DeviceSetupBanner({ publicKey }: { publicKey: string | null }) {
+export function DeviceSetupBanner({ publicKey, hasPasskey = true }: { publicKey: string | null; hasPasskey?: boolean }) {
   const t = useT();
   const { state, busy, enable } = usePush(publicKey);
   const { canPrompt, standalone, ios } = useInstall();
@@ -236,24 +239,27 @@ export function DeviceSetupBanner({ publicKey }: { publicKey: string | null }) {
     },
     () => true,
   );
+  const passkeyCapable = useSyncExternalStore(subscribe, () => "PublicKeyCredential" in window && /android|iphone|ipad/i.test(navigator.userAgent), () => false);
   const wantsInstall = !standalone && (canPrompt || ios);
   const wantsPush = state === "off" || state === "needs-install";
-  if (dismissed || state === "loading" || (!wantsInstall && !wantsPush)) return null;
+  const wantsPasskey = !hasPasskey && passkeyCapable;
+  if (dismissed || state === "loading" || (!wantsInstall && !wantsPush && !wantsPasskey)) return null;
 
   return (
-    <div className="mb-5 flex animate-rise flex-wrap items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4">
+    <div className="relative mb-5 grid animate-rise grid-cols-[auto_1fr] items-start gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4 pe-10 sm:flex sm:items-center">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-600 text-white"><Smartphone size={20} /></span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 sm:flex-1">
         <p className="font-bold text-brand-700">{t("خلّي السيستم على موبايلك")}</p>
-        <p className="text-sm text-zinc-600">{t("ثبّته كتطبيق وفعّل الإشعارات — هيوصلك كل ليد وبونص وتذكير فوراً حتى لو مقفول")}</p>
+        <p className="text-[13px] leading-5 text-zinc-600">{t("ثبّته كتطبيق، فعّل الإشعارات والدخول بالبصمة — هيوصلك كل ليد وبونص فوراً وتدخل بلمسة")}</p>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1">
         {wantsInstall && <InstallButton />}
         {state === "off" && (
           <button onClick={enable} disabled={busy} className="btn-primary btn-sm">
             {busy ? <Loader2 size={14} className="animate-spin" /> : <BellRing size={14} />} {t("فعّل الإشعارات")}
           </button>
         )}
+        {wantsPasskey && <PasskeyRegisterButton className="btn-dark btn-sm" />}
         <button
           onClick={() => {
             try {
@@ -261,7 +267,7 @@ export function DeviceSetupBanner({ publicKey }: { publicKey: string | null }) {
             } catch {}
             emit();
           }}
-          className="rounded-lg p-1.5 text-zinc-400 hover:bg-white"
+          className="absolute end-2 top-2 rounded-lg p-1.5 text-zinc-400 hover:bg-white"
           aria-label={t("إغلاق")}
         >
           <X size={16} />

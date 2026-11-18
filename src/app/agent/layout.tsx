@@ -7,12 +7,13 @@ import { getUnreadCount } from "@/lib/data";
 import { pendingLocationCheck } from "@/lib/location-gate";
 
 const NAV = [
-  { href: "/agent", label: "يومي", icon: "dashboard", exact: true },
-  { href: "/agent/next", label: "ابدأ المكالمات", icon: "phone" },
-  { href: "/agent/leads/new", label: "ليد جديد", icon: "add", exact: true },
-  { href: "/agent/leads", label: "الليدز بتاعتي", icon: "leads", exact: true },
+  { href: "/agent", label: "يومي", icon: "dashboard", exact: true, mobile: "tab" },
+  { href: "/agent/next", label: "ابدأ المكالمات", icon: "phone", mobile: "tab" },
+  { href: "/agent/leads/new", label: "ليد جديد", icon: "add", exact: true, mobile: "fab" },
+  { href: "/agent/leads", label: "الليدز بتاعتي", icon: "leads", exact: true, mobile: "tab" },
   { href: "/agent/tasks", label: "التاسكات", icon: "tasks" },
   { href: "/agent/notifications", label: "الإشعارات", icon: "bell" },
+  { href: "/agent/account", label: "حسابي", icon: "account" },
 ] as const;
 
 export default async function AgentLayout({ children }: LayoutProps<"/agent">) {

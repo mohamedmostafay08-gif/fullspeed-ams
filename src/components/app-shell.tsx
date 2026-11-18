@@ -61,27 +61,27 @@ export async function AppShell({
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1 pb-20 md:pb-0">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-zinc-200/80 bg-white/85 px-4 py-3 backdrop-blur md:px-8">
-          <div className="flex items-center gap-2 md:hidden">
+      <div className="min-w-0 flex-1 overflow-x-clip pb-28 md:pb-0">
+        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-zinc-200/80 bg-white/85 px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-2.5 backdrop-blur-xl md:gap-3 md:px-8 md:py-3">
+          <div className="flex min-w-0 items-center gap-2.5 md:hidden">
             <BrandMark small />
-            <span className="text-sm font-extrabold">Full Speed</span>
+            <div className="min-w-0 leading-tight">
+              <p className="truncate text-sm font-extrabold">{profile.full_name.split(" ")[0]}</p>
+              <p className="truncate text-[11px] text-zinc-500">{t(ROLE_LABELS[profile.role])}</p>
+            </div>
           </div>
           <div className="ms-auto flex items-center gap-1">
-            <InstallButton />
-            <PrefsControls theme={theme} sound />
+            <InstallButton compact />
+            <div className="hidden md:block">
+              <PrefsControls theme={theme} sound />
+            </div>
             <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
-            <form action={signOut} className="md:hidden">
-              <button className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100" aria-label={t("خروج")}>
-                <LogOut size={18} />
-              </button>
-            </form>
           </div>
         </header>
-        <main className="w-full animate-rise px-4 py-6 md:px-8 md:py-8 2xl:px-10">{children}</main>
+        <main className="w-full animate-rise px-4 py-5 md:px-8 md:py-8 2xl:px-10">{children}</main>
       </div>
 
-      <BottomNav items={nav} />
+      <BottomNav items={nav} profile={{ name: profile.full_name, role: ROLE_LABELS[profile.role] }} theme={theme} />
     </div>
   );
 }
@@ -93,7 +93,7 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
         <h1 className="text-2xl font-extrabold tracking-tight md:text-[28px]">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>}
       </div>
-      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+      {children && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{children}</div>}
     </div>
   );
 }
