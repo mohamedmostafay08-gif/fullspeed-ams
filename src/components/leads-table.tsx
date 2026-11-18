@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageCircle, Phone } from "lucide-react";
+import { Columns3, MessageCircle, Phone, Rows3 } from "lucide-react";
 import { LeadStatusSelect } from "@/components/live";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
 import type { LeadStatus } from "@/lib/types";
@@ -111,5 +111,23 @@ export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRo
         })}
       </ul>
     </>
+  );
+}
+
+/** Table ⇄ board switch that keeps the current filters. */
+export async function ViewToggle({ base, query, view }: { base: string; query: string; view: "table" | "board" }) {
+  const t = await getT();
+  const href = (v: string) => `${base}?${[query, v === "board" ? "view=board" : ""].filter(Boolean).join("&")}`;
+  const cls = (active: boolean) =>
+    `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${active ? "bg-ink text-white dark:bg-zinc-800" : "text-zinc-500 hover:text-ink"}`;
+  return (
+    <div className="inline-flex rounded-xl border border-zinc-200 bg-white p-1" role="tablist">
+      <Link href={href("table")} className={cls(view === "table")} role="tab" aria-selected={view === "table"}>
+        <Rows3 size={14} /> {t("جدول")}
+      </Link>
+      <Link href={href("board")} className={cls(view === "board")} role="tab" aria-selected={view === "board"}>
+        <Columns3 size={14} /> {t("لوحة")}
+      </Link>
+    </div>
   );
 }

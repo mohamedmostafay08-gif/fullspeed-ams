@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import {
+  Ban,
   BarChart3,
+  MessageCircle,
+  PhoneCall,
   Bell,
   Coffee,
   MapPin,
@@ -32,6 +35,9 @@ const ICONS: Record<string, LucideIcon> = {
   analytics: BarChart3,
   coffee: Coffee,
   location: MapPin,
+  phone: PhoneCall,
+  whatsapp: MessageCircle,
+  ban: Ban,
 };
 
 export interface NavItem {

@@ -12,7 +12,7 @@ import type { NotificationType } from "@/lib/types";
 
 type Incoming = { type: NotificationType; title: string; body: string | null; link: string | null };
 
-const SOUND: Partial<Record<NotificationType, Sound>> = { lead: "lead", assignment: "lead", bonus: "bonus", rate: "bonus" };
+const SOUND: Partial<Record<NotificationType, Sound>> = { lead: "lead", assignment: "lead", bonus: "bonus", rate: "bonus", reminder: "lead" };
 
 // The unread count comes from the server; realtime events add the effects and trigger a refresh.
 export function NotificationBell({ userId, initial: count, href }: { userId: string; initial: number; href: string }) {
@@ -36,7 +36,7 @@ export function NotificationBell({ userId, initial: count, href }: { userId: str
             const n = payload.new as Incoming;
             const big = n.type === "bonus" || n.type === "rate";
             playSound(SOUND[n.type] ?? "notify");
-            vibrate(big ? [220, 90, 220, 90, 400] : n.type === "lead" ? [120, 60, 120] : 90);
+            vibrate(big ? [220, 90, 220, 90, 400] : n.type === "lead" || n.type === "reminder" ? [120, 60, 120, 60, 120] : 90);
             setRing((r) => r + 1);
             if (big) {
               setTakeover(n);

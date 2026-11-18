@@ -105,7 +105,10 @@ export async function POST(request: NextRequest) {
       .select("id")
       .single();
     if (error) {
-      results.push({ external_id: externalId, status: error.code === "23505" ? "duplicate" : "error" });
+      results.push({
+        external_id: externalId,
+        status: error.code === "23505" ? "duplicate" : error.message.includes("BLACKLISTED") ? "blacklisted" : "error",
+      });
       continue;
     }
     results.push({ external_id: externalId, status: "created", id: data.id, assigned: Boolean(agentId) });

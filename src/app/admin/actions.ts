@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { MANAGERS, requireRole, STAFF } from "@/lib/auth";
-import { parseSchema } from "@/lib/forms";
+import { isValidEgyptMobile, normalizePhone, parseSchema } from "@/lib/forms";
 import { MISSING_SERVICE_KEY, createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField, Role } from "@/lib/types";
@@ -303,7 +303,6 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
   if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
   const { parseCsv } = await import("@/lib/csv");
-  const { normalizePhone, isValidEgyptMobile } = await import("@/lib/forms");
   const rows = parseCsv(await file.text());
   if (rows.length < 2) return { error: t("الملف فاضي — لازم أول سطر يكون أسماء الأعمدة") };
 
@@ -330,10 +329,13 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
   // Duplicate check must see every agent's leads, not only the caller's team.
   const filePhones = [...new Set(rows.slice(1).map((r) => normalizePhone(r[iPhone] ?? "")).filter(isValidEgyptMobile))];
   const seen = new Set<string>();
+  const banned = new Set<string>();
   const admin = createAdminClient();
   for (let i = 0; i < filePhones.length; i += 300) {
     const { data } = await admin.from("leads").select("phone").eq("company_id", companyId).in("phone", filePhones.slice(i, i + 300));
     for (const l of data ?? []) seen.add(l.phone);
+    const { data: bl } = await admin.from("blacklist").select("phone").in("phone", filePhones.slice(i, i + 300));
+    for (const b of bl ?? []) banned.add(b.phone);
   }
 
   const pool =
@@ -347,12 +349,17 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
 
   let skipped = 0;
   let dupes = 0;
+  let blocked = 0;
   const toInsert = [];
   for (const r of rows.slice(1)) {
     const phone = normalizePhone(r[iPhone] ?? "");
     const fullName = (r[iName] ?? "").trim();
     if (!fullName || !isValidEgyptMobile(phone)) {
       skipped++;
+      continue;
+    }
+    if (banned.has(phone)) {
+      blocked++;
       continue;
     }
     if (seen.has(phone)) {
@@ -387,7 +394,8 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
     if (error) return { error: t("اتسجل {0} بس — حصل خطأ: {1}", i, error.message) };
   }
   revalidatePath("/admin", "layout");
-  return { ok: t("اتسجل {0} ليد · {1} مكرر · {2} بيانات ناقصة", toInsert.length, dupes, skipped) };
+  const summary = t("اتسجل {0} ليد · {1} مكرر · {2} بيانات ناقصة", toInsert.length, dupes, skipped);
+  return { ok: blocked ? `${summary} · ${t("{0} في البلاك ليست", blocked)}` : summary };
 }
 
 export async function deleteTask(form: FormData) {
@@ -447,4 +455,57 @@ export async function importFormFields(_prev: ImportState, form: FormData): Prom
   } catch (e) {
     return { error: (e as Error).message };
   }
+}
+
+// ───────── WhatsApp templates ─────────
+export async function addTemplate(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  const me = await requireRole(...STAFF);
+  const title = str(form, "title").slice(0, 80);
+  const body = str(form, "body").slice(0, 1500);
+  if (!title || !body) return { error: t("اكتب اسم القالب والرسالة") };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("whatsapp_templates")
+    .insert({ title, body, company_id: str(form, "company_id") || null, created_by: me.id });
+  if (error) return { error: t("مقدرتش أحفظ") };
+  return done("/admin/templates", t("تم الحفظ"));
+}
+
+export async function deleteTemplate(form: FormData) {
+  await requireRole(...STAFF);
+  const supabase = await createClient();
+  await supabase.from("whatsapp_templates").delete().eq("id", str(form, "id"));
+  revalidatePath("/admin/templates");
+}
+
+// ───────── Blacklist ─────────
+export async function addToBlacklist(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  const me = await requireRole(...STAFF);
+  const phone = normalizePhone(str(form, "phone"));
+  const reason = str(form, "reason").slice(0, 300);
+  if (!isValidEgyptMobile(phone)) return { error: t("رقم الموبايل غير صحيح (لازم 11 رقم ويبدأ بـ 01)") };
+  if (!reason) return { error: t("اكتب سبب الحظر") };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("blacklist")
+    .insert({ phone, reason, full_name: str(form, "full_name") || null, created_by: me.id });
+  if (error) return { error: error.code === "23505" ? t("الرقم ده في البلاك ليست بالفعل") : t("مقدرتش أحفظ") };
+
+  // Blocking from a lead page also closes every open lead with that number.
+  const leadId = str(form, "lead_id");
+  if (leadId) {
+    await supabase.from("leads").update({ status: "rejected", callback_at: null }).eq("phone", phone).not("status", "in", "(hired,rejected)");
+    await supabase.rpc("log_lead_note", { p_lead: leadId, p_note: `⛔ اتحظر: ${reason}`.slice(0, 300) });
+  }
+  revalidatePath("/", "layout");
+  return { ok: t("الرقم اتحظر") };
+}
+
+export async function removeFromBlacklist(form: FormData) {
+  await requireRole(...STAFF);
+  const supabase = await createClient();
+  await supabase.from("blacklist").delete().eq("id", str(form, "id"));
+  revalidatePath("/admin/blacklist");
 }

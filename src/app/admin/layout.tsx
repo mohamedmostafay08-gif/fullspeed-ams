@@ -16,6 +16,8 @@ const NAV: Item[] = [
   { href: "/admin/companies", label: "الشركات", icon: "companies" },
   { href: "/admin/tasks", label: "التاسكات", icon: "tasks" },
   { href: "/admin/announcements", label: "البونص والإشعارات", icon: "bonus" },
+  { href: "/admin/templates", label: "قوالب واتساب", icon: "whatsapp" },
+  { href: "/admin/blacklist", label: "البلاك ليست", icon: "ban" },
   { href: "/admin/locations", label: "أماكن الشغل", icon: "location", roles: ["admin", "manager"] },
   { href: "/admin/crm", label: "ربط الـ CRM", icon: "crm", roles: ["admin"] },
 ];

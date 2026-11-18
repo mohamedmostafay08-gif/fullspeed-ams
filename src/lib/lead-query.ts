@@ -26,7 +26,7 @@ export async function queryLeads(f: LeadFilters, opts: { limit: number; offset: 
   let q = supabase
     .from("leads")
     .select(
-      "id, full_name, phone, status, source, created_at, form_data, notes, companies(name, logo_path), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
+      "id, full_name, phone, status, source, created_at, form_data, notes, callback_at, interview_at, attempts, companies(name, logo_path), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -51,4 +51,34 @@ export function filtersToQuery(f: LeadFilters, page?: number) {
   for (const k of ["company", "agent", "status", "from", "to", "q"] as const) if (f[k]) p.set(k, f[k]!);
   if (page && page > 1) p.set("page", String(page));
   return p.toString();
+}
+
+export type LeadsView = "table" | "board";
+export const readView = (sp: Record<string, string | string[] | undefined>): LeadsView => (sp.view === "board" ? "board" : "table");
+export const BOARD_LIMIT = 400;
+
+type Row = {
+  id: string;
+  full_name: string;
+  phone: string;
+  status: string;
+  callback_at: string | null;
+  interview_at: string | null;
+  attempts: number;
+  companies: unknown;
+  agent: unknown;
+};
+
+export function toBoardLeads(rows: Row[]) {
+  return rows.map((l) => ({
+    id: l.id,
+    full_name: l.full_name,
+    phone: l.phone,
+    status: l.status as import("@/lib/types").LeadStatus,
+    company: l.companies as { name: string; logo_path: string | null },
+    agent: (l.agent as { full_name: string } | null)?.full_name ?? null,
+    callback_at: l.callback_at,
+    interview_at: l.interview_at,
+    attempts: l.attempts,
+  }));
 }

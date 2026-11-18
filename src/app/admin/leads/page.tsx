@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { importLeads } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
-import { LeadsTable, type LeadRow } from "@/components/leads-table";
+import { LeadsBoard } from "@/components/leads-board";
+import { LeadsTable, ViewToggle, type LeadRow } from "@/components/leads-table";
 import { LiveRefresh } from "@/components/live";
 import { StateForm } from "@/components/state-form";
 import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
-import { filtersToQuery, queryLeads, readFilters } from "@/lib/lead-query";
+import { BOARD_LIMIT, filtersToQuery, queryLeads, readFilters, readView, toBoardLeads } from "@/lib/lead-query";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_LABELS } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -16,12 +17,14 @@ const PAGE_SIZE = 50;
 export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin/leads">) {
   const t = await getT();
   await requireRole(...STAFF);
-  const f = readFilters(await searchParams);
+  const sp = await searchParams;
+  const f = readFilters(sp);
+  const view = readView(sp);
   const supabase = await createClient();
   const [companies, { data: agents }, { data: leads, count }] = await Promise.all([
     getCompanies(),
     supabase.from("profiles").select("id, full_name").eq("role", "agent").order("full_name"),
-    queryLeads(f, { limit: PAGE_SIZE, offset: (f.page - 1) * PAGE_SIZE }),
+    view === "board" ? queryLeads(f, { limit: BOARD_LIMIT, offset: 0 }) : queryLeads(f, { limit: PAGE_SIZE, offset: (f.page - 1) * PAGE_SIZE }),
   ]);
   const pages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
   const qs = filtersToQuery(f);
@@ -30,6 +33,7 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
     <>
       <LiveRefresh channel="admin-leads" />
       <PageHeader title={t("الليدز")} subtitle={t("{0} ليد", count ?? 0)}>
+        <ViewToggle base="/admin/leads" query={qs} view={view} />
         <div className="flex gap-2">
           <a href={`/admin/leads/export?${qs}`} className="btn-ghost">{t("تصدير Excel")}</a>
           <Link href="/admin/leads/new" className="btn-primary">{t("ليد جديد")}</Link>
@@ -37,6 +41,7 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
       </PageHeader>
 
       <form className="card mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        {view === "board" && <input type="hidden" name="view" value="board" />}
         <input name="q" defaultValue={f.q} placeholder={t("اسم أو موبايل")} className="input lg:col-span-2" />
         <select name="company" defaultValue={f.company ?? ""} className="input">
           <option value="">{t("كل الشركات")}</option>
@@ -58,16 +63,20 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
         </div>
       </form>
 
-      <section className="card">
-        <LeadsTable leads={(leads ?? []) as LeadRow[]} basePath="/admin/leads" showAgent />
-        {pages > 1 && (
-          <div className="mt-4 flex items-center justify-center gap-2 text-sm">
-            {f.page > 1 && <Link className="btn-ghost" href={`/admin/leads?${filtersToQuery(f, f.page - 1)}`}>{t("السابق")}</Link>}
-            <span className="text-zinc-500">{t("صفحة")} {f.page} {t("من")} {pages}</span>
-            {f.page < pages && <Link className="btn-ghost" href={`/admin/leads?${filtersToQuery(f, f.page + 1)}`}>{t("التالي")}</Link>}
-          </div>
-        )}
-      </section>
+      {view === "board" ? (
+        <LeadsBoard leads={toBoardLeads((leads ?? []) as Parameters<typeof toBoardLeads>[0])} basePath="/admin/leads" showAgent={true} />
+      ) : (
+        <section className="card">
+          <LeadsTable leads={(leads ?? []) as LeadRow[]} basePath="/admin/leads" showAgent />
+          {pages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm">
+              {f.page > 1 && <Link className="btn-ghost" href={`/admin/leads?${filtersToQuery(f, f.page - 1)}`}>{t("السابق")}</Link>}
+              <span className="text-zinc-500">{t("صفحة")} {f.page} {t("من")} {pages}</span>
+              {f.page < pages && <Link className="btn-ghost" href={`/admin/leads?${filtersToQuery(f, f.page + 1)}`}>{t("التالي")}</Link>}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="card mt-6 max-w-3xl">
         <h2 className="mb-1 font-semibold">{t("استيراد ليدز من ملف (CSV)")}</h2>

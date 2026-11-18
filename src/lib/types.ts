@@ -2,7 +2,7 @@ export type Role = "admin" | "manager" | "team_leader" | "agent";
 export type LeadStatus = "new" | "no_answer" | "contacted" | "interview" | "documents" | "hired" | "rejected";
 export type TaskStatus = "pending" | "in_progress" | "done" | "cancelled";
 export type TaskPriority = "low" | "medium" | "high";
-export type NotificationType = "bonus" | "rate" | "task" | "assignment" | "lead" | "info" | "break";
+export type NotificationType = "bonus" | "rate" | "task" | "assignment" | "lead" | "info" | "break" | "reminder";
 export type BreakStatus = "pending" | "active" | "ended" | "rejected" | "cancelled";
 
 export type FieldType = "text" | "number" | "phone" | "date" | "select" | "checkbox" | "textarea";
@@ -101,3 +101,13 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   checkbox: "نعم / لا",
   textarea: "نص طويل",
 };
+
+export const DOC_KINDS = {
+  id_front: "البطاقة (وش)",
+  id_back: "البطاقة (ضهر)",
+  license: "رخصة القيادة",
+  vehicle_license: "رخصة المركبة",
+  photo: "صورة شخصية",
+  criminal_record: "فيش جنائي",
+  other: "أخرى",
+} as const;

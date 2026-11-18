@@ -13,6 +13,7 @@ const TYPE_STYLE: Record<NotificationType, { label: string; cls: string }> = {
   lead: { label: "ليد", cls: "bg-violet-100 text-violet-800" },
   info: { label: "تنبيه", cls: "bg-zinc-200 text-zinc-700" },
   break: { label: "بريك", cls: "bg-teal-100 text-teal-800" },
+  reminder: { label: "تذكير", cls: "bg-orange-100 text-orange-800" },
 };
 
 export async function NotificationsList({ userId }: { userId: string }) {
