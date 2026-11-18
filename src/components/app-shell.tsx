@@ -3,6 +3,7 @@ import { signOut } from "@/app/actions/auth";
 import { BottomNav, SideNav, type NavItem } from "@/components/nav-links";
 import { NotificationBell } from "@/components/notification-bell";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 function initials(name: string) {
   return name
@@ -14,7 +15,7 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function AppShell({
+export async function AppShell({
   profile,
   nav,
   unread,
@@ -27,6 +28,7 @@ export function AppShell({
   notificationsHref: string;
   children: React.ReactNode;
 }) {
+  const t = await getT();
   return (
     <div className="min-h-screen md:flex">
       <aside className="hidden bg-ink md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
@@ -43,10 +45,10 @@ export function AppShell({
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">{initials(profile.full_name)}</span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-white">{profile.full_name}</p>
-              <p className="text-[11px] text-slate-ink">{ROLE_LABELS[profile.role]}</p>
+              <p className="text-[11px] text-slate-ink">{t(ROLE_LABELS[profile.role])}</p>
             </div>
             <form action={signOut}>
-              <button className="rounded-lg p-2 text-slate-ink transition hover:bg-white/10 hover:text-white" aria-label="خروج" title="خروج">
+              <button className="rounded-lg p-2 text-slate-ink transition hover:bg-white/10 hover:text-white" aria-label={t("خروج")} title={t("خروج")}>
                 <LogOut size={16} />
               </button>
             </form>
@@ -63,7 +65,7 @@ export function AppShell({
           <div className="mr-auto flex items-center gap-2">
             <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
             <form action={signOut} className="md:hidden">
-              <button className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100" aria-label="خروج">
+              <button className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100" aria-label={t("خروج")}>
                 <LogOut size={18} />
               </button>
             </form>

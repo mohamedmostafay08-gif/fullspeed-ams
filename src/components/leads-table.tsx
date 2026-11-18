@@ -3,6 +3,7 @@ import { MessageCircle, Phone } from "lucide-react";
 import { LeadStatusSelect } from "@/components/live";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
 import type { LeadStatus } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export type LeadRow = {
   id: string;
@@ -21,10 +22,11 @@ type Company = { name: string; logo_path: string | null };
 const place = (l: LeadRow) =>
   [(l.governorates as { name_ar: string } | null)?.name_ar, (l.regions as { name_ar: string } | null)?.name_ar].filter(Boolean).join(" · ") || "—";
 
-export function ContactButtons({ phone }: { phone: string }) {
+export async function ContactButtons({ phone }: { phone: string }) {
+  const t = await getT();
   return (
     <span className="flex items-center gap-1">
-      <a href={`tel:${phone}`} className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-ink" aria-label="اتصال" title="اتصال">
+      <a href={`tel:${phone}`} className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-ink" aria-label={t("اتصال")} title={t("اتصال")}>
         <Phone size={15} />
       </a>
       <a
@@ -32,8 +34,8 @@ export function ContactButtons({ phone }: { phone: string }) {
         target="_blank"
         rel="noreferrer"
         className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-emerald-50 hover:text-emerald-600"
-        aria-label="واتساب"
-        title="واتساب"
+        aria-label={t("واتساب")}
+        title={t("واتساب")}
       >
         <MessageCircle size={15} />
       </a>
@@ -41,20 +43,21 @@ export function ContactButtons({ phone }: { phone: string }) {
   );
 }
 
-export function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRow[]; basePath: string; showAgent: boolean }) {
-  if (leads.length === 0) return <Empty>مفيش ليدز بالفلتر ده</Empty>;
+export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRow[]; basePath: string; showAgent: boolean }) {
+  const t = await getT();
+  if (leads.length === 0) return <Empty>{t("مفيش ليدز بالفلتر ده")}</Empty>;
   return (
     <>
       <div className="hidden overflow-x-auto md:block">
         <table className="data-table">
           <thead>
             <tr>
-              <th>المتقدم</th>
-              <th>الشركة</th>
-              <th>المنطقة</th>
-              {showAgent && <th>الأجنت</th>}
-              <th>الحالة</th>
-              <th>التاريخ</th>
+              <th>{t("المتقدم")}</th>
+              <th>{t("الشركة")}</th>
+              <th>{t("المنطقة")}</th>
+              {showAgent && <th>{t("الأجنت")}</th>}
+              <th>{t("الحالة")}</th>
+              <th>{t("التاريخ")}</th>
               <th className="w-20" />
             </tr>
           </thead>
@@ -72,7 +75,7 @@ export function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRow[]; b
                   </td>
                   <td className="text-zinc-600">{place(l)}</td>
                   {showAgent && (
-                    <td>{(l.agent as { full_name: string } | null)?.full_name ?? <span className="badge bg-rose-50 text-rose-700">غير معيّن</span>}</td>
+                    <td>{(l.agent as { full_name: string } | null)?.full_name ?? <span className="badge bg-rose-50 text-rose-700">{t("غير معيّن")}</span>}</td>
                   )}
                   <td><LeadStatusSelect id={l.id} status={l.status as LeadStatus} /></td>
                   <td className="whitespace-nowrap text-xs text-zinc-500">{formatDate(l.created_at)}</td>
@@ -94,7 +97,7 @@ export function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRow[]; b
                 <div className="min-w-0 flex-1">
                   <Link href={`${basePath}/${l.id}`} className="block truncate font-semibold">{l.full_name}</Link>
                   <p className="text-xs text-zinc-500">{c.name} · {place(l)}</p>
-                  {showAgent && <p className="text-xs text-zinc-500">{(l.agent as { full_name: string } | null)?.full_name ?? "غير معيّن"}</p>}
+                  {showAgent && <p className="text-xs text-zinc-500">{(l.agent as { full_name: string } | null)?.full_name ?? t("غير معيّن")}</p>}
                 </div>
                 <ContactButtons phone={l.phone} />
               </div>

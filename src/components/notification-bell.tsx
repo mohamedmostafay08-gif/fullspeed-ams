@@ -6,9 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, X } from "lucide-react";
 import { subscribeAsUser } from "@/lib/supabase/client";
+import { useT } from "@/lib/i18n/client";
 
 // The unread count comes from the server; realtime events just trigger a refresh.
 export function NotificationBell({ userId, initial: count, href }: { userId: string; initial: number; href: string }) {
+  const t = useT();
   const [toast, setToast] = useState<string | null>(null);
   const router = useRouter();
 
@@ -19,7 +21,7 @@ export function NotificationBell({ userId, initial: count, href }: { userId: str
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
           (payload) => {
-            setToast(String((payload.new as { title?: string }).title ?? "إشعار جديد"));
+            setToast(String((payload.new as { title?: string }).title ?? t("إشعار جديد")));
             router.refresh();
           },
         ),
@@ -35,7 +37,7 @@ export function NotificationBell({ userId, initial: count, href }: { userId: str
 
   return (
     <>
-      <Link href={href} className="relative rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-ink" aria-label="الإشعارات">
+      <Link href={href} className="relative rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-ink" aria-label={t("الإشعارات")}>
         <Bell size={20} />
         {count > 0 && (
           <span className="num absolute -top-0.5 -left-0.5 min-w-5 rounded-full bg-brand-600 px-1 text-center text-[11px] leading-5 font-bold text-white ring-2 ring-white">
@@ -53,7 +55,7 @@ export function NotificationBell({ userId, initial: count, href }: { userId: str
             <Bell size={14} />
           </span>
           <Link href={href} onClick={() => setToast(null)} className="flex-1 leading-6 font-semibold">{toast}</Link>
-          <button onClick={() => setToast(null)} className="text-slate-ink hover:text-white" aria-label="إغلاق">
+          <button onClick={() => setToast(null)} className="text-slate-ink hover:text-white" aria-label={t("إغلاق")}>
             <X size={16} />
           </button>
         </div>,

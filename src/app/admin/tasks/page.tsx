@@ -7,6 +7,7 @@ import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 const STATUS_CLS: Record<TaskStatus, string> = {
   pending: "bg-zinc-200 text-zinc-700",
@@ -16,6 +17,7 @@ const STATUS_CLS: Record<TaskStatus, string> = {
 };
 
 export default async function AdminTasksPage({ searchParams }: PageProps<"/admin/tasks">) {
+  const t = await getT();
   await requireRole(...STAFF);
   const sp = await searchParams;
   const agentFilter = typeof sp.agent === "string" ? sp.agent : "";
@@ -38,25 +40,25 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
 
   return (
     <>
-      <PageHeader title="التاسكات" />
+      <PageHeader title={t("التاسكات")} />
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="card h-fit">
-          <h2 className="mb-3 font-semibold">تاسك جديد</h2>
-          <StateForm action={createTask} className="space-y-3" submitLabel="إرسال" resetOnSuccess>
-            <input name="title" required placeholder="المطلوب (مثلاً: كلم ليدز امبارح اللي ماردوش)" className="input" />
-            <textarea name="description" rows={3} placeholder="تفاصيل" className="input" />
+          <h2 className="mb-3 font-semibold">{t("تاسك جديد")}</h2>
+          <StateForm action={createTask} className="space-y-3" submitLabel={t("إرسال")} resetOnSuccess>
+            <input name="title" required placeholder={t("المطلوب (مثلاً: كلم ليدز امبارح اللي ماردوش)")} className="input" />
+            <textarea name="description" rows={3} placeholder={t("تفاصيل")} className="input" />
             <div className="grid grid-cols-2 gap-2">
               <select name="priority" defaultValue="medium" className="input">
-                {Object.entries(PRIORITY_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {Object.entries(PRIORITY_LABELS).map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
               </select>
-              <input name="due_date" type="date" className="input" aria-label="آخر ميعاد" />
+              <input name="due_date" type="date" className="input" aria-label={t("آخر ميعاد")} />
             </div>
             <select name="company_id" className="input">
-              <option value="">الشركة (اختياري)</option>
+              <option value="">{t("الشركة (اختياري)")}</option>
               {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <fieldset>
-              <legend className="label">لمين؟</legend>
+              <legend className="label">{t("لمين؟")}</legend>
               <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-zinc-200 p-2">
                 {(agents ?? []).map((a) => (
                   <label key={a.id} className="flex items-center gap-2 text-sm">
@@ -72,44 +74,44 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         <section className="card lg:col-span-2">
           <form className="mb-4 flex flex-wrap gap-2">
             <select name="agent" defaultValue={agentFilter} className="input w-auto">
-              <option value="">كل الأجنتس</option>
+              <option value="">{t("كل الأجنتس")}</option>
               {(agents ?? []).map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
             </select>
             <select name="status" defaultValue={statusFilter} className="input w-auto">
-              <option value="">كل الحالات</option>
-              {Object.entries(TASK_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="">{t("كل الحالات")}</option>
+              {Object.entries(TASK_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
             </select>
-            <button className="btn-ghost">فلتر</button>
+            <button className="btn-ghost">{t("فلتر")}</button>
           </form>
           {(tasks ?? []).length === 0 ? (
-            <Empty>مفيش تاسكات</Empty>
+            <Empty>{t("مفيش تاسكات")}</Empty>
           ) : (
             <ul className="space-y-2">
-              {(tasks ?? []).map((t) => (
-                <li key={t.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-zinc-200 p-3">
+              {(tasks ?? []).map((row) => (
+                <li key={row.id} className="flex flex-wrap items-start gap-3 rounded-xl border border-zinc-200 p-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{t.title}</p>
-                    {t.description && <p className="text-sm text-zinc-600">{t.description}</p>}
+                    <p className="font-semibold">{row.title}</p>
+                    {row.description && <p className="text-sm text-zinc-600">{row.description}</p>}
                     <p className="mt-1 text-xs text-zinc-500">
-                      {(t.agent as unknown as { full_name: string } | null)?.full_name}
-                      {(t.companies as unknown as { name: string } | null) && ` · ${(t.companies as unknown as { name: string }).name}`}
-                      {` · ${PRIORITY_LABELS[t.priority as TaskPriority]}`}
-                      {t.due_date && ` · لحد ${t.due_date}`}
-                      {` · ${formatDate(t.created_at)}`}
+                      {(row.agent as unknown as { full_name: string } | null)?.full_name}
+                      {(row.companies as unknown as { name: string } | null) && ` · ${(row.companies as unknown as { name: string }).name}`}
+                      {` · ${t(PRIORITY_LABELS[row.priority as TaskPriority])}`}
+                      {row.due_date && t(" · لحد {0}", row.due_date)}
+                      {" · "}{formatDate(row.created_at)}
                     </p>
                   </div>
-                  <span className={`badge ${STATUS_CLS[t.status as TaskStatus]}`}>{TASK_STATUS_LABELS[t.status as TaskStatus]}</span>
+                  <span className={`badge ${STATUS_CLS[row.status as TaskStatus]}`}>{t(TASK_STATUS_LABELS[row.status as TaskStatus])}</span>
                   <div className="flex gap-1">
-                    {t.status !== "cancelled" && t.status !== "done" && (
+                    {row.status !== "cancelled" && row.status !== "done" && (
                       <form action={setTaskStatus}>
-                        <input type="hidden" name="id" value={t.id} />
+                        <input type="hidden" name="id" value={row.id} />
                         <input type="hidden" name="status" value="cancelled" />
-                        <button className="btn-ghost px-2 py-1 text-xs">إلغاء</button>
+                        <button className="btn-ghost px-2 py-1 text-xs">{t("إلغاء")}</button>
                       </form>
                     )}
                     <form action={deleteTask}>
-                      <input type="hidden" name="id" value={t.id} />
-                      <button className="btn-danger px-2 py-1 text-xs">حذف</button>
+                      <input type="hidden" name="id" value={row.id} />
+                      <button className="btn-danger px-2 py-1 text-xs">{t("حذف")}</button>
                     </form>
                   </div>
                 </li>

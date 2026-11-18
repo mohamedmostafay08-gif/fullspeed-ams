@@ -3,6 +3,7 @@ import { markAllRead } from "@/app/actions/notifications";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import type { NotificationType } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 const TYPE_STYLE: Record<NotificationType, { label: string; cls: string }> = {
   bonus: { label: "بونص", cls: "bg-emerald-100 text-emerald-800" },
@@ -15,6 +16,7 @@ const TYPE_STYLE: Record<NotificationType, { label: string; cls: string }> = {
 };
 
 export async function NotificationsList({ userId }: { userId: string }) {
+  const t = await getT();
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
@@ -29,10 +31,10 @@ export async function NotificationsList({ userId }: { userId: string }) {
     <div className="space-y-3">
       {unread && (
         <form action={markAllRead}>
-          <button className="btn-ghost">تعليم الكل كمقروء</button>
+          <button className="btn-ghost">{t("تعليم الكل كمقروء")}</button>
         </form>
       )}
-      {items.length === 0 && <Empty>مفيش إشعارات</Empty>}
+      {items.length === 0 && <Empty>{t("مفيش إشعارات")}</Empty>}
       {items.map((n) => {
         const company = n.companies as unknown as { name: string; logo_path: string | null } | null;
         const style = TYPE_STYLE[n.type as NotificationType];
@@ -41,10 +43,10 @@ export async function NotificationsList({ userId }: { userId: string }) {
             {company ? <CompanyLogo name={company.name} src={company.logo_path} size={40} /> : <span className="size-10 shrink-0" />}
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`badge ${style.cls}`}>{style.label}</span>
-                <p className="font-semibold">{n.title}</p>
+                <span className={`badge ${style.cls}`}>{t(style.label)}</span>
+                <p className="font-semibold">{t(n.title)}</p>
               </div>
-              {n.body && <p className="mt-1 whitespace-pre-line text-sm text-zinc-600">{n.body}</p>}
+              {n.body && <p className="mt-1 whitespace-pre-line text-sm text-zinc-600">{t(n.body)}</p>}
               <p className="mt-1 text-xs text-zinc-400">{formatDate(n.created_at)}</p>
             </div>
           </div>

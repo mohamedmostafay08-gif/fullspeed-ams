@@ -1,8 +1,10 @@
 import Image from "next/image";
 import { BrandMark } from "@/components/app-shell";
 import { LoginForm } from "./login-form";
+import { getT } from "@/lib/i18n/server";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const t = await getT();
   const inactive = (await searchParams).e === "inactive";
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
@@ -17,13 +19,13 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
         <div className="mx-auto w-full max-w-sm animate-rise py-12">
           <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
-            <span className="size-1.5 rounded-full bg-brand-500" /> فريق الأكوزيشن
+            <span className="size-1.5 rounded-full bg-brand-500" /> {t("فريق الأكوزيشن")}
           </p>
-          <h1 className="text-3xl font-extrabold tracking-tight text-ink">أهلاً بيك تاني</h1>
-          <p className="mt-2 text-sm leading-6 text-zinc-500">سجّل دخولك عشان تتابع شركاتك، الليدز، والتارجت بتاع النهارده.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-ink">{t("أهلاً بيك تاني")}</h1>
+          <p className="mt-2 text-sm leading-6 text-zinc-500">{t("سجّل دخولك عشان تتابع شركاتك، الليدز، والتارجت بتاع النهارده.")}</p>
           {inactive && (
             <p role="alert" className="mt-6 rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-900">
-              حسابك مش مفعّل أو اتوقف — كلم الأدمن، أو ادخل بحساب تاني.
+              {t("حسابك مش مفعّل أو اتوقف — كلم الأدمن، أو ادخل بحساب تاني.")}
             </p>
           )}
           <LoginForm />
@@ -35,11 +37,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <section className="relative hidden overflow-hidden bg-ink lg:block">
         <Image src="/brand/login-hero.jpg" alt="" fill priority sizes="55vw" className="object-cover object-top" />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/70 to-transparent p-12 pt-40 text-bone">
-          <p className="max-w-md text-2xl leading-relaxed font-bold">كل ليد بيوصل لمكانه — من الإعلان للأجنت لحد ما الكابتن يستلم شغله.</p>
+          <p className="max-w-md text-2xl leading-relaxed font-bold">{t("كل ليد بيوصل لمكانه — من الإعلان للأجنت لحد ما الكابتن يستلم شغله.")}</p>
           <div className="mt-6 flex gap-8 text-sm text-slate-ink">
-            <Stat value="27" label="شركة" />
-            <Stat value="27" label="محافظة" />
-            <Stat value="24/7" label="متابعة لحظية" />
+            <Stat value="27" label={t("شركة")} />
+            <Stat value="27" label={t("محافظة")} />
+            <Stat value="24/7" label={t("متابعة لحظية")} />
           </div>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Inbox, type LucideIcon } from "lucide-react";
+import { Tr, When } from "@/components/tr";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
 export function CompanyLogo({ name, src, size = 36 }: { name: string; src: string | null; size?: number }) {
@@ -75,7 +76,7 @@ export function StatusBadge({ status }: { status: LeadStatus }) {
   return (
     <span className={`badge ${LEAD_STATUS_COLORS[status]}`}>
       <span className="size-1.5 rounded-full bg-current opacity-70" />
-      {LEAD_STATUS_LABELS[status]}
+      <Tr text={LEAD_STATUS_LABELS[status]} />
     </span>
   );
 }
@@ -91,7 +92,7 @@ export function Empty({ children, icon: Icon = Inbox }: { children: React.ReactN
   );
 }
 
+/** Rendered date in the viewer's language (Cairo time). */
 export function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Intl.DateTimeFormat("ar-EG", { timeZone: "Africa/Cairo", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+  return <When iso={iso} />;
 }

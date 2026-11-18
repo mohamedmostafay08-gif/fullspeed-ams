@@ -3,8 +3,10 @@ import { LeadForm } from "@/components/lead-form";
 import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies, getGeo } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
 export default async function AdminNewLeadPage() {
+  const t = await getT();
   await requireRole(...STAFF);
   const supabase = await createClient();
   const [companies, geo, { data: assignments }] = await Promise.all([
@@ -21,7 +23,7 @@ export default async function AdminNewLeadPage() {
   }
   return (
     <>
-      <PageHeader title="ليد جديد" />
+      <PageHeader title={t("ليد جديد")} />
       <LeadForm companies={companies} {...geo} agents={[...agents.values()]} />
     </>
   );

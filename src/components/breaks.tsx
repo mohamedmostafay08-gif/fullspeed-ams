@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Coffee, Loader2, TimerReset, X } from "lucide-react";
 import { decideBreak, endBreak, requestBreak, type BreakActionState } from "@/app/actions/breaks";
+import { useT } from "@/lib/i18n/client";
 
 export const BREAKS_PER_DAY = 2;
 
@@ -42,6 +43,7 @@ export function Countdown({ endsAt, onDone }: { endsAt: string; onDone?: () => v
 
 /** Agent-side card: request a break, wait for approval, count down the 30 minutes. */
 export function BreakWidget({ today }: { today: BreakRow[] }) {
+  const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<BreakActionState>();
@@ -62,9 +64,9 @@ export function BreakWidget({ today }: { today: BreakRow[] }) {
     <section className={`card ${active ? "border-teal-300 bg-teal-50/60" : ""}`}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 font-bold">
-          <Coffee size={18} className="text-teal-600" /> البريك
+          <Coffee size={18} className="text-teal-600" /> {t("البريك")}
         </h2>
-        <span className="flex gap-1" aria-label={`فاضل ${left} من ${BREAKS_PER_DAY}`}>
+        <span className="flex gap-1" aria-label={t("فاضل {0} من {1}", left, BREAKS_PER_DAY)}>
           {Array.from({ length: BREAKS_PER_DAY }, (_, i) => (
             <span key={i} className={`h-2 w-6 rounded-full ${i < used ? "bg-teal-500" : "bg-zinc-200"}`} />
           ))}
@@ -74,31 +76,31 @@ export function BreakWidget({ today }: { today: BreakRow[] }) {
       {active ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm text-teal-800">إنت في بريك دلوقتي — فاضل</p>
+            <p className="text-sm text-teal-800">{t("إنت في بريك دلوقتي — فاضل")}</p>
             <p className="text-3xl font-semibold text-teal-700">
               <Countdown endsAt={active.ends_at!} onDone={() => router.refresh()} />
             </p>
           </div>
           <button className="btn-ghost btn-sm" disabled={pending} onClick={() => run(() => endBreak(active.id))}>
-            <TimerReset size={14} /> رجعت من البريك
+            <TimerReset size={14} /> {t("رجعت من البريك")}
           </button>
         </div>
       ) : waiting ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="flex items-center gap-2 text-sm font-semibold text-amber-700">
-            <Loader2 size={16} className="animate-spin" /> مستني موافقة التيم ليدر...
+            <Loader2 size={16} className="animate-spin" /> {t("مستني موافقة التيم ليدر...")}
           </p>
           <button className="btn-ghost btn-sm" disabled={pending} onClick={() => run(() => endBreak(waiting.id))}>
-            إلغاء الطلب
+            {t("إلغاء الطلب")}
           </button>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-zinc-500">
-            {left > 0 ? `معاك ${left} بريك النهارده — كل واحد نص ساعة` : "خلّصت البريكين بتوع النهارده"}
+            {left > 0 ? t("معاك {0} بريك النهارده — كل واحد نص ساعة", left) : t("خلّصت البريكين بتوع النهارده")}
           </p>
           <button className="btn-dark btn-sm" disabled={pending || left === 0} onClick={() => run(requestBreak)}>
-            {pending ? <Loader2 size={14} className="animate-spin" /> : <Coffee size={14} />} اطلب بريك
+            {pending ? <Loader2 size={14} className="animate-spin" /> : <Coffee size={14} />} {t("اطلب بريك")}
           </button>
         </div>
       )}
@@ -110,6 +112,7 @@ export function BreakWidget({ today }: { today: BreakRow[] }) {
 
 /** Staff-side approve / reject / end buttons. */
 export function BreakDecision({ id, mode }: { id: string; mode: "pending" | "active" }) {
+  const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string>();
@@ -125,15 +128,15 @@ export function BreakDecision({ id, mode }: { id: string; mode: "pending" | "act
       {mode === "pending" ? (
         <>
           <button className="btn-primary btn-sm" disabled={pending} onClick={() => run(() => decideBreak(id, true))}>
-            <Check size={14} /> موافق
+            <Check size={14} /> {t("موافق")}
           </button>
           <button className="btn-danger btn-sm" disabled={pending} onClick={() => run(() => decideBreak(id, false))}>
-            <X size={14} /> رفض
+            <X size={14} /> {t("رفض")}
           </button>
         </>
       ) : (
         <button className="btn-ghost btn-sm" disabled={pending} onClick={() => run(() => endBreak(id))}>
-          إنهاء البريك
+          {t("إنهاء البريك")}
         </button>
       )}
       {err && <span className="text-xs text-rose-600">{err}</span>}

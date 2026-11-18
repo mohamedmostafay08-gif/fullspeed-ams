@@ -5,8 +5,10 @@ import { StateForm } from "@/components/state-form";
 import { Empty } from "@/components/ui";
 import { MANAGERS, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
 export default async function LocationsPage() {
+  const t = await getT();
   await requireRole(...MANAGERS);
   const supabase = await createClient();
   const [{ data: locations }, { data: people }] = await Promise.all([
@@ -23,19 +25,19 @@ export default async function LocationsPage() {
   return (
     <>
       <PageHeader
-        title="أماكن الشغل"
-        subtitle="الأجنت المربوط بمكان مش هيفتح معاه السيستم غير وهو جوه نطاقه — إلا لو فتحتله «من أي مكان» من صفحته"
+        title={t("أماكن الشغل")}
+        subtitle={t("الأجنت المربوط بمكان مش هيفتح معاه السيستم غير وهو جوه نطاقه — إلا لو فتحتله «من أي مكان» من صفحته")}
       />
       <div className="grid gap-6 xl:grid-cols-3">
         <section className="card h-fit">
-          <h2 className="card-title"><MapPin size={18} className="text-brand-600" /> إضافة مكان</h2>
-          <StateForm action={createLocation} className="space-y-3" submitLabel="إضافة" resetOnSuccess>
+          <h2 className="card-title"><MapPin size={18} className="text-brand-600" /> {t("إضافة مكان")}</h2>
+          <StateForm action={createLocation} className="space-y-3" submitLabel={t("إضافة")} resetOnSuccess>
             <div>
-              <label className="label" htmlFor="name">اسم المكان</label>
-              <input id="name" name="name" required placeholder="مصر الجديدة" className="input" />
+              <label className="label" htmlFor="name">{t("اسم المكان")}</label>
+              <input id="name" name="name" required placeholder={t("مصر الجديدة")} className="input" />
             </div>
             <div>
-              <label className="label" htmlFor="location">اللوكيشن</label>
+              <label className="label" htmlFor="location">{t("اللوكيشن")}</label>
               <input
                 id="location"
                 name="location"
@@ -44,10 +46,10 @@ export default async function LocationsPage() {
                 placeholder="https://maps.app.goo.gl/...   or   30.0911, 31.3220"
                 className="input text-left"
               />
-              <p className="mt-1 text-xs text-zinc-500">من جوجل ماب: افتح المكان ← Share ← Copy link، والصقه هنا.</p>
+              <p className="mt-1 text-xs text-zinc-500">{t("من جوجل ماب: افتح المكان ← Share ← Copy link، والصقه هنا.")}</p>
             </div>
             <div>
-              <label className="label" htmlFor="radius_m">النطاق المسموح (متر)</label>
+              <label className="label" htmlFor="radius_m">{t("النطاق المسموح (متر)")}</label>
               <input id="radius_m" name="radius_m" type="number" min={50} max={5000} defaultValue={300} className="input" />
             </div>
           </StateForm>
@@ -55,7 +57,7 @@ export default async function LocationsPage() {
 
         <section className="space-y-4 xl:col-span-2">
           {(locations ?? []).length === 0 ? (
-            <Empty icon={MapPin}>لسه مفيش أماكن — ضيف مصر الجديدة والمهندسين</Empty>
+            <Empty icon={MapPin}>{t("لسه مفيش أماكن — ضيف مصر الجديدة والمهندسين")}</Empty>
           ) : (
             (locations ?? []).map((l) => {
               const team = byLocation.get(l.id) ?? [];
@@ -77,27 +79,27 @@ export default async function LocationsPage() {
                     <div className="flex items-center gap-2">
                       <form action={updateLocationRadius} className="flex items-center gap-1.5">
                         <input type="hidden" name="id" value={l.id} />
-                        <input name="radius_m" type="number" min={50} max={5000} defaultValue={l.radius_m} className="input w-24 py-1.5" aria-label="النطاق بالمتر" />
-                        <span className="text-xs text-zinc-500">متر</span>
-                        <button className="btn-ghost btn-sm">حفظ</button>
+                        <input name="radius_m" type="number" min={50} max={5000} defaultValue={l.radius_m} className="input w-24 py-1.5" aria-label={t("النطاق بالمتر")} />
+                        <span className="text-xs text-zinc-500">{t("متر")}</span>
+                        <button className="btn-ghost btn-sm">{t("حفظ")}</button>
                       </form>
                       <form action={deleteLocation}>
                         <input type="hidden" name="id" value={l.id} />
-                        <button className="btn-danger btn-sm" aria-label={`حذف ${l.name}`}><Trash2 size={14} /></button>
+                        <button className="btn-danger btn-sm" aria-label={t("حذف {0}", l.name)}><Trash2 size={14} /></button>
                       </form>
                     </div>
                   </div>
                   <p className="mt-4 mb-2 flex items-center gap-1.5 text-xs font-semibold text-zinc-500">
-                    <Users size={14} /> المربوطين بالمكان ده ({team.length})
+                    <Users size={14} /> {t("المربوطين بالمكان ده (")}{team.length})
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {team.length === 0 ? (
-                      <span className="text-sm text-zinc-400">محدش — اربط الناس من صفحة كل أجنت</span>
+                      <span className="text-sm text-zinc-400">{t("محدش — اربط الناس من صفحة كل أجنت")}</span>
                     ) : (
                       team.map((p) => (
                         <span key={p.id} className={`chip ${p.allow_anywhere ? "border-amber-300 bg-amber-50 text-amber-800" : ""}`}>
                           {p.full_name}
-                          {p.allow_anywhere && " · من أي مكان"}
+                          {p.allow_anywhere && t(" · من أي مكان")}
                         </span>
                       ))
                     )}
@@ -108,8 +110,8 @@ export default async function LocationsPage() {
           )}
           {unassigned.length > 0 && (
             <p className="rounded-2xl border border-dashed border-zinc-300 p-4 text-sm leading-6 text-zinc-500">
-              <b className="text-ink">{unassigned.length}</b> من الفريق مش مربوطين بمكان — دول بيفتحوا من أي مكان لحد ما تربطهم:{" "}
-              {unassigned.map((p) => p.full_name).join("، ")}
+              <b className="text-ink">{unassigned.length}</b> {t("من الفريق مش مربوطين بمكان — دول بيفتحوا من أي مكان لحد ما تربطهم:")}{" "}
+              {unassigned.map((p) => p.full_name).join(t("، "))}
             </p>
           )}
         </section>

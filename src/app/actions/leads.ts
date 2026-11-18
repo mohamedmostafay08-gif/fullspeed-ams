@@ -6,31 +6,33 @@ import { getProfile } from "@/lib/auth";
 import { isValidEgyptMobile, normalizePhone, readCustomFields } from "@/lib/forms";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField, LeadStatus } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export type LeadFormState = { error?: string; duplicateOf?: string } | undefined;
 
 const STATUSES: LeadStatus[] = ["new", "no_answer", "contacted", "interview", "documents", "hired", "rejected"];
 
 export async function createLead(_prev: LeadFormState, form: FormData): Promise<LeadFormState> {
+  const t = await getT();
   const profile = await getProfile();
   if (!profile) redirect("/login");
   const supabase = await createClient();
 
   const companyId = String(form.get("company_id") ?? "");
   const { data: company } = await supabase.from("companies").select("id, form_schema, is_active").eq("id", companyId).single();
-  if (!company?.is_active) return { error: "اختار شركة" };
+  if (!company?.is_active) return { error: t("اختار شركة") };
 
   const fullName = String(form.get("full_name") ?? "").trim();
   const phone = normalizePhone(String(form.get("phone") ?? ""));
-  if (fullName.length < 3) return { error: "اكتب اسم المتقدم كامل" };
-  if (!isValidEgyptMobile(phone)) return { error: "رقم الموبايل غير صحيح (لازم 11 رقم ويبدأ بـ 01)" };
+  if (fullName.length < 3) return { error: t("اكتب اسم المتقدم كامل") };
+  if (!isValidEgyptMobile(phone)) return { error: t("رقم الموبايل غير صحيح (لازم 11 رقم ويبدأ بـ 01)") };
 
   const { data: custom, errors } = readCustomFields(company.form_schema as FormField[], form);
   if (errors.length) return { error: errors.join(" · ") };
 
   if (form.get("allow_duplicate") !== "1") {
     const { data: taken } = await supabase.rpc("lead_phone_taken", { p_company: companyId, p_phone: phone });
-    if (taken) return { error: "الرقم ده متسجل قبل كده على نفس الشركة", duplicateOf: "1" };
+    if (taken) return { error: t("الرقم ده متسجل قبل كده على نفس الشركة"), duplicateOf: "1" };
   }
 
   const staff = profile.role !== "agent";
@@ -54,13 +56,14 @@ export async function createLead(_prev: LeadFormState, form: FormData): Promise<
     })
     .select("id")
     .single();
-  if (error) return { error: "مقدرتش أحفظ الليد — اتأكد إنك متعين على الشركة دي" };
+  if (error) return { error: t("مقدرتش أحفظ الليد — اتأكد إنك متعين على الشركة دي") };
 
   revalidatePath("/", "layout");
   redirect(staff ? `/admin/leads/${lead.id}` : `/agent/leads/${lead.id}`);
 }
 
 export async function updateLead(form: FormData) {
+  const t = await getT();
   const profile = await getProfile();
   if (!profile) redirect("/login");
   const supabase = await createClient();
@@ -74,7 +77,7 @@ export async function updateLead(form: FormData) {
 
   if (Object.keys(patch).length) {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
-    if (error) throw new Error("مقدرتش أعدل الليد");
+    if (error) throw new Error(t("مقدرتش أعدل الليد"));
   }
   revalidatePath("/", "layout");
 }

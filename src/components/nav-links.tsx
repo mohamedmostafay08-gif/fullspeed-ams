@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useT } from "@/lib/i18n/client";
 import {
   BarChart3,
   Bell,
@@ -45,6 +46,7 @@ function isActive(pathname: string, item: NavItem) {
 }
 
 export function SideNav({ items }: { items: NavItem[] }) {
+  const t = useT();
   const pathname = usePathname();
   return (
     <nav className="space-y-1 px-3">
@@ -62,7 +64,7 @@ export function SideNav({ items }: { items: NavItem[] }) {
           >
             {active && <span className="absolute inset-y-2 right-0 w-1 rounded-l-full bg-brand-500" />}
             <Icon size={18} className={active ? "text-brand-400" : "text-slate-ink group-hover:text-bone"} />
-            {item.label}
+            {t(item.label)}
           </Link>
         );
       })}
@@ -71,6 +73,7 @@ export function SideNav({ items }: { items: NavItem[] }) {
 }
 
 export function BottomNav({ items }: { items: NavItem[] }) {
+  const t = useT();
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-zinc-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
@@ -84,7 +87,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
             className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${active ? "text-brand-600" : "text-zinc-500"}`}
           >
             <Icon size={20} />
-            <span className="max-w-full truncate px-1">{item.label}</span>
+            <span className="max-w-full truncate px-1">{t(item.label)}</span>
           </Link>
         );
       })}

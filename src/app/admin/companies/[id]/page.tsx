@@ -9,10 +9,12 @@ import { requireRole, STAFF } from "@/lib/auth";
 import { getGeo } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
 
 export default async function CompanyPage({ params }: PageProps<"/admin/companies/[id]">) {
+  const t = await getT();
   const profile = await requireRole(...STAFF);
   const { id } = await params;
   const supabase = await createClient();
@@ -35,14 +37,14 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
 
   return (
     <>
-      <PageHeader title={company.name} subtitle={company.is_active ? "شغالة" : "متوقفة"}>
+      <PageHeader title={company.name} subtitle={company.is_active ? t("شغالة") : t("متوقفة")}>
         <CompanyLogo name={company.name} src={company.logo_path} size={56} />
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <section className="card">
-            <h2 className="mb-3 font-semibold">فورم التسجيل الخاص بالشركة</h2>
+            <h2 className="mb-3 font-semibold">{t("فورم التسجيل الخاص بالشركة")}</h2>
             {isAdmin ? (
               <FormBuilder companyId={company.id} initial={company.form_schema as FormField[]} />
             ) : (
@@ -54,24 +56,24 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
 
           {isAdmin && (
             <section className="card">
-              <h2 className="mb-3 font-semibold">بيانات الشركة ومناطق التعيين</h2>
+              <h2 className="mb-3 font-semibold">{t("بيانات الشركة ومناطق التعيين")}</h2>
               <StateForm action={updateCompany} className="grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="id" value={company.id} />
                 <input type="hidden" name="slug" value={company.slug} />
                 <div>
-                  <label className="label" htmlFor="name">الاسم</label>
+                  <label className="label" htmlFor="name">{t("الاسم")}</label>
                   <input id="name" name="name" defaultValue={company.name} required className="input" />
                 </div>
                 <div>
-                  <label className="label" htmlFor="logo">تغيير اللوجو</label>
+                  <label className="label" htmlFor="logo">{t("تغيير اللوجو")}</label>
                   <input id="logo" name="logo" type="file" accept="image/*" className="input" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="label" htmlFor="description">ملاحظات / شروط الشركة</label>
+                  <label className="label" htmlFor="description">{t("ملاحظات / شروط الشركة")}</label>
                   <textarea id="description" name="description" defaultValue={company.description ?? ""} rows={3} className="input" />
                 </div>
                 <fieldset className="sm:col-span-2">
-                  <legend className="label">المحافظات اللي الشركة بتعيّن فيها</legend>
+                  <legend className="label">{t("المحافظات اللي الشركة بتعيّن فيها")}</legend>
                   <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
                     {governorates.map((g) => (
                       <label key={g.id} className="flex items-center gap-2 text-sm">
@@ -82,7 +84,7 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
                   </div>
                 </fieldset>
                 <label className="flex items-center gap-2 text-sm font-medium">
-                  <input type="checkbox" name="is_active" defaultChecked={company.is_active} className="accent-brand-600" /> الشركة شغالة
+                  <input type="checkbox" name="is_active" defaultChecked={company.is_active} className="accent-brand-600" /> {t("الشركة شغالة")}
                 </label>
               </StateForm>
             </section>
@@ -91,39 +93,39 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
 
         <div className="space-y-6">
           <section className="card">
-            <h2 className="mb-1 font-semibold">نشر بونص / تعريفة</h2>
-            <p className="mb-3 text-xs text-zinc-500">بيوصل إشعار فوري لكل الأجنتس المتعينين على {company.name} ({agents.length})</p>
-            <StateForm action={createAnnouncement} className="space-y-3" submitLabel="نشر" resetOnSuccess>
+            <h2 className="mb-1 font-semibold">{t("نشر بونص / تعريفة")}</h2>
+            <p className="mb-3 text-xs text-zinc-500">{t("بيوصل إشعار فوري لكل الأجنتس المتعينين على")} {company.name} ({agents.length})</p>
+            <StateForm action={createAnnouncement} className="space-y-3" submitLabel={t("نشر")} resetOnSuccess>
               <input type="hidden" name="company_id" value={company.id} />
               <select name="type" className="input">
-                <option value="bonus">بونص</option>
-                <option value="rate">تعريفة جديدة</option>
-                <option value="info">معلومة / تحديث</option>
+                <option value="bonus">{t("بونص")}</option>
+                <option value="rate">{t("تعريفة جديدة")}</option>
+                <option value="info">{t("معلومة / تحديث")}</option>
               </select>
-              <input name="title" required placeholder="العنوان (مثلاً: بونص 500 جنيه لكل كابتن)" className="input" />
-              <textarea name="body" rows={3} placeholder="التفاصيل والشروط" className="input" />
+              <input name="title" required placeholder={t("العنوان (مثلاً: بونص 500 جنيه لكل كابتن)")} className="input" />
+              <textarea name="body" rows={3} placeholder={t("التفاصيل والشروط")} className="input" />
               <div className="grid grid-cols-2 gap-2">
-                <input name="amount" type="number" step="0.01" placeholder="المبلغ (ج.م)" className="input" />
-                <input name="valid_to" type="date" className="input" aria-label="ساري حتى" />
+                <input name="amount" type="number" step="0.01" placeholder={t("المبلغ (ج.م)")} className="input" />
+                <input name="valid_to" type="date" className="input" aria-label={t("ساري حتى")} />
               </div>
             </StateForm>
           </section>
 
           <section className="card">
-            <h2 className="mb-3 font-semibold">آخر الإعلانات</h2>
+            <h2 className="mb-3 font-semibold">{t("آخر الإعلانات")}</h2>
             {(annRes.data ?? []).length === 0 ? (
-              <Empty>مفيش</Empty>
+              <Empty>{t("مفيش")}</Empty>
             ) : (
               <ul className="space-y-3 text-sm">
                 {(annRes.data ?? []).map((a) => (
                   <li key={a.id} className="rounded-lg bg-zinc-50 p-3">
                     <p className="font-semibold">
-                      <span className="text-brand-700">{ANN_LABEL[a.type]}:</span> {a.title}
-                      {a.amount != null && ` — ${a.amount} ج.م`}
+                      <span className="text-brand-700">{t(ANN_LABEL[a.type])}:</span> {a.title}
+                      {a.amount != null && t(" — {0} ج.م", a.amount)}
                     </p>
                     {a.body && <p className="mt-1 text-zinc-600">{a.body}</p>}
                     <p className="mt-1 text-xs text-zinc-400">
-                      {formatDate(a.created_at)}{a.valid_to && ` · لحد ${a.valid_to}`}
+                      {formatDate(a.created_at)}{a.valid_to && t(" · لحد {0}", a.valid_to)}
                     </p>
                   </li>
                 ))}
@@ -132,9 +134,9 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
           </section>
 
           <section className="card">
-            <h2 className="mb-3 font-semibold">الأجنتس المتعينين</h2>
+            <h2 className="mb-3 font-semibold">{t("الأجنتس المتعينين")}</h2>
             {agents.length === 0 ? (
-              <Empty>مفيش — عيّن من صفحة الأجنت</Empty>
+              <Empty>{t("مفيش — عيّن من صفحة الأجنت")}</Empty>
             ) : (
               <ul className="space-y-1 text-sm">
                 {agents.map((a) => (

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
 export type BreakActionState = { error?: string; ok?: string } | undefined;
 
@@ -21,26 +22,29 @@ function explain(message: string | undefined) {
 }
 
 export async function requestBreak(): Promise<BreakActionState> {
-  if (!(await getProfile())) return { error: "سجّل دخول الأول" };
+  const t = await getT();
+  if (!(await getProfile())) return { error: t("سجّل دخول الأول") };
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_break");
-  if (error) return { error: explain(error.message) };
+  if (error) return { error: t(explain(error.message)) };
   revalidatePath("/", "layout");
-  return { ok: "اتبعت الطلب — هيوصلك إشعار أول ما يتوافق عليه" };
+  return { ok: t("اتبعت الطلب — هيوصلك إشعار أول ما يتوافق عليه") };
 }
 
 export async function endBreak(id: string): Promise<BreakActionState> {
+  const t = await getT();
   const supabase = await createClient();
   const { error } = await supabase.rpc("end_break", { p_id: id });
-  if (error) return { error: explain(error.message) };
+  if (error) return { error: t(explain(error.message)) };
   revalidatePath("/", "layout");
-  return { ok: "تمام" };
+  return { ok: t("تمام") };
 }
 
 export async function decideBreak(id: string, approve: boolean): Promise<BreakActionState> {
+  const t = await getT();
   const supabase = await createClient();
   const { error } = await supabase.rpc("decide_break", { p_id: id, p_approve: approve });
-  if (error) return { error: explain(error.message) };
+  if (error) return { error: t(explain(error.message)) };
   revalidatePath("/", "layout");
-  return { ok: approve ? "اتوافق" : "اترفض" };
+  return { ok: approve ? t("اتوافق") : t("اترفض") };
 }

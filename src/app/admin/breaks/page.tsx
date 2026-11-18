@@ -5,6 +5,7 @@ import { LiveRefresh } from "@/components/live";
 import { Empty, formatDate } from "@/components/ui";
 import { cairoRange, cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
 type Row = {
   id: string;
@@ -31,6 +32,7 @@ function minutes(r: Row) {
 }
 
 export default async function BreaksPage() {
+  const t = await getT();
   await requireRole(...STAFF);
   const [start, end] = cairoRange(cairoToday(), cairoToday());
   const supabase = await createClient();
@@ -49,19 +51,19 @@ export default async function BreaksPage() {
   return (
     <>
       <LiveRefresh channel="admin-breaks" />
-      <PageHeader title="البريكات" subtitle="كل أجنت ليه بريكين في اليوم — كل واحد نص ساعة" />
+      <PageHeader title={t("البريكات")} subtitle={t("كل أجنت ليه بريكين في اليوم — كل واحد نص ساعة")} />
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="card">
-          <h2 className="card-title"><Hourglass size={18} className="text-amber-500" /> طلبات مستنية موافقتك ({pending.length})</h2>
+          <h2 className="card-title"><Hourglass size={18} className="text-amber-500" /> {t("طلبات مستنية موافقتك (")}{pending.length})</h2>
           {pending.length === 0 ? (
-            <Empty icon={Coffee}>مفيش طلبات دلوقتي</Empty>
+            <Empty icon={Coffee}>{t("مفيش طلبات دلوقتي")}</Empty>
           ) : (
             <ul className="divide-y divide-zinc-100">
               {pending.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div>
                     <p className="font-semibold">{r.agent?.full_name}</p>
-                    <p className="text-xs text-zinc-500">طلب {formatDate(r.requested_at)}</p>
+                    <p className="text-xs text-zinc-500">{t("طلب")} {formatDate(r.requested_at)}</p>
                   </div>
                   <BreakDecision id={r.id} mode="pending" />
                 </li>
@@ -71,9 +73,9 @@ export default async function BreaksPage() {
         </section>
 
         <section className="card">
-          <h2 className="card-title"><Coffee size={18} className="text-teal-600" /> في البريك دلوقتي ({active.length})</h2>
+          <h2 className="card-title"><Coffee size={18} className="text-teal-600" /> {t("في البريك دلوقتي (")}{active.length})</h2>
           {active.length === 0 ? (
-            <Empty icon={Coffee}>محدش في بريك</Empty>
+            <Empty icon={Coffee}>{t("محدش في بريك")}</Empty>
           ) : (
             <ul className="divide-y divide-zinc-100">
               {active.map((r) => (
@@ -81,7 +83,7 @@ export default async function BreaksPage() {
                   <div>
                     <p className="font-semibold">{r.agent?.full_name}</p>
                     <p className="text-xs text-teal-700">
-                      فاضل <Countdown endsAt={r.ends_at!} />
+                      {t("فاضل")} <Countdown endsAt={r.ends_at!} />
                     </p>
                   </div>
                   <BreakDecision id={r.id} mode="active" />
@@ -93,14 +95,14 @@ export default async function BreaksPage() {
       </div>
 
       <section className="card mt-6">
-        <h2 className="card-title"><History size={18} className="text-zinc-500" /> سجل النهارده</h2>
+        <h2 className="card-title"><History size={18} className="text-zinc-500" /> {t("سجل النهارده")}</h2>
         {rows.length === 0 ? (
-          <Empty>مفيش بريكات النهارده</Empty>
+          <Empty>{t("مفيش بريكات النهارده")}</Empty>
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
-                <tr><th>الأجنت</th><th>الحالة</th><th>الطلب</th><th>البداية</th><th>المدة</th></tr>
+                <tr><th>{t("الأجنت")}</th><th>{t("الحالة")}</th><th>{t("الطلب")}</th><th>{t("البداية")}</th><th>{t("المدة")}</th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => {
@@ -109,10 +111,10 @@ export default async function BreaksPage() {
                   return (
                     <tr key={r.id}>
                       <td className="font-semibold">{r.agent?.full_name}</td>
-                      <td><span className={`badge ${STATUS[live].cls}`}>{STATUS[live].label}</span></td>
+                      <td><span className={`badge ${STATUS[live].cls}`}>{t(STATUS[live].label)}</span></td>
                       <td className="text-xs text-zinc-500">{formatDate(r.requested_at)}</td>
                       <td className="text-xs text-zinc-500">{formatDate(r.started_at)}</td>
-                      <td className="num text-sm">{mins == null ? "—" : `${mins} د`}</td>
+                      <td className="num text-sm">{mins == null ? "—" : t("{0} د", mins)}</td>
                     </tr>
                   );
                 })}

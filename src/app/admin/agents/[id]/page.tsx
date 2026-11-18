@@ -7,10 +7,12 @@ import { cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, ROLE_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function AgentPage({ params, searchParams }: PageProps<"/admin/agents/[id]">) {
+  const t = await getT();
   const me = await requireRole(...STAFF);
   const { id } = await params;
   const sp = await searchParams;
@@ -33,7 +35,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
   const canManage = me.role === "admin" || (me.role === "manager" && agent.role !== "admin");
   const roleOptions = Object.entries(ROLE_LABELS).filter(([v]) => me.role === "admin" || v !== "admin");
   const assigned = new Set((assignedRes.data ?? []).map((r) => r.company_id));
-  const targets = new Map((targetsRes.data ?? []).map((t) => [t.company_id, t]));
+  const targets = new Map((targetsRes.data ?? []).map((row) => [row.company_id, row]));
   const perf = ((perfRes.data ?? []) as { day: string; agent_id: string; company_id: string; leads_count: number; hired_count: number; target_leads: number; target_hired: number }[]).filter((r) => r.agent_id === id);
   const assignedCompanies = companies.filter((c) => assigned.has(c.id));
   const dayPerf = (cid: string) => perf.filter((r) => r.day === date && r.company_id === cid);
@@ -42,19 +44,19 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
 
   return (
     <>
-      <PageHeader title={agent.full_name} subtitle={`${ROLE_LABELS[agent.role as keyof typeof ROLE_LABELS]}${agent.is_active ? "" : " · موقوف"}`}>
-        <Link href={`/admin/leads?agent=${agent.id}`} className="btn-ghost">ليدز الأجنت</Link>
+      <PageHeader title={agent.full_name} subtitle={t("{0}{1}", t(ROLE_LABELS[agent.role as keyof typeof ROLE_LABELS]), agent.is_active ? "" : " · موقوف")}>
+        <Link href={`/admin/leads?agent=${agent.id}`} className="btn-ghost">{t("ليدز الأجنت")}</Link>
       </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="ليدز آخر 7 أيام" value={weekLeads} />
-        <StatCard label="اشتغلوا آخر 7 أيام" value={weekHired} tone="good" />
-        <StatCard label="الشركات المتعين عليها" value={assigned.size} tone="brand" />
+        <StatCard label={t("ليدز آخر 7 أيام")} value={weekLeads} />
+        <StatCard label={t("اشتغلوا آخر 7 أيام")} value={weekHired} tone="good" />
+        <StatCard label={t("الشركات المتعين عليها")} value={assigned.size} tone="brand" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="card">
-          <h2 className="mb-3 font-semibold">الشركات المتعين عليها</h2>
+          <h2 className="mb-3 font-semibold">{t("الشركات المتعين عليها")}</h2>
           <form action={saveAssignments} className="space-y-3">
             <input type="hidden" name="agent_id" value={agent.id} />
             <div className="grid max-h-96 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
@@ -66,31 +68,31 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                 </label>
               ))}
             </div>
-            <button className="btn-primary">حفظ التعيينات</button>
+            <button className="btn-primary">{t("حفظ التعيينات")}</button>
           </form>
         </section>
 
         <section className="card">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">التارجت اليومي</h2>
+            <h2 className="font-semibold">{t("التارجت اليومي")}</h2>
             <form className="flex items-center gap-2">
               <input type="date" name="date" defaultValue={date} className="input" />
-              <button className="btn-ghost">عرض</button>
+              <button className="btn-ghost">{t("عرض")}</button>
             </form>
           </div>
           {assignedCompanies.length === 0 ? (
-            <Empty>عيّن شركات الأول</Empty>
+            <Empty>{t("عيّن شركات الأول")}</Empty>
           ) : (
             <form action={saveTargets} className="space-y-3">
               <input type="hidden" name="agent_id" value={agent.id} />
               <input type="hidden" name="date" value={date} />
               <table className="data-table">
                 <thead>
-                  <tr><th>الشركة</th><th>تارجت ليدز</th><th>تارجت تعيين</th><th>المحقق</th></tr>
+                  <tr><th>{t("الشركة")}</th><th>{t("تارجت ليدز")}</th><th>{t("تارجت تعيين")}</th><th>{t("المحقق")}</th></tr>
                 </thead>
                 <tbody>
                   {assignedCompanies.map((c) => {
-                    const t = targets.get(c.id);
+                    const target = targets.get(c.id);
                     const p = dayPerf(c.id);
                     return (
                       <tr key={c.id}>
@@ -98,10 +100,10 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                           <input type="hidden" name="company_id" value={c.id} />
                           <span className="flex items-center gap-2"><CompanyLogo name={c.name} src={c.logo_path} size={22} />{c.name}</span>
                         </td>
-                        <td><input name={`leads_${c.id}`} type="number" min={0} defaultValue={t?.target_leads ?? 0} className="input w-20" /></td>
-                        <td><input name={`hired_${c.id}`} type="number" min={0} defaultValue={t?.target_hired ?? 0} className="input w-20" /></td>
+                        <td><input name={`leads_${c.id}`} type="number" min={0} defaultValue={target?.target_leads ?? 0} className="input w-20" /></td>
+                        <td><input name={`hired_${c.id}`} type="number" min={0} defaultValue={target?.target_hired ?? 0} className="input w-20" /></td>
                         <td className="text-xs text-zinc-500 tabular-nums">
-                          {p.reduce((s, r) => s + Number(r.leads_count), 0)} ليد · {p.reduce((s, r) => s + Number(r.hired_count), 0)} اشتغل
+                          {p.reduce((s, r) => s + Number(r.leads_count), 0)} {t("ليد ·")} {p.reduce((s, r) => s + Number(r.hired_count), 0)} {t("اشتغل")}
                         </td>
                       </tr>
                     );
@@ -109,17 +111,17 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                 </tbody>
               </table>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="apply_week" className="accent-brand-600" /> طبّق نفس التارجت على الـ 7 أيام الجاية
+                <input type="checkbox" name="apply_week" className="accent-brand-600" /> {t("طبّق نفس التارجت على الـ 7 أيام الجاية")}
               </label>
-              <button className="btn-primary">حفظ التارجت</button>
+              <button className="btn-primary">{t("حفظ التارجت")}</button>
             </form>
           )}
         </section>
 
         <section className="card">
-          <h2 className="mb-3 font-semibold">أداء آخر 7 أيام</h2>
+          <h2 className="mb-3 font-semibold">{t("أداء آخر 7 أيام")}</h2>
           {perf.length === 0 ? (
-            <Empty>مفيش نشاط</Empty>
+            <Empty>{t("مفيش نشاط")}</Empty>
           ) : (
             <ul className="space-y-2 text-sm">
               {[...new Set(perf.map((r) => r.day))].sort().reverse().map((day) => {
@@ -139,17 +141,17 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
 
         <section className="card">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold">التاسكات</h2>
-            <Link href={`/admin/tasks?agent=${agent.id}`} className="text-sm text-brand-700">تاسك جديد</Link>
+            <h2 className="font-semibold">{t("التاسكات")}</h2>
+            <Link href={`/admin/tasks?agent=${agent.id}`} className="text-sm text-brand-700">{t("تاسك جديد")}</Link>
           </div>
           {(tasksRes.data ?? []).length === 0 ? (
-            <Empty>مفيش تاسكات</Empty>
+            <Empty>{t("مفيش تاسكات")}</Empty>
           ) : (
             <ul className="space-y-2 text-sm">
-              {(tasksRes.data ?? []).map((t) => (
-                <li key={t.id} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2">
-                  <span>{t.title}</span>
-                  <span className="text-xs text-zinc-500">{PRIORITY_LABELS[t.priority as TaskPriority]} · {TASK_STATUS_LABELS[t.status as TaskStatus]}</span>
+              {(tasksRes.data ?? []).map((row) => (
+                <li key={row.id} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2">
+                  <span>{row.title}</span>
+                  <span className="text-xs text-zinc-500">{t(PRIORITY_LABELS[row.priority as TaskPriority])} · {t(TASK_STATUS_LABELS[row.status as TaskStatus])}</span>
                 </li>
               ))}
             </ul>
@@ -158,50 +160,50 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
 
         {canManage && (
           <section className="card lg:col-span-2">
-            <h2 className="card-title">بيانات الحساب ومكان الشغل</h2>
+            <h2 className="card-title">{t("بيانات الحساب ومكان الشغل")}</h2>
             <form action={updateUser} className="grid gap-3 sm:grid-cols-3">
               <input type="hidden" name="id" value={agent.id} />
               <div>
-                <label className="label">الاسم</label>
+                <label className="label">{t("الاسم")}</label>
                 <input name="full_name" defaultValue={agent.full_name} required className="input" />
               </div>
               <div>
-                <label className="label">الموبايل</label>
+                <label className="label">{t("الموبايل")}</label>
                 <input name="phone" defaultValue={agent.phone ?? ""} dir="ltr" className="input" />
               </div>
               <div>
-                <label className="label">كلمة سر جديدة (اختياري)</label>
+                <label className="label">{t("كلمة سر جديدة (اختياري)")}</label>
                 <input name="password" type="text" minLength={8} dir="ltr" className="input" />
               </div>
               <div>
-                <label className="label">الصلاحية</label>
+                <label className="label">{t("الصلاحية")}</label>
                 <select name="role" defaultValue={agent.role} className="input" disabled={agent.id === me.id}>
-                  {roleOptions.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  {roleOptions.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
                 </select>
                 {agent.id === me.id && <input type="hidden" name="role" value={agent.role} />}
               </div>
               <div>
-                <label className="label">التيم</label>
+                <label className="label">{t("التيم")}</label>
                 <select name="team_id" defaultValue={agent.team_id ?? ""} className="input">
                   <option value="">—</option>
-                  {(teamsRes.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  {(teamsRes.data ?? []).map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">مكان الشغل</label>
+                <label className="label">{t("مكان الشغل")}</label>
                 <select name="location_id" defaultValue={agent.location_id ?? ""} className="input">
-                  <option value="">بدون — يفتح من أي مكان</option>
+                  <option value="">{t("بدون — يفتح من أي مكان")}</option>
                   {(locationsRes.data ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
               <label className="flex items-center gap-2 self-end rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-semibold text-amber-900">
-                <input type="checkbox" name="allow_anywhere" defaultChecked={agent.allow_anywhere} className="accent-brand-600" /> مسموح يفتح من أي مكان
+                <input type="checkbox" name="allow_anywhere" defaultChecked={agent.allow_anywhere} className="accent-brand-600" /> {t("مسموح يفتح من أي مكان")}
               </label>
               <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
-                <input type="checkbox" name="is_active" defaultChecked={agent.is_active} disabled={agent.id === me.id} className="accent-brand-600" /> الحساب نشط
+                <input type="checkbox" name="is_active" defaultChecked={agent.is_active} disabled={agent.id === me.id} className="accent-brand-600" /> {t("الحساب نشط")}
                 {agent.id === me.id && <input type="hidden" name="is_active" value="on" />}
               </label>
-              <div className="sm:col-span-3"><button className="btn-primary">حفظ</button></div>
+              <div className="sm:col-span-3"><button className="btn-primary">{t("حفظ")}</button></div>
             </form>
           </section>
         )}

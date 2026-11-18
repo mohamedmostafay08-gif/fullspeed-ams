@@ -5,10 +5,12 @@ import { CompanyLogo, Empty, formatDate } from "@/components/ui";
 import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { getT } from "@/lib/i18n/server";
 
 const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
 
 export default async function AnnouncementsPage() {
+  const t = await getT();
   await requireRole(...STAFF);
   const supabase = await createClient();
   const [companies, { data: anns }, { data: people }] = await Promise.all([
@@ -23,35 +25,35 @@ export default async function AnnouncementsPage() {
 
   return (
     <>
-      <PageHeader title="البونص والإشعارات" subtitle="أي بونص أو تعريفة بتتنشر لشركة بتوصل فوراً لكل الأجنتس المتعينين عليها" />
+      <PageHeader title={t("البونص والإشعارات")} subtitle={t("أي بونص أو تعريفة بتتنشر لشركة بتوصل فوراً لكل الأجنتس المتعينين عليها")} />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6">
           <section className="card">
-            <h2 className="mb-3 font-semibold">بونص / تعريفة لشركة</h2>
-            <StateForm action={createAnnouncement} className="space-y-3" submitLabel="نشر" resetOnSuccess>
+            <h2 className="mb-3 font-semibold">{t("بونص / تعريفة لشركة")}</h2>
+            <StateForm action={createAnnouncement} className="space-y-3" submitLabel={t("نشر")} resetOnSuccess>
               <select name="company_id" required className="input">
-                <option value="">الشركة</option>
+                <option value="">{t("الشركة")}</option>
                 {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <select name="type" className="input">
-                <option value="bonus">بونص</option>
-                <option value="rate">تعريفة جديدة</option>
-                <option value="info">معلومة / تحديث</option>
+                <option value="bonus">{t("بونص")}</option>
+                <option value="rate">{t("تعريفة جديدة")}</option>
+                <option value="info">{t("معلومة / تحديث")}</option>
               </select>
-              <input name="title" required placeholder="العنوان" className="input" />
-              <textarea name="body" rows={3} placeholder="التفاصيل والشروط" className="input" />
+              <input name="title" required placeholder={t("العنوان")} className="input" />
+              <textarea name="body" rows={3} placeholder={t("التفاصيل والشروط")} className="input" />
               <div className="grid grid-cols-2 gap-2">
-                <input name="amount" type="number" step="0.01" placeholder="المبلغ (ج.م)" className="input" />
-                <input name="valid_to" type="date" className="input" aria-label="ساري حتى" />
+                <input name="amount" type="number" step="0.01" placeholder={t("المبلغ (ج.م)")} className="input" />
+                <input name="valid_to" type="date" className="input" aria-label={t("ساري حتى")} />
               </div>
             </StateForm>
           </section>
 
           <section className="card">
-            <h2 className="mb-3 font-semibold">رسالة مباشرة</h2>
-            <StateForm action={sendMessage} className="space-y-3" submitLabel="إرسال" resetOnSuccess>
-              <input name="title" required placeholder="الرسالة" className="input" />
-              <textarea name="body" rows={2} placeholder="تفاصيل (اختياري)" className="input" />
+            <h2 className="mb-3 font-semibold">{t("رسالة مباشرة")}</h2>
+            <StateForm action={sendMessage} className="space-y-3" submitLabel={t("إرسال")} resetOnSuccess>
+              <input name="title" required placeholder={t("الرسالة")} className="input" />
+              <textarea name="body" rows={2} placeholder={t("تفاصيل (اختياري)")} className="input" />
               <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-zinc-200 p-2">
                 {(people ?? []).map((p) => (
                   <label key={p.id} className="flex items-center gap-2 text-sm">
@@ -64,9 +66,9 @@ export default async function AnnouncementsPage() {
         </div>
 
         <section className="card lg:col-span-2">
-          <h2 className="mb-3 font-semibold">آخر الإعلانات</h2>
+          <h2 className="mb-3 font-semibold">{t("آخر الإعلانات")}</h2>
           {(anns ?? []).length === 0 ? (
-            <Empty>لسه مفيش</Empty>
+            <Empty>{t("لسه مفيش")}</Empty>
           ) : (
             <ul className="space-y-3">
               {(anns ?? []).map((a) => {
@@ -76,11 +78,11 @@ export default async function AnnouncementsPage() {
                     <CompanyLogo name={c.name} src={c.logo_path} size={40} />
                     <div>
                       <p className="font-semibold">
-                        <span className="text-brand-700">{ANN_LABEL[a.type]} — {c.name}:</span> {a.title}
-                        {a.amount != null && ` (${a.amount} ج.م)`}
+                        <span className="text-brand-700">{t(ANN_LABEL[a.type])} — {c.name}:</span> {a.title}
+                        {a.amount != null && t(" ({0} ج.م)", a.amount)}
                       </p>
                       {a.body && <p className="text-sm text-zinc-600">{a.body}</p>}
-                      <p className="text-xs text-zinc-400">{formatDate(a.created_at)}{a.valid_to && ` · لحد ${a.valid_to}`}</p>
+                      <p className="text-xs text-zinc-400">{formatDate(a.created_at)}{a.valid_to && t(" · لحد {0}", a.valid_to)}</p>
                     </div>
                   </li>
                 );

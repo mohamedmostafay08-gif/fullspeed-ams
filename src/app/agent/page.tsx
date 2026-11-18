@@ -10,12 +10,14 @@ import { cairoRange, cairoToday, requireRole } from "@/lib/auth";
 import { getAssignedCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, type LeadStatus, type TaskPriority } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 type PerfRow = { company_id: string; leads_count: number; hired_count: number; target_leads: number; target_hired: number };
 
 const PRIORITY_DOT: Record<TaskPriority, string> = { high: "bg-rose-500", medium: "bg-amber-400", low: "bg-zinc-300" };
 
 export default async function AgentHome() {
+  const t = await getT();
   const profile = await requireRole("agent");
   const today = cairoToday();
   const supabase = await createClient();
@@ -62,24 +64,24 @@ export default async function AgentHome() {
   return (
     <>
       <LiveRefresh channel={`agent-${profile.id}`} />
-      <PageHeader title={`صباح الفل يا ${profile.full_name.split(" ")[0]}`} subtitle={`ده أداءك النهارده — ${today}`}>
+      <PageHeader title={t("صباح الفل يا {0}", profile.full_name.split(" ")[0])} subtitle={t("ده أداءك النهارده — {0}", today)}>
         <Link href="/agent/leads/new" className="btn-primary">
-          <Plus size={18} /> ليد جديد
+          <Plus size={18} /> {t("ليد جديد")}
         </Link>
       </PageHeader>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatCard label="ليدز النهارده" value={sum("leads_count")} icon={UserPlus} progress={{ value: sum("leads_count"), target: sum("target_leads") }} />
-        <StatCard label="اشتغلوا" value={sum("hired_count")} tone="good" icon={CheckCircle2} progress={{ value: sum("hired_count"), target: sum("target_hired") }} />
-        <StatCard label="محتاجين متابعة" value={followRes.count ?? 0} tone="brand" icon={BellRing} hint="جديد + مردش" />
-        <StatCard label="تاسكات مفتوحة" value={tasks.length} tone="warn" icon={ClipboardList} hint="من التيم ليدر" />
+        <StatCard label={t("ليدز النهارده")} value={sum("leads_count")} icon={UserPlus} progress={{ value: sum("leads_count"), target: sum("target_leads") }} />
+        <StatCard label={t("اشتغلوا")} value={sum("hired_count")} tone="good" icon={CheckCircle2} progress={{ value: sum("hired_count"), target: sum("target_hired") }} />
+        <StatCard label={t("محتاجين متابعة")} value={followRes.count ?? 0} tone="brand" icon={BellRing} hint={t("جديد + مردش")} />
+        <StatCard label={t("تاسكات مفتوحة")} value={tasks.length} tone="warn" icon={ClipboardList} hint={t("من التيم ليدر")} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <section className="xl:col-span-2">
-          <h2 className="card-title">شركاتي</h2>
+          <h2 className="card-title">{t("شركاتي")}</h2>
           {companies.length === 0 ? (
-            <Empty>لسه متعينتش على شركات — كلم التيم ليدر</Empty>
+            <Empty>{t("لسه متعينتش على شركات — كلم التيم ليدر")}</Empty>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {companies.map((c) => {
@@ -91,12 +93,12 @@ export default async function AgentHome() {
                       <CompanyLogo name={c.name} src={c.logo_path} size={46} />
                       <p className="flex-1 font-bold">{c.name}</p>
                       <Link href={`/agent/leads/new?company=${c.id}`} className="btn-ghost btn-sm">
-                        <Plus size={14} /> ليد
+                        <Plus size={14} /> {t("ليد")}
                       </Link>
                     </div>
                     <dl className="space-y-2 text-xs text-zinc-500">
-                      <div><dt className="mb-1">ليدز</dt><dd><Progress value={Number(p?.leads_count ?? 0)} target={p?.target_leads ?? 0} /></dd></div>
-                      <div><dt className="mb-1">اشتغلوا</dt><dd><Progress value={Number(p?.hired_count ?? 0)} target={p?.target_hired ?? 0} /></dd></div>
+                      <div><dt className="mb-1">{t("ليدز")}</dt><dd><Progress value={Number(p?.leads_count ?? 0)} target={p?.target_leads ?? 0} /></dd></div>
+                      <div><dt className="mb-1">{t("اشتغلوا")}</dt><dd><Progress value={Number(p?.hired_count ?? 0)} target={p?.target_hired ?? 0} /></dd></div>
                     </dl>
                     {anns.map((a) => (
                       <div
@@ -107,10 +109,10 @@ export default async function AgentHome() {
                         <div>
                           <p className="font-bold">
                             {a.title}
-                            {a.amount != null && <span className="num"> — {a.amount} ج.م</span>}
+                            {a.amount != null && <span className="num"> — {a.amount} {t("ج.م")}</span>}
                           </p>
                           {a.body && <p className="mt-0.5 text-xs opacity-80">{a.body}</p>}
-                          {a.valid_to && <p className="mt-0.5 text-[11px] opacity-60">ساري لحد {a.valid_to}</p>}
+                          {a.valid_to && <p className="mt-0.5 text-[11px] opacity-60">{t("ساري لحد")} {a.valid_to}</p>}
                         </div>
                       </div>
                     ))}
@@ -126,9 +128,9 @@ export default async function AgentHome() {
           <BreakWidget today={(breaksRes.data ?? []) as BreakRow[]} />
 
           <section className="card">
-            <h2 className="card-title"><BellRing size={18} className="text-brand-600" /> كلّمهم النهارده</h2>
+            <h2 className="card-title"><BellRing size={18} className="text-brand-600" /> {t("كلّمهم النهارده")}</h2>
             {follow.length === 0 ? (
-              <Empty>مفيش حد مستني مكالمة</Empty>
+              <Empty>{t("مفيش حد مستني مكالمة")}</Empty>
             ) : (
               <ul className="-mx-2 divide-y divide-zinc-100">
                 {follow.map((l) => {
@@ -150,22 +152,22 @@ export default async function AgentHome() {
           </section>
 
           <section className="card">
-            <h2 className="card-title"><ClipboardList size={18} className="text-amber-500" /> المطلوب مني</h2>
+            <h2 className="card-title"><ClipboardList size={18} className="text-amber-500" /> {t("المطلوب مني")}</h2>
             {tasks.length === 0 ? (
-              <Empty icon={CheckCircle2}>مفيش تاسكات مفتوحة</Empty>
+              <Empty icon={CheckCircle2}>{t("مفيش تاسكات مفتوحة")}</Empty>
             ) : (
               <ul className="space-y-2">
-                {tasks.map((t) => (
-                  <li key={t.id} className="flex items-center gap-3 rounded-xl border border-zinc-200 p-3">
-                    <span className={`size-2 shrink-0 rounded-full ${PRIORITY_DOT[t.priority as TaskPriority]}`} title={PRIORITY_LABELS[t.priority as TaskPriority]} />
+                {tasks.map((row) => (
+                  <li key={row.id} className="flex items-center gap-3 rounded-xl border border-zinc-200 p-3">
+                    <span className={`size-2 shrink-0 rounded-full ${PRIORITY_DOT[row.priority as TaskPriority]}`} title={t(PRIORITY_LABELS[row.priority as TaskPriority])} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{t.title}</p>
-                      {t.due_date && <p className="text-[11px] text-zinc-400">لحد {t.due_date}</p>}
+                      <p className="text-sm font-semibold">{row.title}</p>
+                      {row.due_date && <p className="text-[11px] text-zinc-400">{t("لحد")} {row.due_date}</p>}
                     </div>
                     <form action={setTaskStatus}>
-                      <input type="hidden" name="id" value={t.id} />
+                      <input type="hidden" name="id" value={row.id} />
                       <input type="hidden" name="status" value="done" />
-                      <button className="btn-primary btn-sm">تم</button>
+                      <button className="btn-primary btn-sm">{t("تم")}</button>
                     </form>
                   </li>
                 ))}

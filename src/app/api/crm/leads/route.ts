@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { isValidEgyptMobile, normalizePhone } from "@/lib/forms";
 import { createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
+import { getT } from "@/lib/i18n/server";
 
 // Inbound: the CRM POSTs new leads here. Outbound: the CRM GETs status changes since a timestamp.
 // Both require the shared secret in the `x-api-key` header.
@@ -30,6 +31,7 @@ type InboundLead = {
 };
 
 export async function POST(request: NextRequest) {
+  const t = await getT();
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!hasServiceKey()) return NextResponse.json(NOT_CONFIGURED, { status: 503 });
 
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
         form_data: fields,
         source: "crm",
         external_id: externalId,
-        notes: source !== "crm" ? `المصدر: ${source}` : null,
+        notes: source !== "crm" ? t("المصدر: {0}", source) : null,
       })
       .select("id")
       .single();

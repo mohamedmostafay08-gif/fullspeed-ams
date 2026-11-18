@@ -4,8 +4,10 @@ import { CompanyLogo, StatusBadge, formatDate } from "@/components/ui";
 import { formatFieldValue } from "@/lib/forms";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_LABELS, type FormField, type LeadStatus } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) {
+  const t = await getT();
   const supabase = await createClient();
   const { data: lead } = await supabase
     .from("leads")
@@ -49,17 +51,17 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
             <StatusBadge status={lead.status as LeadStatus} />
           </div>
           <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-            <Row label="الموبايل">
+            <Row label={t("الموبايل")}>
               <a href={`tel:${lead.phone}`} dir="ltr" className="font-semibold text-brand-700">{lead.phone}</a>
-              <a href={`https://wa.me/2${lead.phone}`} target="_blank" rel="noreferrer" className="mr-3 text-xs text-emerald-700">واتساب</a>
+              <a href={`https://wa.me/2${lead.phone}`} target="_blank" rel="noreferrer" className="mr-3 text-xs text-emerald-700">{t("واتساب")}</a>
             </Row>
-            <Row label="المحافظة / المنطقة">
+            <Row label={t("المحافظة / المنطقة")}>
               {(lead.governorates as unknown as { name_ar: string } | null)?.name_ar ?? "—"} / {(lead.regions as unknown as { name_ar: string } | null)?.name_ar ?? "—"}
             </Row>
-            <Row label="الأجنت">{agent?.full_name ?? "غير معيّن"}</Row>
-            <Row label="المصدر">{lead.source}</Row>
-            <Row label="تاريخ التسجيل">{formatDate(lead.created_at)}</Row>
-            {lead.hired_at && <Row label="تاريخ التعيين">{formatDate(lead.hired_at)}</Row>}
+            <Row label={t("الأجنت")}>{agent?.full_name ?? t("غير معيّن")}</Row>
+            <Row label={t("المصدر")}>{lead.source}</Row>
+            <Row label={t("تاريخ التسجيل")}>{formatDate(lead.created_at)}</Row>
+            {lead.hired_at && <Row label={t("تاريخ التعيين")}>{formatDate(lead.hired_at)}</Row>}
             {company.form_schema.map((f) => (
               <Row key={f.key} label={f.label}>{formatFieldValue(f, formData[f.key])}</Row>
             ))}
@@ -71,21 +73,21 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
 
         <form action={updateLead} className="card space-y-3">
           <input type="hidden" name="id" value={lead.id} />
-          <h2 className="font-semibold">تحديث الحالة</h2>
+          <h2 className="font-semibold">{t("تحديث الحالة")}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="label" htmlFor="status">الحالة</label>
+              <label className="label" htmlFor="status">{t("الحالة")}</label>
               <select id="status" name="status" defaultValue={lead.status} className="input">
                 {Object.entries(LEAD_STATUS_LABELS).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
+                  <option key={v} value={v}>{t(l)}</option>
                 ))}
               </select>
             </div>
             {staff && (
               <div>
-                <label className="label" htmlFor="agent_id">تحويل لأجنت</label>
+                <label className="label" htmlFor="agent_id">{t("تحويل لأجنت")}</label>
                 <select id="agent_id" name="agent_id" defaultValue={lead.agent_id ?? ""} className="input">
-                  <option value="">بدون</option>
+                  <option value="">{t("بدون")}</option>
                   {agents.map((a) => (
                     <option key={a.id} value={a.id}>{a.full_name}</option>
                   ))}
@@ -94,24 +96,24 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
             )}
           </div>
           <div>
-            <label className="label" htmlFor="notes">ملاحظات</label>
+            <label className="label" htmlFor="notes">{t("ملاحظات")}</label>
             <textarea id="notes" name="notes" defaultValue={lead.notes ?? ""} rows={3} className="input" />
           </div>
-          <button className="btn-primary">حفظ</button>
+          <button className="btn-primary">{t("حفظ")}</button>
         </form>
       </div>
 
       <section className="card h-fit">
-        <h2 className="mb-3 font-semibold">سجل الحركة</h2>
+        <h2 className="mb-3 font-semibold">{t("سجل الحركة")}</h2>
         <ol className="space-y-3 text-sm">
           {(activity ?? []).map((a) => (
             <li key={a.id} className="border-r-2 border-brand-500 pr-3">
               <p className="font-medium">
-                {a.from_status ? `${LEAD_STATUS_LABELS[a.from_status as LeadStatus]} ← ` : ""}
-                {a.to_status ? LEAD_STATUS_LABELS[a.to_status as LeadStatus] : a.note}
+                {a.from_status ? `${t(LEAD_STATUS_LABELS[a.from_status as LeadStatus])} ← ` : ""}
+                {a.to_status ? t(LEAD_STATUS_LABELS[a.to_status as LeadStatus]) : a.note}
               </p>
               <p className="text-xs text-zinc-500">
-                {(a.actor as unknown as { full_name: string } | null)?.full_name ?? "النظام"} · {formatDate(a.created_at)}
+                {(a.actor as unknown as { full_name: string } | null)?.full_name ?? t("النظام")} · {formatDate(a.created_at)}
               </p>
             </li>
           ))}

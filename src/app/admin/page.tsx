@@ -7,6 +7,7 @@ import { cairoRange, cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { MISSING_SERVICE_KEY, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 type Row = { agent_id: string; company_id: string; leads_count: number; hired_count: number; target_leads: number; target_hired: number };
 type Agg = { leads: number; hired: number; tLeads: number; tHired: number };
@@ -23,6 +24,7 @@ const STATUS_BAR: Record<LeadStatus, string> = {
 };
 
 export default async function AdminOverview({ searchParams }: PageProps<"/admin">) {
+  const t = await getT();
   const profile = await requireRole(...STAFF);
   const sp = await searchParams;
   const today = cairoToday();
@@ -63,7 +65,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   }
 
   const agents = agentsRes.data ?? [];
-  const teamName = new Map((teamsRes.data ?? []).map((t) => [t.id, t.name]));
+  const teamName = new Map((teamsRes.data ?? []).map((row) => [row.id, row.name]));
   const statusCounts = new Map<LeadStatus, number>();
   for (const s of (statusRes.data ?? []) as { status: LeadStatus; total: number }[]) statusCounts.set(s.status, Number(s.total));
   const companies = (companiesRes.data ?? [])
@@ -74,10 +76,10 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
 
   const shift = (days: number) => new Date(new Date(`${today}T12:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10);
   const presets = [
-    { label: "النهارده", from: today, to: today },
-    { label: "امبارح", from: shift(-1), to: shift(-1) },
-    { label: "آخر 7 أيام", from: shift(-6), to: today },
-    { label: "الشهر ده", from: `${today.slice(0, 8)}01`, to: today },
+    { label: t("النهارده"), from: today, to: today },
+    { label: t("امبارح"), from: shift(-1), to: shift(-1) },
+    { label: t("آخر 7 أيام"), from: shift(-6), to: today },
+    { label: t("الشهر ده"), from: `${today.slice(0, 8)}01`, to: today },
   ];
   const ranked = agents
     .map((a) => ({ ...a, agg: byAgent.get(a.id) ?? { leads: 0, hired: 0, tLeads: 0, tHired: 0 } }))
@@ -87,7 +89,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   return (
     <>
       <LiveRefresh channel="admin-overview" />
-      <PageHeader title={`أهلاً ${profile.full_name.split(" ")[0]}`} subtitle={from === to ? `أداء يوم ${from}` : `الأداء من ${from} إلى ${to}`}>
+      <PageHeader title={t("أهلاً {0}", profile.full_name.split(" ")[0])} subtitle={from === to ? t("أداء يوم {0}", from) : t("الأداء من {0} إلى {1}", from, to)}>
         <div className="flex flex-wrap gap-1.5">
           {presets.map((p) => (
             <Link key={p.label} href={`/admin?from=${p.from}&to=${p.to}`} className={`chip ${p.from === from && p.to === to ? "chip-active" : ""}`}>
@@ -96,52 +98,52 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
           ))}
         </div>
         <form className="flex items-center gap-1.5">
-          <input type="date" name="from" defaultValue={from} className="input w-auto py-1.5" aria-label="من" />
-          <input type="date" name="to" defaultValue={to} className="input w-auto py-1.5" aria-label="إلى" />
-          <button className="btn-dark btn-sm">عرض</button>
+          <input type="date" name="from" defaultValue={from} className="input w-auto py-1.5" aria-label={t("من")} />
+          <input type="date" name="to" defaultValue={to} className="input w-auto py-1.5" aria-label={t("إلى")} />
+          <button className="btn-dark btn-sm">{t("عرض")}</button>
         </form>
       </PageHeader>
 
       {profile.role === "admin" && !hasServiceKey() && (
         <div className="mb-5 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
           <AlertTriangle size={18} className="shrink-0" />
-          {MISSING_SERVICE_KEY} — من غيره إضافة الموظفين واستيراد الملفات وربط الـ CRM مش هيشتغلوا.
+          {MISSING_SERVICE_KEY} {t("— من غيره إضافة الموظفين واستيراد الملفات وربط الـ CRM مش هيشتغلوا.")}
         </div>
       )}
 
       {(pendingBreaks > 0 || onBreak > 0) && (
         <Link href="/admin/breaks" className="mb-5 flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 transition hover:bg-teal-100">
           <Coffee size={18} className="shrink-0" />
-          {pendingBreaks > 0 && <span>{pendingBreaks} طلب بريك مستني موافقتك</span>}
+          {pendingBreaks > 0 && <span>{pendingBreaks} {t("طلب بريك مستني موافقتك")}</span>}
           {pendingBreaks > 0 && onBreak > 0 && <span className="text-teal-400">·</span>}
-          {onBreak > 0 && <span>{onBreak} في البريك دلوقتي</span>}
+          {onBreak > 0 && <span>{onBreak} {t("في البريك دلوقتي")}</span>}
         </Link>
       )}
 
       {(unassigned.count ?? 0) > 0 && (
         <Link href="/admin/leads?agent=none" className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
           <AlertTriangle size={18} className="shrink-0" />
-          فيه {unassigned.count} ليد مش متوزعين على حد — اضغط وزّعهم
+          {t("فيه")} {unassigned.count} {t("ليد مش متوزعين على حد — اضغط وزّعهم")}
         </Link>
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatCard label="ليدز جديدة" value={total.leads} icon={UserPlus} progress={{ value: total.leads, target: total.tLeads }} />
-        <StatCard label="اشتغلوا" value={total.hired} tone="good" icon={CheckCircle2} progress={{ value: total.hired, target: total.tHired }} />
-        <StatCard label="نسبة التحويل" value={`${conversion}%`} tone="brand" icon={TrendingUp} hint="اشتغلوا ÷ ليدز" />
-        <StatCard label="أجنتس نشطين" value={agents.length} icon={Users} hint={`${teamName.size} تيم`} />
+        <StatCard label={t("ليدز جديدة")} value={total.leads} icon={UserPlus} progress={{ value: total.leads, target: total.tLeads }} />
+        <StatCard label={t("اشتغلوا")} value={total.hired} tone="good" icon={CheckCircle2} progress={{ value: total.hired, target: total.tHired }} />
+        <StatCard label={t("نسبة التحويل")} value={`${conversion}%`} tone="brand" icon={TrendingUp} hint={t("اشتغلوا ÷ ليدز")} />
+        <StatCard label={t("أجنتس نشطين")} value={agents.length} icon={Users} hint={t("{0} تيم", teamName.size)} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <section className="card xl:col-span-2">
-          <h2 className="card-title"><Trophy size={18} className="text-brand-600" /> ترتيب الأجنتس</h2>
+          <h2 className="card-title"><Trophy size={18} className="text-brand-600" /> {t("ترتيب الأجنتس")}</h2>
           {agents.length === 0 ? (
-            <Empty>مفيش أجنتس لسه — <Link href="/admin/agents" className="font-semibold text-brand-700 underline">ضيف الفريق</Link></Empty>
+            <Empty>{t("مفيش أجنتس لسه —")} <Link href="/admin/agents" className="font-semibold text-brand-700 underline">{t("ضيف الفريق")}</Link></Empty>
           ) : (
             <div className="overflow-x-auto">
               <table className="data-table">
                 <thead>
-                  <tr><th className="w-10">#</th><th>الأجنت</th><th>التيم</th><th className="w-44">ليدز</th><th className="w-44">اشتغلوا</th></tr>
+                  <tr><th className="w-10">#</th><th>{t("الأجنت")}</th><th>{t("التيم")}</th><th className="w-44">{t("ليدز")}</th><th className="w-44">{t("اشتغلوا")}</th></tr>
                 </thead>
                 <tbody>
                   {ranked.map((a, i) => (
@@ -162,15 +164,15 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
         </section>
 
         <section className="card">
-          <h2 className="card-title"><PieChart size={18} className="text-zinc-500" /> حالات الليدز الجديدة</h2>
+          <h2 className="card-title"><PieChart size={18} className="text-zinc-500" /> {t("حالات الليدز الجديدة")}</h2>
           {statusTotal === 0 ? (
-            <Empty>مفيش ليدز في الفترة دي</Empty>
+            <Empty>{t("مفيش ليدز في الفترة دي")}</Empty>
           ) : (
             <>
               <div className="mb-4 flex h-3 overflow-hidden rounded-full bg-zinc-100">
                 {(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map((s) =>
                   statusCounts.get(s) ? (
-                    <span key={s} className={STATUS_BAR[s]} style={{ width: `${((statusCounts.get(s) ?? 0) / statusTotal) * 100}%` }} title={LEAD_STATUS_LABELS[s]} />
+                    <span key={s} className={STATUS_BAR[s]} style={{ width: `${((statusCounts.get(s) ?? 0) / statusTotal) * 100}%` }} title={t(LEAD_STATUS_LABELS[s])} />
                   ) : null,
                 )}
               </div>
@@ -178,7 +180,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
                 {(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map((s) =>
                   statusCounts.get(s) ? (
                     <li key={s} className="flex items-center justify-between">
-                      <Link href={`/admin/leads?status=${s}&from=${from}&to=${to}`} className={`badge ${LEAD_STATUS_COLORS[s]} hover:opacity-80`}>{LEAD_STATUS_LABELS[s]}</Link>
+                      <Link href={`/admin/leads?status=${s}&from=${from}&to=${to}`} className={`badge ${LEAD_STATUS_COLORS[s]} hover:opacity-80`}>{t(LEAD_STATUS_LABELS[s])}</Link>
                       <span className="num text-sm font-semibold">{statusCounts.get(s)}</span>
                     </li>
                   ) : null,
@@ -190,9 +192,9 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
       </div>
 
       <section className="mt-6">
-        <h2 className="card-title"><Building2 size={18} className="text-zinc-500" /> أداء الشركات</h2>
+        <h2 className="card-title"><Building2 size={18} className="text-zinc-500" /> {t("أداء الشركات")}</h2>
         {companies.length === 0 ? (
-          <Empty>مفيش نشاط على الشركات في الفترة دي</Empty>
+          <Empty>{t("مفيش نشاط على الشركات في الفترة دي")}</Empty>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {companies.map((c) => (

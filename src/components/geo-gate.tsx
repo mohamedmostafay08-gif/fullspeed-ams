@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MapPin, MapPinOff, RefreshCw } from "lucide-react";
 import { checkIn, type CheckInResult } from "@/app/actions/geo";
+import { useT } from "@/lib/i18n/client";
 
 type State = { kind: "idle" | "locating" | "checking" } | { kind: "denied" } | { kind: "unsupported" } | { kind: "result"; result: CheckInResult };
 
 export function GeoGate({ locationName }: { locationName: string }) {
+  const t = useT();
   const router = useRouter();
   const [state, setState] = useState<State>({ kind: "idle" });
 
@@ -44,39 +46,39 @@ export function GeoGate({ locationName }: { locationName: string }) {
           {busy ? <MapPin size={30} /> : <MapPinOff size={30} />}
         </span>
         <div>
-          <h1 className="text-xl font-extrabold">تأكيد مكان الشغل</h1>
+          <h1 className="text-xl font-extrabold">{t("تأكيد مكان الشغل")}</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            السيستم بيفتح معاك من فرع <b className="text-ink">{locationName}</b> بس.
+            {t("السيستم بيفتح معاك من فرع")} <b className="text-ink">{locationName}</b> {t("بس.")}
           </p>
         </div>
 
         {busy && (
           <p className="flex items-center gap-2 text-sm font-semibold text-brand-700">
-            <Loader2 size={16} className="animate-spin" /> {state.kind === "checking" ? "بنتأكد من مكانك..." : "بنحدد مكانك..."}
+            <Loader2 size={16} className="animate-spin" /> {state.kind === "checking" ? t("بنتأكد من مكانك...") : t("بنحدد مكانك...")}
           </p>
         )}
         {state.kind === "denied" && (
           <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
-            لازم تسمح للمتصفح يعرف مكانك: دوس على علامة القفل جنب العنوان ← Location ← Allow، وبعدين جرّب تاني.
+            {t("لازم تسمح للمتصفح يعرف مكانك: دوس على علامة القفل جنب العنوان ← Location ← Allow، وبعدين جرّب تاني.")}
           </p>
         )}
-        {state.kind === "unsupported" && <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">المتصفح ده مش بيدعم تحديد المكان — استخدم Chrome.</p>}
+        {state.kind === "unsupported" && <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{t("المتصفح ده مش بيدعم تحديد المكان — استخدم Chrome.")}</p>}
         {failed?.reason === "far" && (
           <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
-            إنت على بعد <b className="num">{failed.distance}</b> متر من {failed.location} — لازم تكون في حدود <span className="num">{failed.radius}</span> متر.
+            {t("إنت على بعد")} <b className="num">{failed.distance}</b> {t("متر من")} {failed.location} {t("— لازم تكون في حدود")} <span className="num">{failed.radius}</span> {t("متر.")}
           </p>
         )}
         {failed?.reason === "accuracy" && (
-          <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">تحديد المكان مش دقيق كفاية — شغّل الـ GPS / Location في الجهاز وجرّب تاني.</p>
+          <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{t("تحديد المكان مش دقيق كفاية — شغّل الـ GPS / Location في الجهاز وجرّب تاني.")}</p>
         )}
-        {failed?.reason === "error" && <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">مقدرناش نحدد مكانك — جرّب تاني.</p>}
+        {failed?.reason === "error" && <p className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{t("مقدرناش نحدد مكانك — جرّب تاني.")}</p>}
 
         {!busy && (
           <button className="btn-primary w-full" onClick={locate}>
-            <RefreshCw size={16} /> جرّب تاني
+            <RefreshCw size={16} /> {t("جرّب تاني")}
           </button>
         )}
-        <p className="text-xs text-zinc-400">لو بتشتغل من مكان تاني النهارده، كلم المدير يفتحلك من أي مكان.</p>
+        <p className="text-xs text-zinc-400">{t("لو بتشتغل من مكان تاني النهارده، كلم المدير يفتحلك من أي مكان.")}</p>
       </div>
     </div>
   );

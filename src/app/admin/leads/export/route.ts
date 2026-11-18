@@ -4,8 +4,10 @@ import { toCsv } from "@/lib/csv";
 import { queryLeads, readFilters } from "@/lib/lead-query";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_LABELS, type FormField, type LeadStatus } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export async function GET(request: NextRequest) {
+  const t = await getT();
   const profile = await getProfile();
   if (!profile || profile.role === "agent") return new NextResponse("Forbidden", { status: 403 });
 
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   const extraKeys = [...new Set(all.flatMap((l) => Object.keys((l.form_data as object) ?? {})))];
   const rows = [
-    ["الاسم", "الموبايل", "الشركة", "المحافظة", "المنطقة", "الأجنت", "الحالة", "المصدر", "التاريخ", "ملاحظات", ...extraKeys.map((k) => labelOf.get(k) ?? k)],
+    [t("الاسم"), t("الموبايل"), t("الشركة"), t("المحافظة"), t("المنطقة"), t("الأجنت"), t("الحالة"), t("المصدر"), t("التاريخ"), t("ملاحظات"), ...extraKeys.map((k) => labelOf.get(k) ?? k)],
     ...all.map((l) => {
       const fd = (l.form_data ?? {}) as Record<string, unknown>;
       return [
@@ -33,11 +35,11 @@ export async function GET(request: NextRequest) {
         (l.governorates as { name_ar: string } | null)?.name_ar,
         (l.regions as { name_ar: string } | null)?.name_ar,
         (l.agent as { full_name: string } | null)?.full_name,
-        LEAD_STATUS_LABELS[l.status as LeadStatus],
+        t(LEAD_STATUS_LABELS[l.status as LeadStatus]),
         l.source as string,
         new Date(l.created_at as string).toLocaleString("en-GB", { timeZone: "Africa/Cairo" }),
         l.notes as string,
-        ...extraKeys.map((k) => (typeof fd[k] === "boolean" ? (fd[k] ? "نعم" : "لا") : (fd[k] as string))),
+        ...extraKeys.map((k) => (typeof fd[k] === "boolean" ? (fd[k] ? t("نعم") : t("لا")) : (fd[k] as string))),
       ];
     }),
   ];

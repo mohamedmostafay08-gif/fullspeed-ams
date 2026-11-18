@@ -7,6 +7,7 @@ import { parseSchema } from "@/lib/forms";
 import { MISSING_SERVICE_KEY, createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField, Role } from "@/lib/types";
+import { getT } from "@/lib/i18n/server";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
 
@@ -19,15 +20,16 @@ function done(path: string, ok = "تم الحفظ"): ActionState {
 
 // ───────── People ─────────
 export async function createUser(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   const me = await requireRole(...MANAGERS);
   const email = str(form, "email").toLowerCase();
   const password = str(form, "password");
   const fullName = str(form, "full_name");
   const role = str(form, "role") as Role;
-  if (!fullName || !email) return { error: "الاسم والإيميل مطلوبين" };
-  if (password.length < 8) return { error: "كلمة السر لازم 8 حروف على الأقل" };
-  if (!["admin", "manager", "team_leader", "agent"].includes(role)) return { error: "اختار الصلاحية" };
-  if (role === "admin" && me.role !== "admin") return { error: "الأدمن بس هو اللي يقدر يعمل أدمن" };
+  if (!fullName || !email) return { error: t("الاسم والإيميل مطلوبين") };
+  if (password.length < 8) return { error: t("كلمة السر لازم 8 حروف على الأقل") };
+  if (!["admin", "manager", "team_leader", "agent"].includes(role)) return { error: t("اختار الصلاحية") };
+  if (role === "admin" && me.role !== "admin") return { error: t("الأدمن بس هو اللي يقدر يعمل أدمن") };
   if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
   const { data, error } = await createAdminClient().auth.admin.createUser({
@@ -36,7 +38,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
     email_confirm: true,
     user_metadata: { full_name: fullName, phone: str(form, "phone") || null },
   });
-  if (error) return { error: error.message.includes("already") ? "الإيميل ده متسجل قبل كده" : error.message };
+  if (error) return { error: error.message.includes("already") ? t("الإيميل ده متسجل قبل كده") : error.message };
 
   const supabase = await createClient();
   const { error: profileError } = await supabase
@@ -49,8 +51,8 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
       is_active: true,
     })
     .eq("id", data.user.id);
-  if (profileError) return { error: "الحساب اتعمل بس الصلاحية متحفظتش — عدّلها من صفحة الموظف" };
-  return done("/admin/agents", `تم إنشاء حساب ${fullName}`);
+  if (profileError) return { error: t("الحساب اتعمل بس الصلاحية متحفظتش — عدّلها من صفحة الموظف") };
+  return done("/admin/agents", t("تم إنشاء حساب {0}", fullName));
 }
 
 export async function updateUser(form: FormData) {
@@ -82,15 +84,16 @@ export async function updateUser(form: FormData) {
 }
 
 export async function createTeam(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   await requireRole(...MANAGERS);
   const supabase = await createClient();
   const name = str(form, "name");
-  if (!name) return { error: "اكتب اسم التيم" };
+  if (!name) return { error: t("اكتب اسم التيم") };
   const leaderId = str(form, "leader_id") || null;
   const { data, error } = await supabase.from("teams").insert({ name, leader_id: leaderId }).select("id").single();
-  if (error) return { error: "اسم التيم موجود قبل كده" };
+  if (error) return { error: t("اسم التيم موجود قبل كده") };
   if (leaderId) await supabase.from("profiles").update({ team_id: data.id, role: "team_leader" }).eq("id", leaderId);
-  return done("/admin/agents", "تم إنشاء التيم");
+  return done("/admin/agents", t("تم إنشاء التيم"));
 }
 
 export async function updateTeam(form: FormData) {
@@ -161,9 +164,10 @@ function slugify(name: string) {
 }
 
 export async function createCompany(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   await requireRole("admin");
   const name = str(form, "name");
-  if (!name) return { error: "اكتب اسم الشركة" };
+  if (!name) return { error: t("اكتب اسم الشركة") };
   const slug = slugify(name);
   const supabase = await createClient();
   let logo: string | null;
@@ -177,12 +181,13 @@ export async function createCompany(_prev: ActionState, form: FormData): Promise
     .insert({ name, slug, logo_path: logo, description: str(form, "description") || null })
     .select("id")
     .single();
-  if (error) return { error: "الشركة دي موجودة قبل كده" };
+  if (error) return { error: t("الشركة دي موجودة قبل كده") };
   revalidatePath("/admin", "layout");
   redirect(`/admin/companies/${data.id}`);
 }
 
 export async function updateCompany(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   await requireRole("admin");
   const supabase = await createClient();
   const id = str(form, "id");
@@ -198,7 +203,7 @@ export async function updateCompany(_prev: ActionState, form: FormData): Promise
     return { error: (e as Error).message };
   }
   const { error } = await supabase.from("companies").update(patch).eq("id", id);
-  if (error) return { error: "مقدرتش أحفظ" };
+  if (error) return { error: t("مقدرتش أحفظ") };
 
   const govs = form.getAll("governorate_id").map(Number);
   await supabase.from("company_governorates").delete().eq("company_id", id);
@@ -207,6 +212,7 @@ export async function updateCompany(_prev: ActionState, form: FormData): Promise
 }
 
 export async function saveFormSchema(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   await requireRole("admin");
   let schema;
   try {
@@ -216,16 +222,17 @@ export async function saveFormSchema(_prev: ActionState, form: FormData): Promis
   }
   const supabase = await createClient();
   const { error } = await supabase.from("companies").update({ form_schema: schema }).eq("id", str(form, "id"));
-  if (error) return { error: "مقدرتش أحفظ الفورم" };
-  return done(`/admin/companies/${str(form, "id")}`, "تم حفظ الفورم");
+  if (error) return { error: t("مقدرتش أحفظ الفورم") };
+  return done(`/admin/companies/${str(form, "id")}`, t("تم حفظ الفورم"));
 }
 
 // ───────── Announcements, notifications, tasks ─────────
 export async function createAnnouncement(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   const me = await requireRole(...STAFF);
   const title = str(form, "title");
   const companyId = str(form, "company_id");
-  if (!title || !companyId) return { error: "اختار الشركة واكتب العنوان" };
+  if (!title || !companyId) return { error: t("اختار الشركة واكتب العنوان") };
   const type = str(form, "type");
   const amount = str(form, "amount");
   const supabase = await createClient();
@@ -238,28 +245,30 @@ export async function createAnnouncement(_prev: ActionState, form: FormData): Pr
     valid_to: str(form, "valid_to") || null,
     created_by: me.id,
   });
-  if (error) return { error: "مقدرتش أنشر الإعلان" };
-  return done("/admin", "تم النشر وإرسال إشعار لكل الأجنتس المتعينين على الشركة");
+  if (error) return { error: t("مقدرتش أنشر الإعلان") };
+  return done("/admin", t("تم النشر وإرسال إشعار لكل الأجنتس المتعينين على الشركة"));
 }
 
 export async function sendMessage(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   await requireRole(...STAFF);
   const title = str(form, "title");
   const recipients = form.getAll("user_id").map(String).filter(Boolean);
-  if (!title || recipients.length === 0) return { error: "اختار المستلمين واكتب الرسالة" };
+  if (!title || recipients.length === 0) return { error: t("اختار المستلمين واكتب الرسالة") };
   const supabase = await createClient();
   const { error } = await supabase
     .from("notifications")
     .insert(recipients.map((user_id) => ({ user_id, type: "info", title, body: str(form, "body") || null })));
-  if (error) return { error: "مقدرتش أبعت" };
-  return done("/admin", `اتبعتت لـ ${recipients.length}`);
+  if (error) return { error: t("مقدرتش أبعت") };
+  return done("/admin", t("اتبعتت لـ {0}", recipients.length));
 }
 
 export async function createTask(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   const me = await requireRole(...STAFF);
   const title = str(form, "title");
   const agentIds = form.getAll("agent_id").map(String).filter(Boolean);
-  if (!title || agentIds.length === 0) return { error: "اختار الأجنت واكتب التاسك" };
+  if (!title || agentIds.length === 0) return { error: t("اختار الأجنت واكتب التاسك") };
   const priority = str(form, "priority");
   const supabase = await createClient();
   const { error } = await supabase.from("tasks").insert(
@@ -273,8 +282,8 @@ export async function createTask(_prev: ActionState, form: FormData): Promise<Ac
       assigned_by: me.id,
     })),
   );
-  if (error) return { error: "مقدرتش أنشئ التاسك" };
-  return done("/admin/tasks", `تم إرسال التاسك لـ ${agentIds.length} أجنت`);
+  if (error) return { error: t("مقدرتش أنشئ التاسك") };
+  return done("/admin/tasks", t("تم إرسال التاسك لـ {0} أجنت", agentIds.length));
 }
 
 // ───────── Bulk import (CSV exported from Excel / the CRM) ─────────
@@ -284,24 +293,25 @@ const GOV_HEADERS = ["governorate", "city", "المحافظة", "محافظة"];
 const REGION_HEADERS = ["region", "area", "المنطقة", "منطقة"];
 
 export async function importLeads(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   const me = await requireRole(...STAFF);
   const file = form.get("file") as File | null;
   const companyId = str(form, "company_id");
   const distribute = str(form, "distribute");
-  if (!file || file.size === 0 || !companyId) return { error: "اختار الشركة والملف" };
-  if (file.size > 5 * 1024 * 1024) return { error: "الملف أكبر من 5 ميجا" };
+  if (!file || file.size === 0 || !companyId) return { error: t("اختار الشركة والملف") };
+  if (file.size > 5 * 1024 * 1024) return { error: t("الملف أكبر من 5 ميجا") };
   if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
   const { parseCsv } = await import("@/lib/csv");
   const { normalizePhone, isValidEgyptMobile } = await import("@/lib/forms");
   const rows = parseCsv(await file.text());
-  if (rows.length < 2) return { error: "الملف فاضي — لازم أول سطر يكون أسماء الأعمدة" };
+  if (rows.length < 2) return { error: t("الملف فاضي — لازم أول سطر يكون أسماء الأعمدة") };
 
   const headers = rows[0].map((h) => h.trim().toLowerCase());
   const find = (opts: string[]) => headers.findIndex((h) => opts.includes(h));
   const iName = find(NAME_HEADERS);
   const iPhone = find(PHONE_HEADERS);
-  if (iName < 0 || iPhone < 0) return { error: "لازم يكون فيه عمود للاسم (name / الاسم) وعمود للموبايل (phone / الموبايل)" };
+  if (iName < 0 || iPhone < 0) return { error: t("لازم يكون فيه عمود للاسم (name / الاسم) وعمود للموبايل (phone / الموبايل)") };
   const iGov = find(GOV_HEADERS);
   const iRegion = find(REGION_HEADERS);
 
@@ -333,7 +343,7 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
           .filter((p) => p?.is_active && p.role === "agent")
           .map((p) => p!.id)
       : [];
-  if (distribute === "auto" && pool.length === 0) return { error: "مفيش أجنتس متعينين على الشركة دي للتوزيع" };
+  if (distribute === "auto" && pool.length === 0) return { error: t("مفيش أجنتس متعينين على الشركة دي للتوزيع") };
 
   let skipped = 0;
   let dupes = 0;
@@ -374,10 +384,10 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
 
   for (let i = 0; i < toInsert.length; i += 500) {
     const { error } = await supabase.from("leads").insert(toInsert.slice(i, i + 500));
-    if (error) return { error: `اتسجل ${i} بس — حصل خطأ: ${error.message}` };
+    if (error) return { error: t("اتسجل {0} بس — حصل خطأ: {1}", i, error.message) };
   }
   revalidatePath("/admin", "layout");
-  return { ok: `اتسجل ${toInsert.length} ليد · ${dupes} مكرر · ${skipped} بيانات ناقصة` };
+  return { ok: t("اتسجل {0} ليد · {1} مكرر · {2} بيانات ناقصة", toInsert.length, dupes, skipped) };
 }
 
 export async function deleteTask(form: FormData) {
@@ -389,18 +399,19 @@ export async function deleteTask(form: FormData) {
 
 // ───────── Work locations ─────────
 export async function createLocation(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
   await requireRole(...MANAGERS);
   const name = str(form, "name");
   const radius = Math.round(Number(form.get("radius_m")) || 300);
-  if (!name) return { error: "اكتب اسم المكان (مثلاً: مصر الجديدة)" };
-  if (radius < 50 || radius > 5000) return { error: "نص القطر لازم يكون بين 50 و 5000 متر" };
+  if (!name) return { error: t("اكتب اسم المكان (مثلاً: مصر الجديدة)") };
+  if (radius < 50 || radius > 5000) return { error: t("نص القطر لازم يكون بين 50 و 5000 متر") };
   const { parseLocation } = await import("@/lib/geo");
   const coords = await parseLocation(str(form, "location"));
-  if (!coords) return { error: "مقدرتش أقرا اللوكيشن — ابعت لينك جوجل ماب أو الإحداثيات بالشكل ده: 30.0911, 31.3220" };
+  if (!coords) return { error: t("مقدرتش أقرا اللوكيشن — ابعت لينك جوجل ماب أو الإحداثيات بالشكل ده: 30.0911, 31.3220") };
   const supabase = await createClient();
   const { error } = await supabase.from("work_locations").insert({ name, lat: coords.lat, lng: coords.lng, radius_m: radius });
-  if (error) return { error: error.code === "23505" ? "الاسم ده موجود قبل كده" : "مقدرتش أحفظ المكان" };
-  return done("/admin/locations", `اتضاف ${name} (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})`);
+  if (error) return { error: error.code === "23505" ? t("الاسم ده موجود قبل كده") : t("مقدرتش أحفظ المكان") };
+  return done("/admin/locations", t("اتضاف {0} ({1}, {2})", name, coords.lat.toFixed(5), coords.lng.toFixed(5)));
 }
 
 export async function updateLocationRadius(form: FormData) {
@@ -423,15 +434,16 @@ export async function deleteLocation(form: FormData) {
 export type ImportState = { error?: string; fields?: FormField[]; source?: string } | undefined;
 
 export async function importFormFields(_prev: ImportState, form: FormData): Promise<ImportState> {
+  const t = await getT();
   await requireRole("admin");
   const input = str(form, "source");
-  if (!input) return { error: "الصق الفورم أو لينك Google Form" };
+  if (!input) return { error: t("الصق الفورم أو لينك Google Form") };
   const { parseFormText, parseGoogleForm } = await import("@/lib/form-import");
   try {
     const isLink = /^https?:\/\//i.test(input);
     const fields = isLink ? await parseGoogleForm(input) : parseFormText(input);
-    if (fields.length === 0) return { error: "ملقتش حقول — اكتب كل سؤال في سطر" };
-    return { fields, source: isLink ? "Google Form" : "النص" };
+    if (fields.length === 0) return { error: t("ملقتش حقول — اكتب كل سؤال في سطر") };
+    return { fields, source: isLink ? "Google Form" : t("النص") };
   } catch (e) {
     return { error: (e as Error).message };
   }
