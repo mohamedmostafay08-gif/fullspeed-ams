@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { parseSchema } from "@/lib/forms";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { MISSING_SERVICE_KEY, createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
 
@@ -27,6 +27,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
   if (!fullName || !email) return { error: "الاسم والإيميل مطلوبين" };
   if (password.length < 8) return { error: "كلمة السر لازم 8 حروف على الأقل" };
   if (!["admin", "team_leader", "agent"].includes(role)) return { error: "اختار الصلاحية" };
+  if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
   const { data, error } = await createAdminClient().auth.admin.createUser({
     email,
@@ -61,7 +62,7 @@ export async function updateUser(form: FormData) {
     .eq("id", str(form, "id"));
 
   const password = str(form, "password");
-  if (password.length >= 8) {
+  if (password.length >= 8 && hasServiceKey()) {
     await createAdminClient().auth.admin.updateUserById(str(form, "id"), { password });
   }
   revalidatePath("/admin", "layout");
@@ -276,6 +277,7 @@ export async function importLeads(_prev: ActionState, form: FormData): Promise<A
   const distribute = str(form, "distribute");
   if (!file || file.size === 0 || !companyId) return { error: "اختار الشركة والملف" };
   if (file.size > 5 * 1024 * 1024) return { error: "الملف أكبر من 5 ميجا" };
+  if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
   const { parseCsv } = await import("@/lib/csv");
   const { normalizePhone, isValidEgyptMobile } = await import("@/lib/forms");

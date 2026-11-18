@@ -1,10 +1,12 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { isValidEgyptMobile, normalizePhone } from "@/lib/forms";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 
 // Inbound: the CRM POSTs new leads here. Outbound: the CRM GETs status changes since a timestamp.
 // Both require the shared secret in the `x-api-key` header.
+
+const NOT_CONFIGURED = { error: "server key not configured" };
 
 function authorized(request: NextRequest) {
   const secret = process.env.CRM_WEBHOOK_SECRET;
@@ -29,6 +31,7 @@ type InboundLead = {
 
 export async function POST(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!hasServiceKey()) return NextResponse.json(NOT_CONFIGURED, { status: 503 });
 
   let body: unknown;
   try {
@@ -111,6 +114,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!hasServiceKey()) return NextResponse.json(NOT_CONFIGURED, { status: 503 });
   const since = request.nextUrl.searchParams.get("since");
   if (!since || Number.isNaN(Date.parse(since))) return NextResponse.json({ error: "pass ?since=ISO-timestamp" }, { status: 400 });
 

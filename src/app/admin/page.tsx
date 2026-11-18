@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
 import { cairoRange, cairoToday, requireRole } from "@/lib/auth";
+import { MISSING_SERVICE_KEY, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
@@ -97,6 +98,13 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
           <button className="btn-dark btn-sm">عرض</button>
         </form>
       </PageHeader>
+
+      {profile.role === "admin" && !hasServiceKey() && (
+        <div className="mb-5 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
+          <AlertTriangle size={18} className="shrink-0" />
+          {MISSING_SERVICE_KEY} — من غيره إضافة الموظفين واستيراد الملفات وربط الـ CRM مش هيشتغلوا.
+        </div>
+      )}
 
       {(unassigned.count ?? 0) > 0 && (
         <Link href="/admin/leads?agent=none" className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
