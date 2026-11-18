@@ -18,9 +18,12 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   return profile?.is_active ? profile : null;
 });
 
+// A signed-in user without an active profile must not bounce between "/" and "/login".
+export const NO_PROFILE_URL = "/login?e=inactive";
+
 export async function requireRole(...roles: Role[]): Promise<Profile> {
   const profile = await getProfile();
-  if (!profile) redirect("/login");
+  if (!profile) redirect(NO_PROFILE_URL);
   if (!roles.includes(profile.role)) redirect("/");
   return profile;
 }

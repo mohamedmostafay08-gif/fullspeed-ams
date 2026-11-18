@@ -2,7 +2,8 @@ import Image from "next/image";
 import { BrandMark } from "@/components/app-shell";
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const inactive = (await searchParams).e === "inactive";
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <section className="flex flex-col justify-between px-6 py-8 sm:px-12 lg:px-16">
@@ -20,6 +21,11 @@ export default function LoginPage() {
           </p>
           <h1 className="text-3xl font-extrabold tracking-tight text-ink">أهلاً بيك تاني</h1>
           <p className="mt-2 text-sm leading-6 text-zinc-500">سجّل دخولك عشان تتابع شركاتك، الليدز، والتارجت بتاع النهارده.</p>
+          {inactive && (
+            <p role="alert" className="mt-6 rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-900">
+              حسابك مش مفعّل أو اتوقف — كلم الأدمن، أو ادخل بحساب تاني.
+            </p>
+          )}
           <LoginForm />
         </div>
 
