@@ -39,7 +39,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
   const supabase = await createClient();
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ role, team_id: str(form, "team_id") || null })
+    .update({ role, team_id: str(form, "team_id") || null, is_active: true })
     .eq("id", data.user.id);
   if (profileError) return { error: "الحساب اتعمل بس الصلاحية متحفظتش — عدّلها من صفحة الموظف" };
   return done("/admin/agents", `تم إنشاء حساب ${fullName}`);

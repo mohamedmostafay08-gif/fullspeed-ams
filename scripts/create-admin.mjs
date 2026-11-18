@@ -23,7 +23,7 @@ if (error) {
   process.exit(1);
 }
 
-const { error: roleError } = await db.from("profiles").update({ role: "admin" }).eq("id", data.user.id);
+const { error: roleError } = await db.from("profiles").update({ role: "admin", is_active: true }).eq("id", data.user.id);
 if (roleError) {
   console.error("User created but promoting to admin failed:", roleError.message);
   process.exit(1);

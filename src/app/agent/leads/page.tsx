@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/app-shell";
 import { LeadsTable, type LeadRow } from "@/components/leads-table";
+import { LiveRefresh } from "@/components/live";
 import { requireRole } from "@/lib/auth";
 import { getAssignedCompanies } from "@/lib/data";
 import { filtersToQuery, queryLeads, readFilters } from "@/lib/lead-query";
@@ -20,6 +21,7 @@ export default async function AgentLeadsPage({ searchParams }: PageProps<"/agent
 
   return (
     <>
+      <LiveRefresh channel="agent-leads" />
       <PageHeader title="الليدز بتاعتي" subtitle={`${count ?? 0} ليد`}>
         <Link href="/agent/leads/new" className="btn-primary">+ ليد جديد</Link>
       </PageHeader>

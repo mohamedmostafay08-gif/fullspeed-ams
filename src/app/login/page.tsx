@@ -1,58 +1,52 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { Zap } from "lucide-react";
+import Image from "next/image";
+import { BrandMark } from "@/components/app-shell";
+import { LoginForm } from "./login-form";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setPending(true);
-    setError(null);
-    const form = new FormData(e.currentTarget);
-    const { error } = await createClient().auth.signInWithPassword({
-      email: String(form.get("email")),
-      password: String(form.get("password")),
-    });
-    if (error) {
-      setError("الإيميل أو كلمة السر غلط");
-      setPending(false);
-      return;
-    }
-    router.replace("/");
-    router.refresh();
-  }
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-ink p-4">
-      <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="rounded-xl bg-brand-600 p-2 text-white">
-            <Zap size={22} />
-          </span>
-          <div>
-            <h1 className="text-xl font-bold">Full Speed</h1>
-            <p className="text-xs text-zinc-500">نظام فريق الأكوزيشن</p>
+    <main className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+      <section className="flex flex-col justify-between px-6 py-8 sm:px-12 lg:px-16">
+        <div className="flex items-center gap-3">
+          <BrandMark />
+          <div className="leading-tight">
+            <p className="text-lg font-extrabold tracking-tight">Full Speed</p>
+            <p className="text-xs font-medium text-zinc-500">Acquisition System</p>
           </div>
         </div>
-        <div>
-          <label className="label" htmlFor="email">الإيميل</label>
-          <input id="email" name="email" type="email" required dir="ltr" className="input" autoComplete="email" />
+
+        <div className="mx-auto w-full max-w-sm animate-rise py-12">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
+            <span className="size-1.5 rounded-full bg-brand-500" /> فريق الأكوزيشن
+          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-ink">أهلاً بيك تاني</h1>
+          <p className="mt-2 text-sm leading-6 text-zinc-500">سجّل دخولك عشان تتابع شركاتك، الليدز، والتارجت بتاع النهارده.</p>
+          <LoginForm />
         </div>
-        <div>
-          <label className="label" htmlFor="password">كلمة السر</label>
-          <input id="password" name="password" type="password" required dir="ltr" className="input" autoComplete="current-password" />
+
+        <p className="text-xs text-zinc-400">© {new Date().getFullYear()} Full Speed Logistics — The future of logistics</p>
+      </section>
+
+      <section className="relative hidden overflow-hidden bg-ink lg:block">
+        <Image src="/brand/login-hero.jpg" alt="" fill priority sizes="55vw" className="object-cover object-top" />
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/70 to-transparent p-12 pt-40 text-bone">
+          <p className="max-w-md text-2xl leading-relaxed font-bold">كل ليد بيوصل لمكانه — من الإعلان للأجنت لحد ما الكابتن يستلم شغله.</p>
+          <div className="mt-6 flex gap-8 text-sm text-slate-ink">
+            <Stat value="27" label="شركة" />
+            <Stat value="27" label="محافظة" />
+            <Stat value="24/7" label="متابعة لحظية" />
+          </div>
         </div>
-        {error && <p className="text-sm text-rose-600">{error}</p>}
-        <button className="btn-primary w-full" disabled={pending}>
-          {pending ? "جاري الدخول..." : "دخول"}
-        </button>
-      </form>
+      </section>
     </main>
   );
 }
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <p className="num text-2xl font-semibold text-white">{value}</p>
+      <p className="mt-0.5">{label}</p>
+    </div>
+  );
+}
+

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { importLeads } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { LeadsTable, type LeadRow } from "@/components/leads-table";
+import { LiveRefresh } from "@/components/live";
 import { StateForm } from "@/components/state-form";
 import { requireRole } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
@@ -25,6 +26,7 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
 
   return (
     <>
+      <LiveRefresh channel="admin-leads" />
       <PageHeader title="الليدز" subtitle={`${count ?? 0} ليد`}>
         <div className="flex gap-2">
           <a href={`/admin/leads/export?${qs}`} className="btn-ghost">تصدير Excel</a>

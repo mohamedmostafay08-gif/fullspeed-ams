@@ -1,8 +1,18 @@
-import { LogOut, Zap } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
-import { NavLinks, type NavItem } from "@/components/nav-links";
+import { BottomNav, SideNav, type NavItem } from "@/components/nav-links";
 import { NotificationBell } from "@/components/notification-bell";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
 
 export function AppShell({
   profile,
@@ -18,64 +28,75 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="bg-ink text-zinc-300 md:sticky md:top-0 md:h-screen md:w-60 md:shrink-0">
-        <div className="flex items-center gap-2 p-4 text-white">
-          <span className="rounded-lg bg-brand-600 p-1.5">
-            <Zap size={18} />
-          </span>
-          <span className="font-bold">Full Speed</span>
+    <div className="min-h-screen md:flex">
+      <aside className="hidden bg-ink md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
+        <div className="flex items-center gap-3 px-5 pt-6 pb-8">
+          <BrandMark />
+          <div className="leading-tight">
+            <p className="font-extrabold tracking-tight text-white">Full Speed</p>
+            <p className="text-[11px] font-medium text-slate-ink">Acquisition</p>
+          </div>
         </div>
-        <NavLinks items={nav} />
-        <div className="hidden border-t border-white/10 p-4 md:absolute md:bottom-0 md:block md:w-60">
-          <p className="truncate text-sm font-semibold text-white">{profile.full_name}</p>
-          <p className="text-xs text-zinc-400">{ROLE_LABELS[profile.role]}</p>
-          <form action={signOut} className="mt-3">
-            <button className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white">
-              <LogOut size={14} /> خروج
-            </button>
-          </form>
+        <SideNav items={nav} />
+        <div className="mt-auto p-3">
+          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">{initials(profile.full_name)}</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{profile.full_name}</p>
+              <p className="text-[11px] text-slate-ink">{ROLE_LABELS[profile.role]}</p>
+            </div>
+            <form action={signOut}>
+              <button className="rounded-lg p-2 text-slate-ink transition hover:bg-white/10 hover:text-white" aria-label="خروج" title="خروج">
+                <LogOut size={16} />
+              </button>
+            </form>
+          </div>
         </div>
       </aside>
-      <div className="min-w-0 flex-1">
-        <header className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-2 md:justify-end md:px-6 md:py-3">
-          <span className="text-sm font-semibold md:hidden">{profile.full_name}</span>
-          <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
+
+      <div className="min-w-0 flex-1 pb-20 md:pb-0">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-zinc-200/80 bg-white/85 px-4 py-3 backdrop-blur md:px-8">
+          <div className="flex items-center gap-2 md:hidden">
+            <BrandMark small />
+            <span className="text-sm font-extrabold">Full Speed</span>
+          </div>
+          <div className="mr-auto flex items-center gap-2">
+            <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
+            <form action={signOut} className="md:hidden">
+              <button className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100" aria-label="خروج">
+                <LogOut size={18} />
+              </button>
+            </form>
+          </div>
         </header>
-        <main className="mx-auto max-w-7xl p-4 md:p-6">{children}</main>
-        <form action={signOut} className="p-4 md:hidden">
-          <button className="btn-ghost w-full">
-            <LogOut size={14} /> خروج
-          </button>
-        </form>
+        <main className="mx-auto max-w-7xl animate-rise px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
+
+      <BottomNav items={nav} />
     </div>
   );
 }
 
-export function ShellSkeleton() {
+export function BrandMark({ small = false }: { small?: boolean }) {
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="h-14 bg-ink md:h-screen md:w-60" />
-      <div className="flex-1 animate-pulse space-y-4 p-6">
-        <div className="h-8 w-48 rounded-lg bg-zinc-200" />
-        <div className="grid gap-4 sm:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-zinc-200" />)}
-        </div>
-        <div className="h-64 rounded-2xl bg-zinc-200" />
-      </div>
-    </div>
+    <span className={`grid place-items-center rounded-xl bg-brand-600 text-white ${small ? "size-8" : "size-10"}`}>
+      <svg viewBox="0 0 24 24" className={small ? "size-4" : "size-5"} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+        <path d="M4 17c4-1 6-3 7-6s3-5 9-6" />
+        <circle cx="20" cy="5" r="1.6" fill="currentColor" stroke="none" />
+        <path d="M3 21h7" opacity=".55" />
+      </svg>
+    </span>
   );
 }
 
 export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: React.ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold">{title}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight md:text-[28px]">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>}
       </div>
-      {children}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   );
 }
