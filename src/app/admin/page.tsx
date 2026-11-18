@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Building2, CheckCircle2, PieChart, TrendingUp, Trophy, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, Building2, Coffee, CheckCircle2, PieChart, TrendingUp, Trophy, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
@@ -31,14 +31,17 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
 
   const [start, end] = cairoRange(from, to);
   const supabase = await createClient();
-  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned] = await Promise.all([
+  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes] = await Promise.all([
     supabase.rpc("performance_summary", { p_from: from, p_to: to }),
     supabase.from("profiles").select("id, full_name, role, team_id, is_active").eq("role", "agent").eq("is_active", true).order("full_name"),
     supabase.from("companies").select("id, name, logo_path").order("name"),
     supabase.rpc("lead_status_counts", { p_start: start, p_end: end }),
     supabase.from("teams").select("id, name"),
     supabase.from("leads").select("id", { count: "exact", head: true }).is("agent_id", null),
+    supabase.from("agent_breaks").select("status, ends_at").in("status", ["pending", "active"]),
   ]);
+  const pendingBreaks = (breaksRes.data ?? []).filter((b) => b.status === "pending").length;
+  const onBreak = (breaksRes.data ?? []).filter((b) => b.status === "active" && b.ends_at && new Date(b.ends_at) > new Date()).length;
 
   const rows = (perf.data ?? []) as Row[];
   const byAgent = new Map<string, Agg>();
@@ -104,6 +107,15 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
           <AlertTriangle size={18} className="shrink-0" />
           {MISSING_SERVICE_KEY} — من غيره إضافة الموظفين واستيراد الملفات وربط الـ CRM مش هيشتغلوا.
         </div>
+      )}
+
+      {(pendingBreaks > 0 || onBreak > 0) && (
+        <Link href="/admin/breaks" className="mb-5 flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 transition hover:bg-teal-100">
+          <Coffee size={18} className="shrink-0" />
+          {pendingBreaks > 0 && <span>{pendingBreaks} طلب بريك مستني موافقتك</span>}
+          {pendingBreaks > 0 && onBreak > 0 && <span className="text-teal-400">·</span>}
+          {onBreak > 0 && <span>{onBreak} في البريك دلوقتي</span>}
+        </Link>
       )}
 
       {(unassigned.count ?? 0) > 0 && (

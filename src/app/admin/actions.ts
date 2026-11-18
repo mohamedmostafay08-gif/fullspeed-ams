@@ -6,7 +6,7 @@ import { MANAGERS, requireRole, STAFF } from "@/lib/auth";
 import { parseSchema } from "@/lib/forms";
 import { MISSING_SERVICE_KEY, createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { Role } from "@/lib/types";
+import type { FormField, Role } from "@/lib/types";
 
 export type ActionState = { error?: string; ok?: string } | undefined;
 
@@ -417,4 +417,22 @@ export async function deleteLocation(form: FormData) {
   const supabase = await createClient();
   await supabase.from("work_locations").delete().eq("id", str(form, "id"));
   revalidatePath("/admin", "layout");
+}
+
+// ───────── Import a company's own form (pasted text or a Google Form link) ─────────
+export type ImportState = { error?: string; fields?: FormField[]; source?: string } | undefined;
+
+export async function importFormFields(_prev: ImportState, form: FormData): Promise<ImportState> {
+  await requireRole("admin");
+  const input = str(form, "source");
+  if (!input) return { error: "الصق الفورم أو لينك Google Form" };
+  const { parseFormText, parseGoogleForm } = await import("@/lib/form-import");
+  try {
+    const isLink = /^https?:\/\//i.test(input);
+    const fields = isLink ? await parseGoogleForm(input) : parseFormText(input);
+    if (fields.length === 0) return { error: "ملقتش حقول — اكتب كل سؤال في سطر" };
+    return { fields, source: isLink ? "Google Form" : "النص" };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }
