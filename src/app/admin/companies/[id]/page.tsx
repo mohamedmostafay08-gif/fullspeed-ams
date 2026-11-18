@@ -9,12 +9,13 @@ import { requireRole, STAFF } from "@/lib/auth";
 import { getGeo } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField } from "@/lib/types";
-import { getT } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { placeName } from "@/lib/types";
 
 const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
 
 export default async function CompanyPage({ params }: PageProps<"/admin/companies/[id]">) {
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   const profile = await requireRole(...STAFF);
   const { id } = await params;
   const supabase = await createClient();
@@ -48,7 +49,7 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
             {isAdmin ? (
               <FormBuilder companyId={company.id} initial={company.form_schema as FormField[]} />
             ) : (
-              <ul className="list-disc space-y-1 pr-5 text-sm">
+              <ul className="list-disc space-y-1 ps-5 text-sm">
                 {(company.form_schema as FormField[]).map((f) => <li key={f.key}>{f.label}</li>)}
               </ul>
             )}
@@ -78,7 +79,7 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
                     {governorates.map((g) => (
                       <label key={g.id} className="flex items-center gap-2 text-sm">
                         <input type="checkbox" name="governorate_id" value={g.id} defaultChecked={hiring.has(g.id)} className="accent-brand-600" />
-                        {g.name_ar}
+                        {placeName(g, locale)}
                       </label>
                     ))}
                   </div>

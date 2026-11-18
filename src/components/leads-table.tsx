@@ -3,7 +3,8 @@ import { MessageCircle, Phone } from "lucide-react";
 import { LeadStatusSelect } from "@/components/live";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
 import type { LeadStatus } from "@/lib/types";
-import { getT } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { placeName } from "@/lib/types";
 
 export type LeadRow = {
   id: string;
@@ -19,8 +20,8 @@ export type LeadRow = {
 };
 
 type Company = { name: string; logo_path: string | null };
-const place = (l: LeadRow) =>
-  [(l.governorates as { name_ar: string } | null)?.name_ar, (l.regions as { name_ar: string } | null)?.name_ar].filter(Boolean).join(" · ") || "—";
+const place = (l: LeadRow, locale: string) =>
+  [placeName(l.governorates as { name_ar: string; name_en: string | null } | null, locale), (l.regions as { name_ar: string } | null)?.name_ar].filter(Boolean).join(" · ") || "—";
 
 export async function ContactButtons({ phone }: { phone: string }) {
   const t = await getT();
@@ -44,7 +45,7 @@ export async function ContactButtons({ phone }: { phone: string }) {
 }
 
 export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRow[]; basePath: string; showAgent: boolean }) {
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   if (leads.length === 0) return <Empty>{t("مفيش ليدز بالفلتر ده")}</Empty>;
   return (
     <>
@@ -73,7 +74,7 @@ export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRo
                   <td>
                     <span className="flex items-center gap-2 whitespace-nowrap"><CompanyLogo name={c.name} src={c.logo_path} size={26} />{c.name}</span>
                   </td>
-                  <td className="text-zinc-600">{place(l)}</td>
+                  <td className="text-zinc-600">{place(l, locale)}</td>
                   {showAgent && (
                     <td>{(l.agent as { full_name: string } | null)?.full_name ?? <span className="badge bg-rose-50 text-rose-700">{t("غير معيّن")}</span>}</td>
                   )}
@@ -96,7 +97,7 @@ export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRo
                 <CompanyLogo name={c.name} src={c.logo_path} size={36} />
                 <div className="min-w-0 flex-1">
                   <Link href={`${basePath}/${l.id}`} className="block truncate font-semibold">{l.full_name}</Link>
-                  <p className="text-xs text-zinc-500">{c.name} · {place(l)}</p>
+                  <p className="text-xs text-zinc-500">{c.name} · {place(l, locale)}</p>
                   {showAgent && <p className="text-xs text-zinc-500">{(l.agent as { full_name: string } | null)?.full_name ?? t("غير معيّن")}</p>}
                 </div>
                 <ContactButtons phone={l.phone} />

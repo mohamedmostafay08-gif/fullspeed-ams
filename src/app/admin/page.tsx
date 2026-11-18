@@ -127,7 +127,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
         </Link>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatCard label={t("ليدز جديدة")} value={total.leads} icon={UserPlus} progress={{ value: total.leads, target: total.tLeads }} />
         <StatCard label={t("اشتغلوا")} value={total.hired} tone="good" icon={CheckCircle2} progress={{ value: total.hired, target: total.tHired }} />
         <StatCard label={t("نسبة التحويل")} value={`${conversion}%`} tone="brand" icon={TrendingUp} hint={t("اشتغلوا ÷ ليدز")} />

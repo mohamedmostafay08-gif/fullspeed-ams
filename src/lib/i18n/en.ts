@@ -1,5 +1,18 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  "حققت كل التارجت بتاعك النهارده!": "You hit all of today's targets!",
+  "بونص جديد!": "New bonus!",
+  "عرض التفاصيل": "View details",
+  "حققت تارجت التعيين النهارده!": "You hit today's hiring target!",
+  "حققت تارجت الليدز النهارده!": "You hit today's leads target!",
+  "عاش يا بطل — كمّل كده 🔥": "Great job, champ — keep it up 🔥",
+  "الصوت شغال": "Sound on",
+  "الصوت مقفول": "Sound off",
+  "{0} ← ": "{0} → ",
+  "حسب الجهاز": "Match device",
+  "فاتح": "Light",
+  "غامق": "Dark",
+  "المظهر: {0}": "Theme: {0}",
   " ({0} ج.م)": " ({0} EGP)",
   " · لحد {0}": " · until {0}",
   " · متوقفة": " · paused",

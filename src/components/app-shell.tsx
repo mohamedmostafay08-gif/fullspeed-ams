@@ -3,7 +3,8 @@ import { signOut } from "@/app/actions/auth";
 import { BottomNav, SideNav, type NavItem } from "@/components/nav-links";
 import { NotificationBell } from "@/components/notification-bell";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
-import { getT } from "@/lib/i18n/server";
+import { PrefsControls } from "@/components/prefs";
+import { getT, getTheme } from "@/lib/i18n/server";
 
 function initials(name: string) {
   return name
@@ -28,7 +29,7 @@ export async function AppShell({
   notificationsHref: string;
   children: React.ReactNode;
 }) {
-  const t = await getT();
+  const [t, theme] = await Promise.all([getT(), getTheme()]);
   return (
     <div className="min-h-screen md:flex">
       <aside className="hidden bg-ink md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
@@ -62,7 +63,8 @@ export async function AppShell({
             <BrandMark small />
             <span className="text-sm font-extrabold">Full Speed</span>
           </div>
-          <div className="mr-auto flex items-center gap-2">
+          <div className="ms-auto flex items-center gap-1">
+            <PrefsControls theme={theme} sound />
             <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
             <form action={signOut} className="md:hidden">
               <button className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100" aria-label={t("خروج")}>

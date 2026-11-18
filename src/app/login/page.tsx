@@ -1,10 +1,11 @@
 import Image from "next/image";
 import { BrandMark } from "@/components/app-shell";
 import { LoginForm } from "./login-form";
-import { getT } from "@/lib/i18n/server";
+import { PrefsControls } from "@/components/prefs";
+import { getT, getTheme } from "@/lib/i18n/server";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const t = await getT();
+  const [t, theme] = await Promise.all([getT(), getTheme()]);
   const inactive = (await searchParams).e === "inactive";
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
@@ -14,6 +15,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <div className="leading-tight">
             <p className="text-lg font-extrabold tracking-tight">Full Speed</p>
             <p className="text-xs font-medium text-zinc-500">Acquisition System</p>
+          </div>
+          <div className="ms-auto">
+            <PrefsControls theme={theme} />
           </div>
         </div>
 

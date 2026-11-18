@@ -4,7 +4,8 @@ import { CompanyLogo, StatusBadge, formatDate } from "@/components/ui";
 import { formatFieldValue } from "@/lib/forms";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_LABELS, type FormField, type LeadStatus } from "@/lib/types";
-import { getT } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { placeName } from "@/lib/types";
 
 export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) {
   const t = await getT();
@@ -12,7 +13,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const { data: lead } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, agent_id, company_id, companies(name, logo_path, form_schema), governorates(name_ar), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
+      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, agent_id, company_id, companies(name, logo_path, form_schema), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -53,10 +54,10 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
           <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
             <Row label={t("الموبايل")}>
               <a href={`tel:${lead.phone}`} dir="ltr" className="font-semibold text-brand-700">{lead.phone}</a>
-              <a href={`https://wa.me/2${lead.phone}`} target="_blank" rel="noreferrer" className="mr-3 text-xs text-emerald-700">{t("واتساب")}</a>
+              <a href={`https://wa.me/2${lead.phone}`} target="_blank" rel="noreferrer" className="ms-3 text-xs text-emerald-700">{t("واتساب")}</a>
             </Row>
             <Row label={t("المحافظة / المنطقة")}>
-              {(lead.governorates as unknown as { name_ar: string } | null)?.name_ar ?? "—"} / {(lead.regions as unknown as { name_ar: string } | null)?.name_ar ?? "—"}
+              {placeName(lead.governorates as unknown as { name_ar: string; name_en: string | null } | null, await getLocale()) ?? "—"} / {(lead.regions as unknown as { name_ar: string } | null)?.name_ar ?? "—"}
             </Row>
             <Row label={t("الأجنت")}>{agent?.full_name ?? t("غير معيّن")}</Row>
             <Row label={t("المصدر")}>{lead.source}</Row>
@@ -107,9 +108,9 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
         <h2 className="mb-3 font-semibold">{t("سجل الحركة")}</h2>
         <ol className="space-y-3 text-sm">
           {(activity ?? []).map((a) => (
-            <li key={a.id} className="border-r-2 border-brand-500 pr-3">
+            <li key={a.id} className="border-s-2 border-brand-500 ps-3">
               <p className="font-medium">
-                {a.from_status ? `${t(LEAD_STATUS_LABELS[a.from_status as LeadStatus])} ← ` : ""}
+                {a.from_status ? t("{0} ← ", t(LEAD_STATUS_LABELS[a.from_status as LeadStatus])) : ""}
                 {a.to_status ? t(LEAD_STATUS_LABELS[a.to_status as LeadStatus]) : a.note}
               </p>
               <p className="text-xs text-zinc-500">

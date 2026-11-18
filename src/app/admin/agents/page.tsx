@@ -45,10 +45,10 @@ export default async function AgentsPage() {
                   <td className="text-zinc-500">{p.team_id ? teamName.get(p.team_id) : "—"}</td>
                   <td className="text-zinc-500">
                     {p.location_id ? locationName.get(p.location_id) : "—"}
-                    {p.allow_anywhere && <span className="badge mr-1 bg-amber-100 text-amber-800">{t("أي مكان")}</span>}
+                    {p.allow_anywhere && <span className="badge ms-1 bg-amber-100 text-amber-800">{t("أي مكان")}</span>}
                   </td>
                   <td className="tabular-nums">{companyCount.get(p.id) ?? 0}</td>
-                  <td dir="ltr" className="text-right text-zinc-500">{p.phone ?? "—"}</td>
+                  <td className="text-zinc-500"><span dir="ltr">{p.phone ?? "—"}</span></td>
                   <td>{p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">{t("نشط")}</span> : <span className="badge bg-zinc-200">{t("موقوف")}</span>}</td>
                 </tr>
               ))}

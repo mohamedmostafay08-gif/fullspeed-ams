@@ -5,7 +5,7 @@ import type { Company, Governorate, Region } from "@/lib/types";
 export async function getGeo(): Promise<{ governorates: Governorate[]; regions: Region[] }> {
   const supabase = await createClient();
   const [g, r] = await Promise.all([
-    supabase.from("governorates").select("id, name_ar").order("id"),
+    supabase.from("governorates").select("id, name_ar, name_en").order("id"),
     supabase.from("regions").select("id, governorate_id, name_ar").order("name_ar").limit(5000),
   ]);
   return { governorates: g.data ?? [], regions: r.data ?? [] };

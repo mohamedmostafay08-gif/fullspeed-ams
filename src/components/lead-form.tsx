@@ -3,8 +3,8 @@
 import { useActionState, useMemo, useState } from "react";
 import { createLead, type LeadFormState } from "@/app/actions/leads";
 import { CompanyLogo } from "@/components/ui";
-import type { Company, FormField, Governorate, Region } from "@/lib/types";
-import { useT } from "@/lib/i18n/client";
+import { placeName, type Company, type FormField, type Governorate, type Region } from "@/lib/types";
+import { useLocale, useT } from "@/lib/i18n/client";
 
 type AgentOption = { id: string; full_name: string; company_ids: string[] };
 
@@ -22,6 +22,7 @@ export function LeadForm({
   defaultCompanyId?: string;
 }) {
   const t = useT();
+  const locale = useLocale();
   const [state, action, pending] = useActionState<LeadFormState, FormData>(createLead, undefined);
   const [companyId, setCompanyId] = useState(defaultCompanyId ?? companies[0]?.id ?? "");
   const [governorateId, setGovernorateId] = useState("");
@@ -61,14 +62,14 @@ export function LeadForm({
         </div>
         <div>
           <label className="label" htmlFor="phone">{t("رقم الموبايل *")}</label>
-          <input id="phone" name="phone" required inputMode="tel" dir="ltr" placeholder="01xxxxxxxxx" className="input text-right" />
+          <input id="phone" name="phone" required inputMode="tel" dir="ltr" placeholder="01xxxxxxxxx" className="input text-left rtl:text-right" />
         </div>
         <div>
           <label className="label" htmlFor="governorate_id">{t("المحافظة")}</label>
           <select id="governorate_id" name="governorate_id" className="input" value={governorateId} onChange={(e) => setGovernorateId(e.target.value)}>
             <option value="">—</option>
             {governorates.map((g) => (
-              <option key={g.id} value={g.id}>{g.name_ar}</option>
+              <option key={g.id} value={g.id}>{placeName(g, locale)}</option>
             ))}
           </select>
         </div>

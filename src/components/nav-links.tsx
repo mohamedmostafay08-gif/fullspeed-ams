@@ -62,7 +62,7 @@ export function SideNav({ items }: { items: NavItem[] }) {
               active ? "bg-white/10 text-white" : "text-slate-ink hover:bg-white/5 hover:text-bone"
             }`}
           >
-            {active && <span className="absolute inset-y-2 right-0 w-1 rounded-l-full bg-brand-500" />}
+            {active && <span className="absolute inset-y-2 start-0 w-1 rounded-e-full bg-brand-500" />}
             <Icon size={18} className={active ? "text-brand-400" : "text-slate-ink group-hover:text-bone"} />
             {t(item.label)}
           </Link>

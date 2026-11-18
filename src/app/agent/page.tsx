@@ -1,3 +1,4 @@
+import { TargetCelebration } from "@/components/celebrate";
 import Link from "next/link";
 import { BellRing, CheckCircle2, ClipboardList, Gift, Plus, UserPlus } from "lucide-react";
 import { setTaskStatus } from "@/app/actions/notifications";
@@ -64,13 +65,21 @@ export default async function AgentHome() {
   return (
     <>
       <LiveRefresh channel={`agent-${profile.id}`} />
+      <TargetCelebration
+        userId={profile.id}
+        day={today}
+        leads={sum("leads_count")}
+        leadsTarget={sum("target_leads")}
+        hired={sum("hired_count")}
+        hiredTarget={sum("target_hired")}
+      />
       <PageHeader title={t("صباح الفل يا {0}", profile.full_name.split(" ")[0])} subtitle={t("ده أداءك النهارده — {0}", today)}>
         <Link href="/agent/leads/new" className="btn-primary">
           <Plus size={18} /> {t("ليد جديد")}
         </Link>
       </PageHeader>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatCard label={t("ليدز النهارده")} value={sum("leads_count")} icon={UserPlus} progress={{ value: sum("leads_count"), target: sum("target_leads") }} />
         <StatCard label={t("اشتغلوا")} value={sum("hired_count")} tone="good" icon={CheckCircle2} progress={{ value: sum("hired_count"), target: sum("target_hired") }} />
         <StatCard label={t("محتاجين متابعة")} value={followRes.count ?? 0} tone="brand" icon={BellRing} hint={t("جديد + مردش")} />

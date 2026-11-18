@@ -26,7 +26,7 @@ export async function queryLeads(f: LeadFilters, opts: { limit: number; offset: 
   let q = supabase
     .from("leads")
     .select(
-      "id, full_name, phone, status, source, created_at, form_data, notes, companies(name, logo_path), governorates(name_ar), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
+      "id, full_name, phone, status, source, created_at, form_data, notes, companies(name, logo_path), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })

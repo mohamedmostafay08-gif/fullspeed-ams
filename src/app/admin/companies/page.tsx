@@ -21,12 +21,12 @@ export default async function CompaniesPage() {
   return (
     <>
       <PageHeader title={t("الشركات")} subtitle={t("{0} شركة", companies?.length ?? 0)} />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {(companies ?? []).map((c) => (
           <Link
             key={c.id}
             href={`/admin/companies/${c.id}`}
-            className={`card flex items-center gap-3 transition hover:border-brand-500 ${c.is_active ? "" : "opacity-50"}`}
+            className={`card lift flex items-center gap-3 ${c.is_active ? "" : "opacity-50"}`}
           >
             <CompanyLogo name={c.name} src={c.logo_path} size={52} />
             <div className="min-w-0">

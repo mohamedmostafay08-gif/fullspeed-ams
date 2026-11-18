@@ -39,7 +39,12 @@ export interface Company {
 export interface Governorate {
   id: number;
   name_ar: string;
+  name_en?: string | null;
 }
+
+/** Governorate name in the viewer's language (regions only have Arabic names). */
+export const placeName = (g: { name_ar: string; name_en?: string | null } | null | undefined, locale: string) =>
+  g ? (locale === "en" && g.name_en ? g.name_en : g.name_ar) : null;
 
 export interface Region {
   id: number;

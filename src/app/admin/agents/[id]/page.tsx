@@ -44,7 +44,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
 
   return (
     <>
-      <PageHeader title={agent.full_name} subtitle={t("{0}{1}", t(ROLE_LABELS[agent.role as keyof typeof ROLE_LABELS]), agent.is_active ? "" : " · موقوف")}>
+      <PageHeader title={agent.full_name} subtitle={t("{0}{1}", t(ROLE_LABELS[agent.role as keyof typeof ROLE_LABELS]), agent.is_active ? "" : ` · ${t("موقوف")}`)}>
         <Link href={`/admin/leads?agent=${agent.id}`} className="btn-ghost">{t("ليدز الأجنت")}</Link>
       </PageHeader>
 

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Inbox, type LucideIcon } from "lucide-react";
+import { CountUp } from "@/components/count-up";
 import { Tr, When } from "@/components/tr";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
@@ -42,16 +43,16 @@ export function StatCard({
 }) {
   const t = TONE[tone];
   return (
-    <div className="card flex flex-col gap-3">
+    <div className="group card lift flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-zinc-500">{label}</p>
         {Icon && (
-          <span className={`grid size-9 place-items-center rounded-xl ${t.icon}`}>
+          <span className={`grid size-9 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${t.icon}`}>
             <Icon size={18} />
           </span>
         )}
       </div>
-      <p className={`num text-3xl font-semibold tracking-tight ${t.value}`}>{value}</p>
+      <p className={`num text-3xl font-semibold tracking-tight ${t.value}`}>{typeof value === "number" ? <CountUp value={value} /> : value}</p>
       {progress ? <Progress value={progress.value} target={progress.target} /> : hint && <p className="text-xs text-zinc-400">{hint}</p>}
     </div>
   );
@@ -65,7 +66,7 @@ export function Progress({ value, target }: { value: number; target: number }) {
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div className={`h-full rounded-full transition-[width] duration-500 ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="num w-16 text-left text-xs text-zinc-500" dir="ltr">
+      <span className="num w-16 text-right rtl:text-left text-xs text-zinc-500" dir="ltr">
         {value}/{target || "—"}
       </span>
     </div>

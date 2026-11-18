@@ -124,7 +124,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
       <LiveRefresh channel="analytics" />
       {header}
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 xl:gap-4">
+      <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 xl:gap-4">
         <StatCard label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={t("{0} مش متوزعين", a.totals.unassigned)} />
         <StatCard label={t("اتكلّموا")} value={pct(a.totals.contacted, a.totals.leads)} icon={PhoneCall} tone="brand" hint={t("{0} ليد · {1} مردوش", a.totals.contacted, a.totals.no_answer)} />
         <StatCard label={t("اشتغلوا في الفترة")} value={a.hired} icon={CheckCircle2} tone="good" hint={t("تحويل {0}", pct(a.totals.converted, a.totals.leads))} />
@@ -272,7 +272,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
                     <p className="num text-2xl font-semibold">{row.leads}</p>
                     <p className="text-xs text-zinc-500">{t("ليد")}</p>
                   </div>
-                  <div className="text-left">
+                  <div className="text-end">
                     <p className="num text-2xl font-semibold text-emerald-700">{row.hired}</p>
                     <p className="text-xs text-zinc-500">{t("اشتغل ·")} {pct(row.hired, row.leads)}</p>
                   </div>
