@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { GeoGate } from "@/components/geo-gate";
+import { PresenceBeacon } from "@/components/presence";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadCount } from "@/lib/data";
@@ -21,6 +22,7 @@ export default async function AgentLayout({ children }: LayoutProps<"/agent">) {
   const [unread, mustCheckIn] = await Promise.all([getUnreadCount(profile.id), pendingLocationCheck(profile)]);
   return (
     <AppShell profile={profile} nav={[...NAV]} unread={unread} notificationsHref="/agent/notifications">
+      <PresenceBeacon userId={profile.id} />
       {mustCheckIn ? <GeoGate locationName={mustCheckIn} /> : children}
     </AppShell>
   );

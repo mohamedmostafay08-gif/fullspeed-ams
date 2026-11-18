@@ -1,6 +1,8 @@
 import { TargetCelebration } from "@/components/celebrate";
+import { BadgesCard, Leaderboard } from "@/components/leaderboard";
+import { badgesFor, type AgentStats, type BoardRow } from "@/lib/badges";
 import Link from "next/link";
-import { BellRing, CalendarClock, CalendarDays, CheckCircle2, ClipboardList, Clock, Gift, PhoneCall, Plus, UserPlus } from "lucide-react";
+import { BellRing, CalendarClock, CalendarDays, CheckCircle2, ClipboardList, Clock, Gift, Flame, PhoneCall, Plus, UserPlus } from "lucide-react";
 import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
 import { BreakWidget, type BreakRow } from "@/components/breaks";
@@ -24,7 +26,7 @@ export default async function AgentHome() {
   const today = cairoToday();
   const supabase = await createClient();
   const [dayStart, dayEnd] = cairoRange(today, today);
-  const [companies, perfRes, tasksRes, annRes, followRes, breaksRes, callbacksRes, interviewsRes] = await Promise.all([
+  const [companies, perfRes, tasksRes, annRes, followRes, breaksRes, callbacksRes, interviewsRes, boardRes, statsRes] = await Promise.all([
     getAssignedCompanies(profile.id),
     supabase.rpc("performance_report", { p_from: today, p_to: today, p_agent: profile.id }),
     supabase
@@ -70,6 +72,8 @@ export default async function AgentHome() {
       .gte("interview_at", dayStart)
       .lt("interview_at", dayEnd)
       .order("interview_at"),
+    supabase.rpc("leaderboard", { p_from: today, p_to: today }),
+    supabase.rpc("agent_stats", { p_agent: profile.id }),
   ]);
 
   const perf = (perfRes.data ?? []) as PerfRow[];
@@ -78,6 +82,11 @@ export default async function AgentHome() {
   const announcements = annRes.data ?? [];
   const tasks = tasksRes.data ?? [];
   const follow = followRes.data ?? [];
+  const board = (boardRes.data ?? []) as BoardRow[];
+  const myRank = board.findIndex((r) => r.agent_id === profile.id) + 1 || null;
+  const myRow = board.find((r) => r.agent_id === profile.id);
+  const stats = (statsRes.data ?? { total_leads: 0, total_hired: 0, streak: 0, calls_today: 0, avg_first_touch_min: null, leads_7d: 0 }) as AgentStats;
+  const badges = badgesFor(stats, myRank, myRow?.points ?? 0);
   const now = new Date();
   const agenda = [
     ...(callbacksRes.data ?? []).map((l) => ({ kind: "callback" as const, id: l.id, name: l.full_name, phone: l.phone, at: l.callback_at!, place: null as string | null, company: (l.companies as unknown as { name: string }).name })),
@@ -96,6 +105,16 @@ export default async function AgentHome() {
         hiredTarget={sum("target_hired")}
       />
       <PageHeader title={t("صباح الفل يا {0}", profile.full_name.split(" ")[0])} subtitle={t("ده أداءك النهارده — {0}", today)}>
+        {stats.streak > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-2 text-sm font-bold text-orange-700" title={t("{0} يوم ورا بعض محقق هدفه", stats.streak)}>
+            <Flame size={16} className="animate-wiggle" /> {t("{0} يوم", stats.streak)}
+          </span>
+        )}
+        {myRank && (myRow?.points ?? 0) > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-2 text-sm font-bold text-amber-800">
+            🏆 {t("ترتيبك #{0} · {1} نقطة", myRank, myRow?.points ?? 0)}
+          </span>
+        )}
         <Link href="/agent/leads/new" className="btn-ghost">
           <Plus size={18} /> {t("ليد جديد")}
         </Link>
@@ -157,10 +176,13 @@ export default async function AgentHome() {
               })}
             </div>
           )}
+          <div className="mt-6"><BadgesCard badges={badges} /></div>
         </section>
 
         <div className="space-y-6">
           <BreakWidget today={(breaksRes.data ?? []) as BreakRow[]} />
+
+          <Leaderboard rows={board} me={profile.id} />
 
           <section className="card">
             <h2 className="card-title"><CalendarDays size={18} className="text-violet-500" /> {t("مواعيدي النهارده")}</h2>

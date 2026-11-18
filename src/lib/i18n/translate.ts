@@ -23,6 +23,9 @@ const PATTERNS: [RegExp, string][] = [
   [/الحقل رقم (\d+) من غير اسم/g, "Field #$1 has no name"],
   [/نوع الحقل "([^"]+)" غير معروف/g, 'Unknown type for field "$1"'],
   [/الحقل "([^"]+)" محتاج اختيارات/g, 'Field "$1" needs choices'],
+  [/(\d+) ليد(?!ز)/g, "$1 leads"],
+  [/(\d+) اشتغلوا/g, "$1 hired"],
+  [/الأول: /g, "Top: "],
   [/، /g, ", "],
   [/ج\.م/g, "EGP"],
 ];

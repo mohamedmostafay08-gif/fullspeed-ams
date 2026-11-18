@@ -9,7 +9,9 @@ type Item = { href: string; label: string; icon: string; exact?: boolean; roles?
 
 const NAV: Item[] = [
   { href: "/admin", label: "لوحة التحكم", icon: "dashboard", exact: true },
+  { href: "/admin/live", label: "المتابعة اللايف", icon: "live" },
   { href: "/admin/analytics", label: "التحليلات", icon: "analytics" },
+  { href: "/admin/report", label: "التقرير اليومي", icon: "report" },
   { href: "/admin/leads", label: "الليدز", icon: "leads" },
   { href: "/admin/agents", label: "الفريق", icon: "team" },
   { href: "/admin/breaks", label: "البريكات", icon: "coffee" },
@@ -19,6 +21,7 @@ const NAV: Item[] = [
   { href: "/admin/templates", label: "قوالب واتساب", icon: "whatsapp" },
   { href: "/admin/blacklist", label: "البلاك ليست", icon: "ban" },
   { href: "/admin/locations", label: "أماكن الشغل", icon: "location", roles: ["admin", "manager"] },
+  { href: "/admin/audit", label: "سجل التعديلات", icon: "audit", roles: ["admin", "manager"] },
   { href: "/admin/crm", label: "ربط الـ CRM", icon: "crm", roles: ["admin"] },
 ];
 
