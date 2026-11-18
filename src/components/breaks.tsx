@@ -103,7 +103,7 @@ export function BreakWidget({ today }: { today: BreakRow[] }) {
         </div>
       )}
       {msg?.error && <p className="mt-2 text-sm text-rose-600">{msg.error}</p>}
-      {msg?.ok && !msg.error && <p className="mt-2 text-sm text-emerald-600">{msg.ok}</p>}
+      {msg?.ok && !msg.error && waiting && <p className="mt-2 text-sm text-emerald-600">{msg.ok}</p>}
     </section>
   );
 }
