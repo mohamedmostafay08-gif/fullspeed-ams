@@ -26,13 +26,13 @@
 ## التقنيات
 
 Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Supabase (Postgres + RLS + Auth + Realtime + Storage + pg_cron + pg_net)
-· Web Push (VAPID) · WebAuthn (SimpleWebAuthn) · الاستضافة على Netlify (نشر تلقائي من فرع `main`).
+· Web Push (VAPID) · WebAuthn (SimpleWebAuthn) · الاستضافة على Cloudflare Workers عن طريق [OpenNext](https://opennext.js.org/cloudflare) (نشر تلقائي من فرع `main`).
 
 ## التشغيل
 
 ### 1) Supabase
 1. Project على [supabase.com](https://supabase.com) (الحالي: `eu-west-1`).
-2. طبّق الـ migrations بالترتيب (`supabase/migrations/0001` → `0019`):
+2. طبّق الـ migrations بالترتيب (`supabase/migrations/0001` → آخر ملف):
    ```bash
    npx supabase link --project-ref <PROJECT_REF>
    npx supabase db push
@@ -42,8 +42,18 @@ Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Supabase (Postgres + 
    select public.set_push_config('app_url', 'https://ams.fullspeedlogistics.com');
    ```
 
-### 2) المتغيرات (Netlify → Environment variables)
-انظر `.env.example`: `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` · `SUPABASE_SERVICE_ROLE_KEY` · `CRM_WEBHOOK_SECRET`.
+### 2) النشر على Cloudflare Workers
+من Cloudflare: **Workers & Pages ← Create ← Import a repository** واختار الريبو، بالإعدادات دي:
+
+| | |
+|---|---|
+| Build command | `npm run cf:build` |
+| Deploy command | `npx wrangler deploy` |
+| Build variables | `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (بيتحطوا جوه الكود وقت البناء) |
+| Variables and Secrets (الـ Worker) | `SUPABASE_SERVICE_ROLE_KEY` · `CRM_WEBHOOK_SECRET` (Secret) |
+
+الإعدادات في `wrangler.jsonc` و`open-next.config.ts`. للتجربة المحلية بنفس بيئة Cloudflare: حط الأسرار في `.dev.vars` وشغّل `npm run cf:preview`.
+الـ `overrides` في `package.json` بتثبّت `cookie@0.7.2` لـ OpenNext، لأن `cookie@1` بيكسر قراءة الكوكيز في الـ proxy على Cloudflare.
 مفاتيح الإشعارات (VAPID) وأسرار الجدولة بتتعمل تلقائياً جوه الداتابيز (`private.app_config`) — مش محتاجة إعداد.
 
 ### 3) أول أدمن
