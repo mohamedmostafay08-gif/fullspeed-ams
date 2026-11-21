@@ -54,7 +54,7 @@ export async function finishPasskeyRegistration(response: RegistrationResponseJS
     const v = await verifyRegistrationResponse({ response, expectedChallenge: challenge, expectedOrigin: origin, expectedRPID: rpID, requireUserVerification: true });
     if (!v.verified || !v.registrationInfo) return fail("مقدرتش أتأكد من البصمة");
     const { credential } = v.registrationInfo;
-    const { error } = await createAdminClient().from("passkeys").insert({
+    const { error } = await createAdminClient(profile.id).from("passkeys").insert({
       id: credential.id,
       user_id: profile.id,
       public_key: toB64u(credential.publicKey),

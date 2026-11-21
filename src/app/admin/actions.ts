@@ -42,7 +42,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
 
   // The new profile starts inactive; finish setting it up with the service role (the caller's
   // right to create this role was checked above — managers may not otherwise change roles/activation).
-  const { error: profileError } = await createAdminClient()
+  const { error: profileError } = await createAdminClient(me.id)
     .from("profiles")
     .update({
       role,
@@ -53,6 +53,14 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
     })
     .eq("id", data.user.id);
   if (profileError) return { error: t("الحساب اتعمل بس الصلاحية متحفظتش — عدّلها من صفحة الموظف") };
+  // The auth server creates the profile row, so the activity log can't tell who asked for it.
+  await createAdminClient()
+    .from("audit_log")
+    .update({ actor_id: me.id, actor_name: me.full_name })
+    .eq("table_name", "profiles")
+    .eq("row_id", data.user.id)
+    .eq("action", "insert")
+    .is("actor_id", null);
   return done("/admin/agents", t("تم إنشاء حساب {0}", fullName));
 }
 
