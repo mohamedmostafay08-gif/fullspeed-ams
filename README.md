@@ -49,10 +49,9 @@ Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Supabase (Postgres + 
 |---|---|
 | Build command | `npm run cf:build` |
 | Deploy command | `npx wrangler deploy` |
-| Build variables | `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (بيتحطوا جوه الكود وقت البناء) |
 | Variables and Secrets (الـ Worker) | `SUPABASE_SERVICE_ROLE_KEY` · `CRM_WEBHOOK_SECRET` (Secret) |
 
-الإعدادات في `wrangler.jsonc` و`open-next.config.ts`. للتجربة المحلية بنفس بيئة Cloudflare: حط الأسرار في `.dev.vars` وشغّل `npm run cf:preview`.
+القيم العامة (`NEXT_PUBLIC_*`) موجودة في `.env.production` جوه الريبو. الإعدادات في `wrangler.jsonc` و`open-next.config.ts`. للتجربة المحلية بنفس بيئة Cloudflare: حط الأسرار في `.dev.vars` وشغّل `npm run cf:preview`.
 الـ `overrides` في `package.json` بتثبّت `cookie@0.7.2` لـ OpenNext، لأن `cookie@1` بيكسر قراءة الكوكيز في الـ proxy على Cloudflare.
 مفاتيح الإشعارات (VAPID) وأسرار الجدولة بتتعمل تلقائياً جوه الداتابيز (`private.app_config`) — مش محتاجة إعداد.
 
