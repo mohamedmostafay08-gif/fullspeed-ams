@@ -15,7 +15,12 @@ import {
   MessageCircle,
   PhoneCall,
   Bell,
+  CalendarCheck,
   Coffee,
+  KeyRound,
+  Megaphone,
+  ShieldCheck,
+  TrendingUp,
   MapPin,
   Building2,
   CheckSquare,
@@ -53,6 +58,11 @@ const ICONS: Record<string, LucideIcon> = {
   live: Activity,
   report: FileText,
   audit: History,
+  attendance: CalendarCheck,
+  scorecard: TrendingUp,
+  memo: Megaphone,
+  requests: ShieldCheck,
+  logins: KeyRound,
 };
 
 export interface NavItem {

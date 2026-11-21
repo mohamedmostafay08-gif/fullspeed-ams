@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { GeoGate } from "@/components/geo-gate";
+import { AttendanceBeacon } from "@/components/presence";
 import { getSession, requireRole, STAFF } from "@/lib/auth";
 import { pendingLocationCheck } from "@/lib/location-gate";
 import type { Role } from "@/lib/types";
@@ -15,13 +16,18 @@ const NAV: Item[] = [
   { href: "/admin/leads", label: "الليدز", icon: "leads", mobile: "tab" },
   { href: "/admin/agents", label: "الفريق", icon: "team" },
   { href: "/admin/breaks", label: "البريكات", icon: "coffee" },
+  { href: "/admin/attendance", label: "الحضور والانصراف", icon: "attendance" },
+  { href: "/admin/scorecard", label: "التقييم الأسبوعي", icon: "scorecard" },
+  { href: "/admin/memos", label: "التعميمات", icon: "memo" },
   { href: "/admin/companies", label: "الشركات", icon: "companies" },
   { href: "/admin/tasks", label: "التاسكات", icon: "tasks" },
   { href: "/admin/announcements", label: "البونص والإشعارات", icon: "bonus" },
   { href: "/admin/templates", label: "قوالب واتساب", icon: "whatsapp" },
   { href: "/admin/blacklist", label: "البلاك ليست", icon: "ban" },
   { href: "/admin/locations", label: "أماكن الشغل", icon: "location", roles: ["admin", "manager"] },
+  { href: "/admin/requests", label: "طلبات الموافقة", icon: "requests", roles: ["admin", "manager"] },
   { href: "/admin/audit", label: "سجل التعديلات", icon: "audit", roles: ["admin", "manager"] },
+  { href: "/admin/logins", label: "سجل الدخول", icon: "logins", roles: ["admin"] },
   { href: "/admin/crm", label: "ربط الـ CRM", icon: "crm", roles: ["admin"] },
   { href: "/admin/integrations", label: "النسخ والتكاملات", icon: "backup", roles: ["admin"] },
   { href: "/admin/account", label: "حسابي", icon: "account" },
@@ -35,6 +41,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const nav = NAV.filter((n) => !n.roles || n.roles.includes(profile.role)).map(({ href, label, icon, exact, mobile, desktop }) => ({ href, label, icon, exact, mobile, desktop }));
   return (
     <AppShell profile={profile} nav={nav} unread={unread} notificationsHref="/admin/notifications">
+      {profile.role === "team_leader" && <AttendanceBeacon />}
       {mustCheckIn ? <GeoGate locationName={mustCheckIn} /> : children}
     </AppShell>
   );

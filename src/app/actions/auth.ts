@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
+import { recordLogin } from "@/lib/login-log";
 
 export type SignInState = { error?: string; email?: string } | undefined;
 
@@ -21,6 +22,7 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
     await supabase.auth.signOut();
     return { error: t("الحساب ده مش مفعّل — كلم الأدمن"), email };
   }
+  await recordLogin(data.user.id, "password");
   redirect(profile.role === "agent" ? "/agent" : "/admin");
 }
 

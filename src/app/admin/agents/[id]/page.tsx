@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { saveAssignments, saveTargets, updateUser } from "@/app/admin/actions";
+import { requestAccountChange } from "@/app/actions/management";
+import { StateForm } from "@/components/state-form";
 import { PageHeader } from "@/components/app-shell";
-import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
+import { CompanyLogo, Empty, Progress, StatCard, formatDate } from "@/components/ui";
 import { cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +34,10 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
     supabase.from("teams").select("id, name"),
     supabase.from("work_locations").select("id, name").order("name"),
   ]);
+  const { data: pendingRequest } =
+    me.role === "manager"
+      ? await supabase.from("admin_requests").select("kind, created_at").eq("target_id", id).eq("status", "pending").maybeSingle()
+      : { data: null };
   const canManage = canManageRole(me.role, agent.role as Role);
   // Keep the current role visible even if this user may not assign it.
   const roleOptions = Object.entries(ROLE_LABELS).filter(([v]) => assignableRoles(me.role).includes(v as Role) || v === agent.role);
@@ -47,6 +53,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
     <>
       <PageHeader title={agent.full_name} subtitle={t("{0}{1}", t(ROLE_LABELS[agent.role as keyof typeof ROLE_LABELS]), agent.is_active ? "" : ` · ${t("موقوف")}`)}>
         <Link href={`/admin/leads?agent=${agent.id}`} className="btn-ghost">{t("ليدز الأجنت")}</Link>
+        {agent.role === "agent" && <Link href={`/admin/scorecard?agent=${agent.id}`} className="btn-ghost">{t("التقييم الأسبوعي")}</Link>}
       </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -211,6 +218,24 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
             </form>
           </section>
         ); })()}
+
+        {me.role === "manager" && canManage && agent.id !== me.id && (
+          <section className="card lg:col-span-2">
+            <h2 className="card-title">{agent.is_active ? t("طلب إيقاف الحساب") : t("طلب تفعيل الحساب")}</h2>
+            {pendingRequest ? (
+              <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-900">
+                {t("فيه طلب مستني موافقة الأدمن — تابعه من «طلبات الموافقة».")} <span className="text-xs">({formatDate(pendingRequest.created_at)})</span>
+              </p>
+            ) : (
+              <StateForm action={requestAccountChange} submitLabel={t("ابعت الطلب للأدمن")} className="grid gap-3">
+                <input type="hidden" name="target_id" value={agent.id} />
+                <input type="hidden" name="kind" value={agent.is_active ? "deactivate" : "activate"} />
+                <label className="label" htmlFor="reason">{t("السبب")}</label>
+                <textarea id="reason" name="reason" required minLength={3} maxLength={500} rows={2} className="input" placeholder={agent.is_active ? t("مثلاً: ساب الشغل، غياب متكرر…") : t("مثلاً: رجع الشغل من النهارده")} />
+              </StateForm>
+            )}
+          </section>
+        )}
       </div>
     </>
   );

@@ -15,6 +15,7 @@ import { getProfile } from "@/lib/auth";
 import { deviceLabel, fromB64u, relyingParty, saveChallenge, takeChallenge, toB64u } from "@/lib/passkeys";
 import { createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { recordLogin } from "@/lib/login-log";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 const fail = (error: string) => ({ ok: false as const, error });
@@ -120,5 +121,6 @@ export async function finishPasskeyLogin(response: AuthenticationResponseJSON): 
   const supabase = await createClient();
   const { error: otpError } = await supabase.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: "magiclink" });
   if (otpError) return fail("حصلت مشكلة، جرّب تاني");
+  await recordLogin(key.user_id, "passkey");
   return { ok: true, to: "/" };
 }
