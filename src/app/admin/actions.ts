@@ -40,8 +40,9 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
   });
   if (error) return { error: error.message.includes("already") ? t("الإيميل ده متسجل قبل كده") : error.message };
 
-  const supabase = await createClient();
-  const { error: profileError } = await supabase
+  // The new profile starts inactive; finish setting it up with the service role (the caller's
+  // right to create this role was checked above — managers may not otherwise change roles/activation).
+  const { error: profileError } = await createAdminClient()
     .from("profiles")
     .update({
       role,
@@ -62,6 +63,8 @@ export async function updateUser(form: FormData) {
   const role = str(form, "role") as Role;
   const allowedRoles = assignableRoles(me.role);
   const self = id === me.id;
+  // Deactivating someone or changing their role is the admin's call (the database enforces it too).
+  const locked = self || me.role !== "admin";
   const { data: target } = await supabase.from("profiles").select("role").eq("id", id).maybeSingle();
   // A manager can't touch other managers or admins (the database enforces the same rule).
   if (!target || (!self && !canManageRole(me.role, target.role as Role))) return;
@@ -71,8 +74,8 @@ export async function updateUser(form: FormData) {
       full_name: str(form, "full_name"),
       phone: str(form, "phone") || null,
       // Nobody demotes or deactivates themselves by accident.
-      role: !self && allowedRoles.includes(role) ? role : undefined,
-      is_active: self ? undefined : form.get("is_active") === "on",
+      role: !locked && allowedRoles.includes(role) ? role : undefined,
+      is_active: locked ? undefined : form.get("is_active") === "on",
       team_id: str(form, "team_id") || null,
       location_id: str(form, "location_id") || null,
       allow_anywhere: form.get("allow_anywhere") === "on",
