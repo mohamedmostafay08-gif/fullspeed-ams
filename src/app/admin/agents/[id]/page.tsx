@@ -159,7 +159,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
           )}
         </section>
 
-        {canManage && (() => { const locked = agent.id === me.id || me.role === "manager"; return (
+        {canManage && (() => { const self = agent.id === me.id; const activeLocked = self || me.role !== "admin"; return (
           <section className="card lg:col-span-2">
             <h2 className="card-title">{t("بيانات الحساب ومكان الشغل")}</h2>
             <form action={updateUser} className="grid gap-3 sm:grid-cols-3">
@@ -178,10 +178,10 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
               </div>
               <div>
                 <label className="label">{t("الصلاحية")}</label>
-                <select name="role" defaultValue={agent.role} className="input" disabled={locked}>
+                <select name="role" defaultValue={agent.role} className="input" disabled={self}>
                   {roleOptions.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
                 </select>
-                {locked && <input type="hidden" name="role" value={agent.role} />}
+                {self && <input type="hidden" name="role" value={agent.role} />}
               </div>
               <div>
                 <label className="label">{t("التيم")}</label>
@@ -201,11 +201,11 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                 <input type="checkbox" name="allow_anywhere" defaultChecked={agent.allow_anywhere} className="accent-brand-600" /> {t("مسموح يفتح من أي مكان")}
               </label>
               <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
-                <input type="checkbox" name="is_active" defaultChecked={agent.is_active} disabled={locked} className="accent-brand-600" /> {t("الحساب نشط")}
-                {locked && agent.is_active && <input type="hidden" name="is_active" value="on" />}
+                <input type="checkbox" name="is_active" defaultChecked={agent.is_active} disabled={activeLocked} className="accent-brand-600" /> {t("الحساب نشط")}
+                {activeLocked && agent.is_active && <input type="hidden" name="is_active" value="on" />}
               </label>
               {me.role === "manager" && (
-                <p className="text-xs text-zinc-500 sm:col-span-3">{t("تغيير الصلاحية أو إيقاف الحساب للأدمن بس.")}</p>
+                <p className="text-xs text-zinc-500 sm:col-span-3">{t("إيقاف الحساب للأدمن بس — وتقدر تخلّي الموظف تيم ليدر أو أجنت.")}</p>
               )}
               <div className="sm:col-span-3"><button className="btn-primary">{t("حفظ")}</button></div>
             </form>
