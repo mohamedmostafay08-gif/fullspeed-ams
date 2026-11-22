@@ -43,27 +43,34 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
   const month = typeof sp.month === "string" && MONTH_RE.test(sp.month) && sp.month <= today.slice(0, 7) ? sp.month : today.slice(0, 7);
   const supabase = await createClient();
 
-  const [settingsRes, monthRes, todayRes, peopleRes, leaveRes] = await Promise.all([
+  const [settingsRes, monthRes, todayRes, peopleRes, leaveRes, holidayRes, permitRes] = await Promise.all([
     supabase.from("work_settings").select("shift_start, grace_minutes, off_days").eq("id", 1).single(),
     supabase.rpc("attendance_month", { p_month: `${month}-01` }),
     supabase.from("attendance").select("user_id, first_seen, last_seen").eq("day", today),
     supabase.from("profiles").select("id, full_name, role").eq("is_active", true).in("role", ["agent", "team_leader"]).order("full_name"),
     supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today),
+    supabase.from("public_holidays").select("name").eq("day", today).maybeSingle(),
+    supabase.from("hour_permits").select("user_id, kind, at_time").eq("day", today).eq("status", "approved"),
   ]);
+  const holidayToday = holidayRes.data?.name ?? null;
+  const lateUntil = new Map((permitRes.data ?? []).filter((p) => p.kind === "late_arrival").map((p) => [p.user_id, (p.at_time as string).slice(0, 5)]));
+  const leavingAt = new Map((permitRes.data ?? []).filter((p) => p.kind === "early_leave").map((p) => [p.user_id, (p.at_time as string).slice(0, 5)]));
   const onLeave = new Set((leaveRes.data ?? []).map((l) => l.user_id));
   const s = (settingsRes.data ?? { shift_start: "10:00:00", grace_minutes: 15, off_days: [5] }) as Settings;
   const shift = s.shift_start.slice(0, 5);
   const rows = (monthRes.data ?? []) as MonthRow[];
   const seen = new Map((todayRes.data ?? []).map((a) => [a.user_id, a]));
   const people = peopleRes.data ?? [];
-  const isOffToday = s.off_days.includes(((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7) + 1);
+  const isOffToday = !!holidayToday || s.off_days.includes(((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7) + 1);
   const shiftStarted = minutesLate(new Date().toISOString(), shift) >= 0;
 
   const board = people.map((p) => {
     const a = seen.get(p.id);
-    const late = a ? minutesLate(a.first_seen, shift) : 0;
-    const state = a ? (late > s.grace_minutes ? "late" : "on_time") : onLeave.has(p.id) ? "leave" : isOffToday || !shiftStarted ? "not_yet" : "absent";
-    return { ...p, a, late, state };
+    const start = lateUntil.get(p.id) ?? shift;
+    const late = a && !isOffToday ? minutesLate(a.first_seen, start) : 0;
+    const state = a ? (late > s.grace_minutes ? "late" : "on_time") : onLeave.has(p.id) ? "leave" : isOffToday || !shiftStarted || (lateUntil.has(p.id) && minutesLate(new Date().toISOString(), start) < 0) ? "not_yet" : "absent";
+    const permit = lateUntil.has(p.id) ? t("إذن تأخير لحد {0}", lateUntil.get(p.id)!) : leavingAt.has(p.id) ? t("إذن خروج الساعة {0}", leavingAt.get(p.id)!) : null;
+    return { ...p, a, late, state, permit };
   });
   const count = (st: string) => board.filter((b) => b.state === st).length;
   const STATE: Record<string, { label: string; cls: string }> = {
@@ -85,7 +92,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label={t("حاضرين في المعاد")} value={count("on_time")} tone="good" icon={CalendarCheck} />
         <StatCard label={t("وصلوا متأخر")} value={count("late")} tone="warn" icon={Clock} />
-        <StatCard label={isOffToday ? t("النهارده إجازة") : t("لسه مجوش")} value={isOffToday ? "—" : count("absent")} icon={CalendarCheck} />
+        <StatCard label={holidayToday ? t("إجازة رسمية: {0}", holidayToday) : isOffToday ? t("النهارده إجازة") : t("لسه مجوش")} value={isOffToday ? "—" : count("absent")} icon={CalendarCheck} />
       </div>
 
       <section className="card mt-6">
@@ -100,7 +107,10 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
                 {board.map((b) => (
                   <tr key={b.id}>
                     <td className="font-semibold"><Link href={`/admin/agents/${b.id}`} className="hover:underline">{b.full_name}</Link></td>
-                    <td><span className={`badge ${STATE[b.state].cls}`}>{t(STATE[b.state].label)}</span></td>
+                    <td>
+                      <span className={`badge ${STATE[b.state].cls}`}>{t(STATE[b.state].label)}</span>
+                      {b.permit && <span className="badge ms-1 bg-violet-100 text-violet-800">⏱️ {b.permit}</span>}
+                    </td>
                     <td className="num">{cairoTime(b.a?.first_seen ?? null)}</td>
                     <td className="num">{cairoTime(b.a?.last_seen ?? null)}</td>
                     <td className="num text-sm">{b.state === "late" ? t("{0} د", b.late) : "—"}</td>

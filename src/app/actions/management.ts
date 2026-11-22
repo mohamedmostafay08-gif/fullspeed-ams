@@ -134,3 +134,72 @@ export async function cancelLeave(form: FormData) {
   await supabase.rpc("cancel_leave", { p_id: str(form, "id") });
   revalidatePath("/", "layout");
 }
+
+// ───────── Hourly permits ─────────
+const TIME_RE = /^\d{2}:\d{2}$/;
+const PERMIT_ERRORS: Record<string, string> = {
+  bad_time: "معاد الوصول لازم يكون بعد بداية الشيفت",
+  too_long: "إذن التأخير أقصاه 4 ساعات بعد بداية الشيفت",
+  past_date: "اختار يوم من النهارده لحد 30 يوم قدام",
+  no_workdays: "اليوم ده إجازة أصلاً",
+  overlap: "عندك إذن من نفس النوع أو إجازة في اليوم ده",
+};
+
+export async function requestPermit(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("agent", "team_leader", "manager");
+  const kind = str(form, "kind");
+  const day = str(form, "day");
+  const time = str(form, "at_time");
+  if (kind !== "late_arrival" && kind !== "early_leave") return { error: t("اختار نوع الإذن") };
+  if (!DATE_RE.test(day) || !TIME_RE.test(time)) return { error: t("اختار اليوم والساعة") };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("request_permit", { p_kind: kind, p_day: day, p_time: time, p_reason: str(form, "reason") });
+  if (error) {
+    const key = Object.keys(PERMIT_ERRORS).find((k) => error.message.includes(k));
+    return { error: t(key ? PERMIT_ERRORS[key] : leaveError(error.message)) };
+  }
+  revalidatePath("/", "layout");
+  return { ok: t("الطلب اتبعت — هيوصلك إشعار بالرد") };
+}
+
+export async function decidePermit(form: FormData) {
+  await requireRole(...STAFF);
+  const supabase = await createClient();
+  await supabase.rpc("decide_permit", { p_id: str(form, "id"), p_approve: str(form, "decision") === "approve", p_note: str(form, "note") });
+  revalidatePath("/admin", "layout");
+}
+
+export async function cancelPermit(form: FormData) {
+  await requireRole("agent", "team_leader", "manager");
+  const supabase = await createClient();
+  await supabase.rpc("cancel_permit", { p_id: str(form, "id") });
+  revalidatePath("/", "layout");
+}
+
+// ───────── Official holidays (admin & managers) ─────────
+export async function addHoliday(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole(...MANAGERS);
+  const from = str(form, "day");
+  const to = str(form, "to") || from;
+  const name = str(form, "name").slice(0, 80);
+  if (!DATE_RE.test(from) || !DATE_RE.test(to) || to < from) return { error: t("اختار التاريخ") };
+  if (!name) return { error: t("اكتب اسم الإجازة") };
+  const days: { day: string; name: string }[] = [];
+  for (let d = new Date(`${from}T12:00:00Z`); d <= new Date(`${to}T12:00:00Z`) && days.length < 15; d.setUTCDate(d.getUTCDate() + 1)) {
+    days.push({ day: d.toISOString().slice(0, 10), name });
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("public_holidays").upsert(days);
+  if (error) return { error: t("مقدرتش أحفظ") };
+  revalidatePath("/", "layout");
+  return { ok: t("اتضافت {0} يوم", days.length) };
+}
+
+export async function deleteHoliday(form: FormData) {
+  await requireRole(...MANAGERS);
+  const supabase = await createClient();
+  await supabase.from("public_holidays").delete().eq("day", str(form, "day"));
+  revalidatePath("/", "layout");
+}
