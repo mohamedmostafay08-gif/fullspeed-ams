@@ -154,7 +154,12 @@ export async function recordCall(form: FormData): Promise<CallResult> {
   }
   if (outcome === "hired") patch.status = "hired";
 
-  const { error } = await supabase.from("leads").update(patch).eq("id", id);
+  let { error } = await supabase.from("leads").update(patch).eq("id", id);
+  // Until the database has the reject_reason column, save the rejection without it (the reason still goes in the log).
+  if ((error?.code === "PGRST204" || error?.code === "42703") && "reject_reason" in patch) {
+    delete patch.reject_reason;
+    ({ error } = await supabase.from("leads").update(patch).eq("id", id));
+  }
   if (error) return { error: t("مقدرتش أعدل الليد") };
   const reasonNote = outcome === "rejected" ? ` — ${REJECT_REASONS[String(form.get("reason")) as RejectReason]}` : "";
   await supabase.rpc("log_lead_note", { p_lead: id, p_note: OUTCOME_NOTE[outcome] + reasonNote });
