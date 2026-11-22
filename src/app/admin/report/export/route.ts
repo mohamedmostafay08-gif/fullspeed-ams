@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { VIEWERS, getProfile } from "@/lib/auth";
 import { toCsv } from "@/lib/csv";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 
@@ -18,10 +19,11 @@ export async function GET(request: NextRequest) {
   if (!DATE_RE.test(from) || !DATE_RE.test(to) || to < from) return new NextResponse("Bad dates", { status: 400 });
 
   const supabase = await createClient();
+  const db = profile.role === "performance" ? createAdminClient() : supabase;
   const [board, teams, talk] = await Promise.all([
     supabase.rpc("leaderboard", { p_from: from, p_to: to }),
     supabase.from("teams").select("id, name"),
-    supabase.rpc("talk_time", { p_from: from, p_to: to }),
+    db.rpc("talk_time", { p_from: from, p_to: to }),
   ]);
   const teamName = new Map((teams.data ?? []).map((x) => [x.id, x.name as string]));
   const talkMin = new Map(((talk.data ?? []) as { agent_id: string; minutes: number }[]).map((x) => [x.agent_id, x.minutes]));

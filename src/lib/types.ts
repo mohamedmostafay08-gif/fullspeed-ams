@@ -132,3 +132,17 @@ export const canManageRole = (myRole: Role, targetRole: Role) => myRole === "adm
 /** "تيم X" for a team name, unless the name already starts with the word. */
 export const teamLabel = (name: string, t: (s: string, ...a: (string | number)[]) => string) =>
   /^\s*(تيم|team)(?=\s|$)/i.test(name) ? name : t("تيم {0}", name);
+
+/** Why a captain was rejected; the agent picks one when logging the call. */
+export const REJECT_REASONS = {
+  salary: "المرتب أو التعريفة مش مناسبين",
+  no_vehicle: "معندوش مركبة أو رخصة",
+  far: "المكان بعيد عنه",
+  age: "السن مش مناسب",
+  not_interested: "مش مهتم / غيّر رأيه",
+  other_job: "اشتغل في مكان تاني",
+  documents: "الأوراق ناقصة",
+  no_show: "مجاش المقابلة",
+  other: "سبب تاني",
+} as const;
+export type RejectReason = keyof typeof REJECT_REASONS;

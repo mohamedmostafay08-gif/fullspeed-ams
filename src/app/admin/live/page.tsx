@@ -7,14 +7,16 @@ import { Empty } from "@/components/ui";
 import { cairoRange, cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import type { BoardRow } from "@/lib/badges";
 import { getT } from "@/lib/i18n/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
 
 export default async function LivePage() {
   const t = await getT();
-  await requireRole(...VIEWERS);
+  const me = await requireRole(...VIEWERS);
   const supabase = await createClient();
+  const db = me.role === "performance" ? createAdminClient() : supabase;
   const today = cairoToday();
   const [dayStart] = cairoRange(today, today);
   const slowBefore = minutesAgo(30);
@@ -24,8 +26,8 @@ export default async function LivePage() {
     supabase.rpc("leaderboard", { p_from: today, p_to: today }),
     supabase.from("profiles").select("id, full_name, teams!profiles_team_id_fkey(name)").eq("role", "agent").eq("is_active", true),
     supabase.from("agent_breaks").select("agent_id, status, ends_at").in("status", ["pending", "active"]).gte("requested_at", dayStart),
-    supabase.from("leads").select("agent_id, created_at").eq("status", "new").eq("attempts", 0).not("agent_id", "is", null).limit(5000),
-    supabase.rpc("talk_time", { p_from: today, p_to: today }),
+    db.from("leads").select("agent_id, created_at").eq("status", "new").eq("attempts", 0).not("agent_id", "is", null).limit(5000),
+    db.rpc("talk_time", { p_from: today, p_to: today }),
   ]);
   const talk = new Map(((talkRes.data ?? []) as { agent_id: string; minutes: number }[]).map((r) => [r.agent_id, r.minutes]));
 

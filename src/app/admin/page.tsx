@@ -8,6 +8,7 @@ import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
 import { cairoRange, cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { MISSING_SERVICE_KEY, hasServiceKey } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -36,17 +37,19 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
 
   const [start, end] = cairoRange(from, to);
   const supabase = await createClient();
+  // Performance users can't read lead rows; their totals come from the server.
+  const db = profile.role === "performance" ? createAdminClient() : supabase;
   const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes, pushKey, passkeysRes, forecastRes] = await Promise.all([
-    supabase.rpc("performance_summary", { p_from: from, p_to: to }),
+    db.rpc("performance_summary", { p_from: from, p_to: to }),
     supabase.from("profiles").select("id, full_name, role, team_id, is_active").eq("role", "agent").eq("is_active", true).order("full_name"),
     supabase.from("companies").select("id, name, logo_path").order("name"),
-    supabase.rpc("lead_status_counts", { p_start: start, p_end: end }),
+    db.rpc("lead_status_counts", { p_start: start, p_end: end }),
     supabase.from("teams").select("id, name"),
     supabase.from("leads").select("id", { count: "exact", head: true }).is("agent_id", null),
     supabase.from("agent_breaks").select("status, ends_at").in("status", ["pending", "active"]),
     getPushPublicKey(),
     supabase.from("passkeys").select("id", { count: "exact", head: true }),
-    supabase.rpc("month_forecast"),
+    db.rpc("month_forecast"),
   ]);
   const pendingBreaks = (breaksRes.data ?? []).filter((b) => b.status === "pending").length;
   const onBreak = (breaksRes.data ?? []).filter((b) => b.status === "active" && b.ends_at && new Date(b.ends_at) > new Date()).length;

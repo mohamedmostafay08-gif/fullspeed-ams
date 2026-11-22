@@ -140,6 +140,11 @@ export default async function IntegrationsPage() {
                 <label className="block"><span className="label">{t("اسم القالب")}</span><input name="template" dir="ltr" defaultValue={cfg.wa_template ?? ""} placeholder="lead_welcome" className="input text-left" required /></label>
                 <label className="block"><span className="label">{t("اللغة")}</span><input name="lang" dir="ltr" defaultValue={cfg.wa_lang ?? "ar"} className="input w-20 text-left" /></label>
               </div>
+              <label className="block">
+                <span className="label">{t("قالب تذكير المقابلة (اختياري)")}</span>
+                <input name="reminder_template" dir="ltr" defaultValue={cfg.wa_reminder_template ?? ""} placeholder="interview_reminder" className="input text-left" />
+                <span className="mt-1 block text-xs text-zinc-500">{t("بيتبعت للكابتن قبل المقابلة بيوم وقبلها بساعة. متغيراته: {{1}} الاسم، {{2}} الشركة، {{3}} المعاد، {{4}} المكان.")}</span>
+              </label>
               <label className="flex items-center gap-2 text-sm font-semibold">
                 <input type="checkbox" name="enabled" defaultChecked={cfg.wa_enabled === "1"} className="size-4 accent-brand-600" /> {t("شغّل الرسالة الأوتوماتيك")}
               </label>

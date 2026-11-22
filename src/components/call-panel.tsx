@@ -7,6 +7,7 @@ import { recordCall, type CallOutcome } from "@/app/actions/leads";
 import { celebrate, playSound, vibrate } from "@/lib/fx";
 import { useT } from "@/lib/i18n/client";
 import { toCairoLocal } from "@/lib/time";
+import { REJECT_REASONS, type RejectReason } from "@/lib/types";
 
 const OUTCOMES: { key: CallOutcome; label: string; icon: typeof CheckCircle2; cls: string }[] = [
   { key: "answered", label: "رد واتكلمنا", icon: CheckCircle2, cls: "bg-sky-50 text-sky-800 hover:bg-sky-100 ring-sky-200" },
@@ -27,16 +28,18 @@ export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => v
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [picking, setPicking] = useState<"callback" | "interview" | null>(null);
+  const [picking, setPicking] = useState<"callback" | "interview" | "rejected" | null>(null);
+  const [reason, setReason] = useState<RejectReason | "">("");
   const [at, setAt] = useState("");
   const [place, setPlace] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const submit = (outcome: CallOutcome) => {
-    if ((outcome === "callback" || outcome === "interview") && picking !== outcome) {
+    if ((outcome === "callback" || outcome === "interview" || outcome === "rejected") && picking !== outcome) {
       setPicking(outcome);
-      setAt(outcome === "callback" ? preset("1h") : preset("tomorrow"));
+      if (outcome !== "rejected") setAt(outcome === "callback" ? preset("1h") : preset("tomorrow"));
+      setReason("");
       setError(null);
       return;
     }
@@ -46,6 +49,7 @@ export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => v
     form.set("at", at);
     form.set("place", place);
     form.set("note", note);
+    form.set("reason", reason);
     setError(null);
     start(async () => {
       const res = await recordCall(form);
@@ -59,6 +63,7 @@ export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => v
         vibrate([120, 60, 240]);
       } else playSound("tap");
       setPicking(null);
+      setReason("");
       setNote("");
       setPlace("");
       onDone?.();
@@ -83,7 +88,32 @@ export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => v
         ))}
       </div>
 
-      {picking && (
+      {picking === "rejected" && (
+        <div className="animate-rise space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-3">
+          <p className="text-sm font-bold text-rose-800">{t("سبب الرفض إيه؟")}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(REJECT_REASONS) as RejectReason[]).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setReason(r)}
+                aria-pressed={reason === r}
+                className={`chip ${reason === r ? "border-rose-600 bg-rose-600 text-white" : ""}`}
+              >
+                {t(REJECT_REASONS[r])}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" disabled={pending || !reason} onClick={() => submit("rejected")} className="btn-primary">
+              {pending && <Loader2 size={16} className="animate-spin" />} {t("تأكيد الرفض")}
+            </button>
+            <button type="button" onClick={() => setPicking(null)} className="btn-ghost">{t("إلغاء")}</button>
+          </div>
+        </div>
+      )}
+
+      {(picking === "callback" || picking === "interview") && (
         <div className="animate-rise space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
           <div className="flex flex-wrap gap-1.5">
             {picking === "callback" ? (
@@ -109,7 +139,7 @@ export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => v
             )}
           </div>
           <div className="flex gap-2">
-            <button type="button" disabled={pending || !at} onClick={() => submit(picking)} className="btn-primary">
+            <button type="button" disabled={pending || !at} onClick={() => submit(picking!)} className="btn-primary">
               {pending && <Loader2 size={16} className="animate-spin" />} {t("تأكيد")}
             </button>
             <button type="button" onClick={() => setPicking(null)} className="btn-ghost">{t("إلغاء")}</button>

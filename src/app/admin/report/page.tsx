@@ -7,6 +7,7 @@ import { CompanyLogo, Empty, StatCard } from "@/components/ui";
 import { cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import type { BoardRow } from "@/lib/badges";
 import { getT } from "@/lib/i18n/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type Period = "day" | "week" | "month";
@@ -39,7 +40,7 @@ const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : "â€
 
 export default async function DailyReportPage({ searchParams }: PageProps<"/admin/report">) {
   const t = await getT();
-  await requireRole(...VIEWERS);
+  const me = await requireRole(...VIEWERS);
   const today = cairoToday();
   const asked = String((await searchParams).date ?? "");
   const day = DATE_RE.test(asked) && asked <= today ? asked : today;
@@ -48,12 +49,13 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
   const anchor = day;
   const [from, to, prevFrom, prevTo] = range(period, anchor);
   const supabase = await createClient();
+  const db = me.role === "performance" ? createAdminClient() : supabase;
   const [aRes, bRes, pRes, pbRes, talkRes] = await Promise.all([
-    supabase.rpc("acquisition_analytics", { p_from: from, p_to: to }),
+    db.rpc("acquisition_analytics", { p_from: from, p_to: to }),
     supabase.rpc("leaderboard", { p_from: from, p_to: to }),
-    supabase.rpc("acquisition_analytics", { p_from: prevFrom, p_to: prevTo }),
+    db.rpc("acquisition_analytics", { p_from: prevFrom, p_to: prevTo }),
     supabase.rpc("leaderboard", { p_from: prevFrom, p_to: prevTo }),
-    supabase.rpc("talk_time", { p_from: from, p_to: to }),
+    db.rpc("talk_time", { p_from: from, p_to: to }),
   ]);
   const a = aRes.data as Analytics | null;
   const prev = pRes.data as Analytics | null;

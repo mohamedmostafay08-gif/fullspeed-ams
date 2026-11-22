@@ -1,19 +1,21 @@
 import { LiveRefresh } from "@/components/live";
 import { TvBoard, type TvData } from "@/components/tv-board";
-import { cairoRange, cairoToday } from "@/lib/auth";
+import { cairoRange, cairoToday, getProfile } from "@/lib/auth";
 import type { BoardRow } from "@/lib/badges";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Full Speed — TV" };
 
 export default async function TvPage() {
   const supabase = await createClient();
+  const db = (await getProfile())?.role === "performance" ? createAdminClient() : supabase;
   const today = cairoToday();
   const [start, end] = cairoRange(today, today);
   const [boardRes, leadsRes, hiresRes, teamsRes] = await Promise.all([
     supabase.rpc("leaderboard", { p_from: today, p_to: today }),
-    supabase.from("leads").select("company_id, companies(name, logo_path)").gte("created_at", start).lt("created_at", end).limit(10000),
-    supabase
+    db.from("leads").select("company_id, companies(name, logo_path)").gte("created_at", start).lt("created_at", end).limit(10000),
+    db
       .from("leads")
       .select("id, full_name, hired_at, companies(name, logo_path), agent:profiles!leads_agent_id_fkey(full_name)")
       .gte("hired_at", start)

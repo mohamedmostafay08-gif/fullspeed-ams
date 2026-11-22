@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { BarChart3, Building2, CheckCircle2, Clock, Coffee, Filter, MapPin, PhoneCall, Timer, UserPlus, Users } from "lucide-react";
+import { BarChart3, Building2, CheckCircle2, Clock, Coffee, Filter, MapPin, PhoneCall, ThumbsDown, Timer, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { BarList, TrendChart } from "@/components/charts";
 import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
 import { cairoToday, requireRole, VIEWERS } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
+import { LEAD_STATUS_LABELS, REJECT_REASONS, type LeadStatus, type RejectReason } from "@/lib/types";
 import type { T } from "@/lib/i18n/translate";
 import { getT } from "@/lib/i18n/server";
 
@@ -70,10 +71,21 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   const sortKey = typeof sp.sort === "string" && sp.sort in SORTS ? sp.sort : "hired";
 
   const supabase = await createClient();
-  const [{ data, error }, { data: teams }] = await Promise.all([
-    supabase.rpc("acquisition_analytics", { p_from: from, p_to: to }),
+  const db = viewer ? createAdminClient() : supabase;
+  const [{ data, error }, { data: teams }, { data: reasonsData }] = await Promise.all([
+    db.rpc("acquisition_analytics", { p_from: from, p_to: to }),
     supabase.from("teams").select("id, name"),
+    supabase.rpc("rejection_reasons", { p_from: from, p_to: to }),
   ]);
+  const reasons = (reasonsData ?? []) as { company_id: string; company: string; reason: string; n: number }[];
+  const reasonLabel = (r: string) => (r in REJECT_REASONS ? t(REJECT_REASONS[r as RejectReason]) : t("من غير سبب"));
+  const byReason = [...reasons.reduce((m, r) => m.set(r.reason, (m.get(r.reason) ?? 0) + r.n), new Map<string, number>())].sort((x, y) => y[1] - x[1]);
+  const topByCompany = [...reasons.reduce((m, r) => {
+    const cur = m.get(r.company_id);
+    const total = (cur?.total ?? 0) + r.n;
+    m.set(r.company_id, { company: r.company, total, top: !cur || r.n > cur.topN ? r.reason : cur.top, topN: !cur || r.n > cur.topN ? r.n : cur.topN });
+    return m;
+  }, new Map<string, { company: string; total: number; top: string; topN: number }>()).values()].sort((x, y) => y.total - x.total);
   const presets = [
     { label: t("النهارده"), from: today, to: today },
     { label: t("آخر 7 أيام"), from: shift(-6), to: today },
@@ -258,6 +270,36 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
             )}
           </section>
         </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <section className="card">
+          <h2 className="card-title"><ThumbsDown size={18} className="text-rose-600" /> {t("أسباب الرفض")}</h2>
+          {byReason.length === 0 ? (
+            <Empty>{t("مفيش ليدز اترفضت في الفترة دي")}</Empty>
+          ) : (
+            <BarList rows={byReason.map(([r, n]) => ({ label: reasonLabel(r), value: n }))} />
+          )}
+        </section>
+        <section className="card">
+          <h2 className="card-title"><Building2 size={18} className="text-zinc-500" /> {t("أكتر سبب رفض في كل شركة")}</h2>
+          {topByCompany.length === 0 ? (
+            <Empty>{t("مفيش")}</Empty>
+          ) : (
+            <table className="data-table">
+              <thead><tr><th>{t("الشركة")}</th><th>{t("اترفضوا")}</th><th>{t("أكتر سبب")}</th></tr></thead>
+              <tbody>
+                {topByCompany.map((c) => (
+                  <tr key={c.company}>
+                    <td className="font-semibold">{c.company}</td>
+                    <td className="num">{c.total}</td>
+                    <td className="text-sm">{reasonLabel(c.top)} <span className="num text-zinc-500">({c.topN})</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
       </div>
 
       {a.by_team.length > 0 && (

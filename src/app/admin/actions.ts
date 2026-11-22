@@ -501,3 +501,25 @@ export async function saveCompanyTerms(_prev: ActionState, form: FormData): Prom
   if (error) return { error: t("مقدرتش أحفظ") };
   return done(`/admin/companies/${str(form, "id")}`, t("تم الحفظ"));
 }
+
+/** Monthly hiring target per team and company; the database splits it into the agents' daily targets. */
+export async function saveTeamTargets(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole(...MANAGERS);
+  const teamId = str(form, "team_id");
+  const month = str(form, "month");
+  if (!/^\d{4}-\d{2}-01$/.test(month)) return { error: t("حصلت مشكلة، جرّب تاني") };
+  const supabase = await createClient();
+  let changed = 0;
+  for (const companyId of form.getAll("company_id").map(String)) {
+    const raw = str(form, `target_${companyId}`);
+    if (raw === "" || raw === str(form, `was_${companyId}`)) continue;
+    const target = Math.round(Number(raw));
+    if (!Number.isFinite(target) || target < 0) return { error: t("التارجت لازم يكون رقم موجب") };
+    const { error } = await supabase.rpc("set_team_target", { p_team: teamId, p_company: companyId, p_month: month, p_target: target });
+    if (error) return { error: t("مقدرتش أحفظ") };
+    changed++;
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: changed ? t("اتحفظ واتوزع على الأجنتس") : t("مفيش تغيير") };
+}

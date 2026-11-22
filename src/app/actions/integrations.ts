@@ -43,11 +43,14 @@ export async function saveWhatsApp(_prev: ActionState, form: FormData): Promise<
   const template = String(form.get("template") ?? "").trim();
   const lang = String(form.get("lang") ?? "ar").trim() || "ar";
   const token = String(form.get("token") ?? "").trim();
+  const reminder = String(form.get("reminder_template") ?? "").trim();
   if (!/^\d{6,30}$/.test(phoneId)) return { error: t("Phone number ID لازم يكون أرقام بس") };
   if (!/^[a-z0-9_]{1,512}$/.test(template)) return { error: t("اسم القالب حروف إنجليزي صغيرة وأرقام و _ بس") };
+  if (reminder && !/^[a-z0-9_]{1,512}$/.test(reminder)) return { error: t("اسم القالب حروف إنجليزي صغيرة وأرقام و _ بس") };
   await Promise.all([
     setConfig("wa_phone_id", phoneId),
     setConfig("wa_template", template),
+    setConfig("wa_reminder_template", reminder),
     setConfig("wa_lang", lang),
     setConfig("wa_enabled", form.get("enabled") === "on" ? "1" : "0"),
     ...(token ? [setConfig("wa_token", token)] : []),

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Building2, CheckCircle2, PhoneCall, UserPlus, Users } from "lucide-react";
-import { saveTeamCompanies } from "@/app/admin/actions";
+import { Building2, CheckCircle2, PhoneCall, Target, UserPlus, Users } from "lucide-react";
+import { saveTeamCompanies, saveTeamTargets } from "@/app/admin/actions";
+import { StateForm } from "@/components/state-form";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/app-shell";
 import { PeriodTabs } from "@/components/period-tabs";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
-import { MANAGERS, requireRole, VIEWERS } from "@/lib/auth";
+import { MANAGERS, cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { asPeriod, loadTeamNumbers, periodRange } from "@/lib/teams";
@@ -23,13 +25,18 @@ export default async function TeamPage({ params, searchParams }: PageProps<"/adm
   const period = asPeriod((await searchParams).period);
   const [from, to] = periodRange(period);
   const supabase = await createClient();
+  // Performance users can't read lead rows; their totals come from the server.
+  const db = me.role === "performance" ? createAdminClient() : supabase;
+  const month = cairoToday().slice(0, 8) + "01";
 
-  const [{ teams, board, targetByAgent }, companies, teamCompaniesRes, perfRes] = await Promise.all([
+  const [{ teams, board, targetByAgent }, companies, teamCompaniesRes, perfRes, monthRes] = await Promise.all([
     loadTeamNumbers(from, to),
     getCompanies(true),
     supabase.from("team_companies").select("company_id").eq("team_id", id),
-    supabase.rpc("performance_report", { p_from: from, p_to: to }),
+    db.rpc("performance_report", { p_from: from, p_to: to }),
+    supabase.rpc("team_target_progress", { p_team: id, p_month: month }),
   ]);
+  const monthRows = (monthRes.data ?? []) as { company_id: string; name: string; logo_path: string | null; target: number | null; hired: number; agents: number; days_left: number }[];
   const team = teams.find((x) => x.id === id);
   if (!team) notFound();
   const members = board.filter((b) => b.team_id === id);
@@ -50,6 +57,40 @@ export default async function TeamPage({ params, searchParams }: PageProps<"/adm
     .filter((c) => teamCompanyIds.has(c.id) || byCompany.has(c.id))
     .map((c) => ({ c, n: byCompany.get(c.id) ?? { leads: 0, hired: 0, target: 0 } }))
     .sort((a, b) => b.n.hired - a.n.hired || b.n.leads - a.n.leads);
+
+  const targetTable = (
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead><tr><th>{t("الشركة")}</th><th>{t("تارجت الشهر")}</th><th>{t("اشتغلوا")}</th><th>{t("فاضل")}</th><th>{t("المطلوب يومياً")}</th><th>{t("الأجنتس")}</th></tr></thead>
+                <tbody>
+                  {monthRows.map((r) => {
+                    const left = r.target == null ? null : Math.max(0, r.target - r.hired);
+                    const perDay = left == null || r.days_left === 0 ? null : Math.ceil(left / r.days_left);
+                    return (
+                      <tr key={r.company_id}>
+                        <td><span className="flex items-center gap-2 font-semibold"><CompanyLogo name={r.name} src={r.logo_path} size={24} /> {r.name}</span></td>
+                        <td>
+                          {isManager ? (
+                            <>
+                              <input type="hidden" name="company_id" value={r.company_id} />
+                              <input type="hidden" name={`was_${r.company_id}`} value={r.target ?? ""} />
+                              <input name={`target_${r.company_id}`} type="number" min={0} defaultValue={r.target ?? ""} placeholder="—" className="input w-24 py-1.5" aria-label={t("تارجت الشهر")} />
+                            </>
+                          ) : (
+                            <span className="num">{r.target ?? "—"}</span>
+                          )}
+                        </td>
+                        <td className="num font-bold text-emerald-700">{r.hired}{r.target ? <span className="font-normal text-zinc-500"> ({pct(r.hired, r.target)})</span> : null}</td>
+                        <td className="num">{left ?? "—"}</td>
+                        <td className="num">{perDay == null ? "—" : t("{0} للتيم", perDay)}</td>
+                        <td className="num">{r.agents}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+  );
 
   return (
     <>
@@ -112,6 +153,28 @@ export default async function TeamPage({ params, searchParams }: PageProps<"/adm
           )}
         </section>
       </div>
+
+      <section className="card mt-6">
+        <h2 className="card-title"><Target size={18} className="text-brand-600" /> {t("تارجت الشهر")} <span className="num text-sm font-normal text-zinc-500">{month.slice(0, 7)}</span></h2>
+        <p className="mb-3 text-sm text-zinc-500">
+          {isManager
+            ? t("اكتب عدد التعيينات المطلوب من التيم على كل شركة الشهر ده. اللي فاضل بيتقسم لوحده على أجنتس الشركة في التيم وعلى أيام الشغل الباقية، وبيظهر في التارجت اليومي بتاعهم.")
+            : t("المطلوب من التيم الشهر ده على كل شركة، واللي اتحقق لحد النهارده.")}
+        </p>
+        {monthRows.length === 0 ? (
+          <Empty>{t("التيم لسه ملوش شركات")}</Empty>
+        ) : (
+          isManager ? (
+            <StateForm action={saveTeamTargets} submitLabel={t("حفظ وتوزيع التارجت")} className="space-y-3">
+              <input type="hidden" name="team_id" value={id} />
+              <input type="hidden" name="month" value={month} />
+              {targetTable}
+            </StateForm>
+          ) : (
+            targetTable
+          )
+        )}
+      </section>
 
       {isManager && (
         <section className="card mt-6">

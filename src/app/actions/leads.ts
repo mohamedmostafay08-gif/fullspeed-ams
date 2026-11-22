@@ -1,5 +1,7 @@
 "use server";
 
+import { REJECT_REASONS, type RejectReason } from "@/lib/types";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
@@ -144,12 +146,18 @@ export async function recordCall(form: FormData): Promise<CallResult> {
     patch.interview_at = at;
     patch.interview_place = String(form.get("place") ?? "").trim().slice(0, 200) || null;
   }
-  if (outcome === "rejected") patch.status = "rejected";
+  if (outcome === "rejected") {
+    const reason = String(form.get("reason") ?? "");
+    if (!(reason in REJECT_REASONS)) return { error: t("اختار سبب الرفض") };
+    patch.status = "rejected";
+    patch.reject_reason = reason;
+  }
   if (outcome === "hired") patch.status = "hired";
 
   const { error } = await supabase.from("leads").update(patch).eq("id", id);
   if (error) return { error: t("مقدرتش أعدل الليد") };
-  await supabase.rpc("log_lead_note", { p_lead: id, p_note: OUTCOME_NOTE[outcome] });
+  const reasonNote = outcome === "rejected" ? ` — ${REJECT_REASONS[String(form.get("reason")) as RejectReason]}` : "";
+  await supabase.rpc("log_lead_note", { p_lead: id, p_note: OUTCOME_NOTE[outcome] + reasonNote });
   const note = String(form.get("note") ?? "").trim();
   if (note) await supabase.rpc("log_lead_note", { p_lead: id, p_note: note });
   revalidatePath("/", "layout");
