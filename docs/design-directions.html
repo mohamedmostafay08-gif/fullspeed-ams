@@ -1,0 +1,297 @@
+<title>Full Speed Glass Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Readex+Pro:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a chooser bar on top, then one live mock of the agent's home screen (sidebar + stats + companies + ranking)
+   rendered in whichever of three glass directions is picked. Each direction is a full token set on [data-dir]. */
+:root {
+  --page: #eef0f4; --page-ink: #191b22; --page-muted: #646a78; --chip: #ffffff; --chip-line: #d9dde5; --brand: #f97316;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #111318; --page-ink: #eceef3; --page-muted: #9aa0ad; --chip: #1c1f27; --chip-line: #2e323d; color-scheme: dark } }
+:root[data-theme="dark"] { --page: #111318; --page-ink: #eceef3; --page-muted: #9aa0ad; --chip: #1c1f27; --chip-line: #2e323d; color-scheme: dark }
+
+/* A — Frosted Day: warm daylight mesh, milky glass, Cairo (the current font) */
+[data-dir="day"] {
+  --bg: #fdf3ea; --blob1: #ffb37a; --blob2: #9fd3ff; --blob3: #ffd9a8;
+  --glass: rgba(255,255,255,.58); --glass-strong: rgba(255,255,255,.78); --edge: rgba(255,255,255,.85); --edge-dim: rgba(25,27,34,.07);
+  --ink: #1d1a17; --muted: #6d655d; --accent: #f97316; --accent-ink: #fff; --good: #138a55; --warn: #b26a00;
+  --side: rgba(255,255,255,.5); --side-ink: #2a2622; --side-active: rgba(249,115,22,.14);
+  --shadow: 0 10px 30px -12px rgba(120,60,10,.25); --blur: 18px; --font: "Cairo", system-ui, sans-serif; --radius: 22px;
+}
+/* B — Night Glass: deep ink with orange and violet glows behind smoked glass, Readex Pro */
+[data-dir="night"] {
+  --bg: #0b0d17; --blob1: #f97316; --blob2: #6d4aff; --blob3: #1fb5a8;
+  --glass: rgba(255,255,255,.06); --glass-strong: rgba(255,255,255,.1); --edge: rgba(255,255,255,.14); --edge-dim: rgba(255,255,255,.06);
+  --ink: #f3f1ff; --muted: #a8a6c0; --accent: #ff8a3d; --accent-ink: #1a0d02; --good: #4fe3a2; --warn: #ffc163;
+  --side: rgba(10,12,24,.45); --side-ink: #e8e6ff; --side-active: rgba(255,138,61,.18);
+  --shadow: 0 20px 50px -20px rgba(0,0,0,.7); --blur: 22px; --font: "Readex Pro", system-ui, sans-serif; --radius: 20px;
+}
+/* C — Light Glass: solid calm surfaces; glass only on the sidebar and floating bar (fast on cheap phones), IBM Plex Sans Arabic */
+[data-dir="lite"] {
+  --bg: #f4f5f8; --blob1: #ffd2ae; --blob2: #d7e6ff; --blob3: #f4f5f8;
+  --glass: #ffffff; --glass-strong: #ffffff; --edge: #e6e8ee; --edge-dim: #eceef3;
+  --ink: #171a21; --muted: #636978; --accent: #f97316; --accent-ink: #fff; --good: #138a55; --warn: #b26a00;
+  --side: rgba(23,26,33,.86); --side-ink: #eef0f5; --side-active: rgba(249,115,22,.22);
+  --shadow: 0 1px 2px rgba(20,24,40,.06), 0 6px 16px -8px rgba(20,24,40,.12); --blur: 14px; --font: "IBM Plex Sans Arabic", system-ui, sans-serif; --radius: 16px;
+}
+
+body { background: var(--page); color: var(--page-ink); font-family: "Cairo", system-ui, sans-serif; direction: rtl; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+h1 { margin: 0; font-size: clamp(1.5rem, 3.5vw, 2.1rem); text-wrap: balance; }
+.intro { margin: 4px 0 0; color: var(--page-muted); max-width: 70ch; }
+
+.picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .picker { grid-template-columns: minmax(0, 1fr); } }
+.pick { font: inherit; text-align: right; cursor: pointer; background: var(--chip); color: var(--page-ink); border: 1.5px solid var(--chip-line); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; transition: border-color .2s, transform .2s; }
+.pick:hover { transform: translateY(-2px); }
+.pick[aria-pressed="true"] { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+.pick:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pick b { font-size: 1.05rem; }
+.pick span { font-size: 13px; color: var(--page-muted); line-height: 1.5; }
+.swatch { display: flex; gap: 4px; margin-top: 4px; }
+.swatch i { width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--chip-line); }
+
+/* ── The mock app ── */
+.stage { position: relative; overflow: hidden; border-radius: 26px; background: var(--bg); font-family: var(--font); color: var(--ink); isolation: isolate; transition: background .5s; border: 1px solid var(--chip-line); }
+.blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .75; z-index: -1; transition: background .6s; }
+.b1 { width: 420px; height: 420px; background: var(--blob1); top: -120px; right: -80px; animation: drift 18s ease-in-out infinite alternate; }
+.b2 { width: 380px; height: 380px; background: var(--blob2); bottom: -140px; left: 10%; animation: drift 22s ease-in-out infinite alternate-reverse; }
+.b3 { width: 300px; height: 300px; background: var(--blob3); top: 35%; left: -90px; animation: drift 26s ease-in-out infinite alternate; }
+[data-dir="lite"] .blob { opacity: .45; }
+[data-dir="night"] .blob { opacity: .5; }
+@keyframes drift { to { transform: translate(40px, 30px) scale(1.08); } }
+
+.app { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
+@media (max-width: 860px) { .app { grid-template-columns: minmax(0, 1fr); } .side { display: none; } }
+.side { background: var(--side); color: var(--side-ink); backdrop-filter: blur(var(--blur)) saturate(1.4); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.4); border-left: 1px solid var(--edge-dim); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; }
+.logo { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; font-weight: 800; }
+.logo i { width: 34px; height: 34px; border-radius: 11px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #ffcf6e)); box-shadow: 0 6px 16px -6px var(--accent); }
+.nav { position: relative; display: grid; gap: 2px; }
+.nav button { font: inherit; color: inherit; background: none; border: 0; text-align: right; padding: 10px 12px; border-radius: 12px; cursor: pointer; display: flex; gap: 10px; align-items: center; position: relative; z-index: 1; opacity: .78; transition: opacity .2s; }
+.nav button:hover, .nav button.on { opacity: 1; }
+.nav button:focus-visible { outline: 2px solid var(--accent); }
+.nav svg { width: 18px; height: 18px; flex: none; }
+.pill { position: absolute; right: 0; left: 0; height: 42px; border-radius: 12px; background: var(--side-active); transition: transform .45s cubic-bezier(.34,1.4,.5,1); z-index: 0; }
+
+.main { padding: 22px 22px 64px; display: grid; gap: 18px; align-content: start; min-width: 0; }
+.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.hello h2 { margin: 0; font-size: 1.55rem; font-weight: 800; }
+.hello p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.cta { font: inherit; font-weight: 700; border: 0; cursor: pointer; color: var(--accent-ink); background: var(--accent); padding: 11px 20px; border-radius: 14px; display: inline-flex; gap: 8px; align-items: center; box-shadow: 0 10px 24px -10px var(--accent); transition: transform .2s, box-shadow .2s; position: relative; overflow: hidden; }
+.cta:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -12px var(--accent); }
+.cta:active { transform: scale(.97); }
+.cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,.5); transform: scale(0); animation: rip .6s ease-out forwards; pointer-events: none; }
+@keyframes rip { to { transform: scale(4); opacity: 0; } }
+
+.glass { background: var(--glass); backdrop-filter: blur(var(--blur)) saturate(1.5); -webkit-backdrop-filter: blur(var(--blur)) saturate(1.5); border: 1px solid var(--edge); border-radius: var(--radius); box-shadow: var(--shadow); }
+[data-dir="lite"] .glass { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.lift { transition: transform .3s cubic-bezier(.2,.8,.2,1), box-shadow .3s; }
+.lift:hover { transform: translateY(-4px); }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1000px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { padding: 16px; display: grid; gap: 8px; }
+.stat small { color: var(--muted); font-size: 13px; }
+.stat strong { font-size: 2rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.bar { height: 7px; border-radius: 99px; background: var(--edge-dim); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+.stat.good strong { color: var(--good); } .stat.good .bar i { background: var(--good); }
+.stat.warn strong { color: var(--warn); }
+.stat .meta { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 1000px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.card { padding: 16px; display: grid; gap: 12px; align-content: start; }
+.card h3 { margin: 0; font-size: 1.02rem; font-weight: 700; }
+.cos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .cos { grid-template-columns: minmax(0, 1fr); } }
+.co { padding: 14px; display: grid; gap: 10px; background: var(--glass-strong); border: 1px solid var(--edge); border-radius: calc(var(--radius) - 6px); }
+.co header { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.co header i { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 800; color: #fff; }
+.terms { display: flex; flex-wrap: wrap; gap: 6px; }
+.terms span { font-size: 12.5px; padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--good); font-weight: 600; }
+.rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rank li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; transition: background .2s; }
+.rank li:hover { background: var(--edge-dim); }
+.rank b { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--edge-dim); font-size: 13px; }
+.rank li:first-child b { background: var(--accent); color: var(--accent-ink); }
+.rank span { flex: 1; }
+.rank em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.toast { position: absolute; bottom: 18px; left: 50%; transform: translate(-50%, 220%); opacity: 0; padding: 10px 18px; border-radius: 14px; font-weight: 600; font-size: 14px; transition: transform .45s cubic-bezier(.34,1.4,.5,1), opacity .3s; z-index: 5; white-space: nowrap; }
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+.enter > * { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
+.enter > *:nth-child(2) { animation-delay: .06s; } .enter > *:nth-child(3) { animation-delay: .12s; } .enter > *:nth-child(4) { animation-delay: .18s; }
+@keyframes rise { from { opacity: .001; transform: translateY(14px); } }
+
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--chip); border: 1px solid var(--chip-line); border-radius: 16px; padding: 16px 18px; }
+.note h3 { margin: 0 0 8px; font-size: 1rem; }
+.note ul { margin: 0; padding-inline-start: 18px; display: grid; gap: 5px; font-size: 14px; color: var(--page-muted); }
+.note ul b { color: var(--page-ink); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>3 اتجاهات للديزاين الزجاجي</h1>
+    <p class="intro">نفس شاشة «يومي» بتاعة الأجنت بتلات أشكال. اختار أي واحد وجرّب: عدّي الماوس على الكروت، اضغط على القايمة الجانبية وعلى زرار «ابدأ المكالمات». الأرقام والأسماء أمثلة بس.</p>
+  </header>
+
+  <div class="picker" role="group" aria-label="اختار الاتجاه">
+    <button type="button" class="pick" id="pick-day" data-dir="day" aria-pressed="true">
+      <b>أ · زجاج النهار</b>
+      <span>خلفية دافية فاتحة بألوان البرتقالي والسماوي، وكروت زجاج لبني. مريح طول اليوم في المكتب. بخط Cairo الحالي.</span>
+      <span class="swatch"><i style="background:#fdf3ea"></i><i style="background:#ffb37a"></i><i style="background:#9fd3ff"></i><i style="background:#f97316"></i></span>
+    </button>
+    <button type="button" class="pick" id="pick-night" data-dir="night" aria-pressed="false">
+      <b>ب · زجاج الليل</b>
+      <span>خلفية غامقة جداً وراها إضاءة برتقاني وبنفسجي، وزجاج مدخّن. فخم ومناسب لشاشة التلفزيون. بخط Readex Pro.</span>
+      <span class="swatch"><i style="background:#0b0d17"></i><i style="background:#ff8a3d"></i><i style="background:#6d4aff"></i><i style="background:#1fb5a8"></i></span>
+    </button>
+    <button type="button" class="pick" id="pick-lite" data-dir="lite" aria-pressed="false">
+      <b>ج · زجاج خفيف</b>
+      <span>كروت صلبة هادية، والزجاج في القايمة والحاجات العايمة بس. الأسرع على الموبايلات الرخيصة. بخط IBM Plex Sans Arabic.</span>
+      <span class="swatch"><i style="background:#f4f5f8"></i><i style="background:#171a21"></i><i style="background:#ffd2ae"></i><i style="background:#f97316"></i></span>
+    </button>
+  </div>
+
+  <div class="stage" id="stage" data-dir="day">
+    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+    <div class="app">
+      <aside class="side">
+        <div class="logo"><i></i> Full Speed</div>
+        <nav class="nav" id="nav" aria-label="القايمة">
+          <div class="pill" id="pill"></div>
+          <button type="button" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>يومي</button>
+          <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>ابدأ المكالمات</button>
+          <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>الليدز بتاعتي</button>
+          <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>التاسكات والتعميمات</button>
+          <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>تقييمي</button>
+          <button type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>الإجازات والأذونات</button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <div class="top">
+          <div class="hello"><h2>صباح الفل يا محمود</h2><p>الأحد 22 نوفمبر · الشيفت بدأ 10:00</p></div>
+          <button type="button" class="cta" id="cta">ابدأ المكالمات ←</button>
+        </div>
+
+        <section class="stats enter" id="stats">
+          <div class="glass stat lift"><small>ليدز النهارده</small><strong data-to="9">0</strong><div class="bar"><i data-w="75"></i></div><span class="meta">9 من 12</span></div>
+          <div class="glass stat good lift"><small>اشتغلوا</small><strong data-to="3">0</strong><div class="bar"><i data-w="60"></i></div><span class="meta">3 من 5</span></div>
+          <div class="glass stat lift"><small>محتاجين متابعة</small><strong data-to="14">0</strong><div class="bar"><i data-w="40"></i></div><span class="meta">جديد + مردش</span></div>
+          <div class="glass stat warn lift"><small>تاسكات مفتوحة</small><strong data-to="2">0</strong><div class="bar"><i data-w="20"></i></div><span class="meta">من التيم ليدر</span></div>
+        </section>
+
+        <div class="grid2">
+          <section class="glass card">
+            <h3>شركاتي</h3>
+            <div class="cos">
+              <article class="co lift">
+                <header><i style="background:#f2b705">N</i> Noon Minutes</header>
+                <div class="bar"><i data-w="66"></i></div>
+                <div class="terms"><span>المرتب 9000 ج</span><span>الأوردر 30 ج</span><span>10 ساعات</span></div>
+              </article>
+              <article class="co lift">
+                <header><i style="background:#ff5a00">T</i> Talabat</header>
+                <div class="bar"><i data-w="35"></i></div>
+                <div class="terms"><span>الأوردر 28 ج</span><span>تأمين بعد 3 شهور</span></div>
+              </article>
+            </div>
+          </section>
+          <section class="glass card">
+            <h3>ترتيب النهارده</h3>
+            <ol class="rank">
+              <li><b>1</b><span>سارة حسن</span><em>42 نقطة</em></li>
+              <li><b>2</b><span>محمود علي</span><em>37 نقطة</em></li>
+              <li><b>3</b><span>نورهان خالد</span><em>31 نقطة</em></li>
+              <li><b>4</b><span>يوسف إبراهيم</span><em>24 نقطة</em></li>
+            </ol>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div class="toast glass" id="toast" role="status">📞 بنجهزلك أول ليد…</div>
+  </div>
+
+  <section class="notes">
+    <div class="note"><h3>الحركة اللي هتبقى في السيستم كله</h3><ul>
+      <li><b>دخول الصفحة:</b> الكروت بتطلع ورا بعض بفرق بسيط.</li>
+      <li><b>الأرقام:</b> بتعدّ لحد قيمتها، والبارات بتتملى.</li>
+      <li><b>القايمة:</b> علامة الصفحة الحالية بتتزحلق بنعومة.</li>
+      <li><b>الكروت والزراير:</b> بترتفع شوية تحت الماوس، والزرار بيعمل موجة لما تضغطه.</li>
+      <li><b>الرسايل:</b> بتطلع من تحت بنطّة خفيفة.</li>
+    </ul></div>
+    <div class="note"><h3>حاجات هاخد بالي منها</h3><ul>
+      <li>الزجاج تقيل على الموبايلات الرخيصة، فهقلّله تلقائي على الموبايل.</li>
+      <li>الكلام لازم يفضل واضح فوق الزجاج، فالكروت هتبقى أتقل في الأماكن اللي فيها جداول.</li>
+      <li>أي حد مقفّل الحركة في موبايله هيشوف السيستم من غير حركة.</li>
+      <li>الوضع الليلي والنهاري هيفضلوا الاتنين، والمختار هو الأساسي.</li>
+    </ul></div>
+    <div class="note"><h3>ممكن نخلط</h3><ul>
+      <li><b>أ</b> للموظفين طول اليوم، و<b>ب</b> للوضع الليلي وشاشة التلفزيون.</li>
+      <li>أو <b>ج</b> للأجنتس على الموبايل، و<b>أ</b> للإدارة على الكمبيوتر.</li>
+      <li>الخط والألوان ممكن نبدّلهم بين الاتجاهات عادي.</li>
+    </ul></div>
+  </section>
+</div>
+
+<script>
+const stage = document.getElementById("stage");
+const picks = [...document.querySelectorAll(".pick")];
+function setDir(d) {
+  stage.dataset.dir = d;
+  picks.forEach((p) => p.setAttribute("aria-pressed", String(p.dataset.dir === d)));
+  replay();
+  try { localStorage.setItem("fs-dir", d); } catch (e) {}
+}
+picks.forEach((p) => p.addEventListener("click", () => setDir(p.dataset.dir)));
+
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function countUp() {
+  document.querySelectorAll("[data-to]").forEach((el) => {
+    const to = Number(el.dataset.to);
+    if (reduce) { el.textContent = to; return; }
+    const t0 = performance.now();
+    const step = (t) => { const k = Math.min(1, (t - t0) / 900); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+  document.querySelectorAll("[data-w]").forEach((el) => { el.style.width = "0"; requestAnimationFrame(() => requestAnimationFrame(() => { el.style.width = el.dataset.w + "%"; })); });
+}
+function replay() {
+  const s = document.getElementById("stats");
+  s.classList.remove("enter"); void s.offsetWidth; s.classList.add("enter");
+  countUp();
+}
+
+const nav = document.getElementById("nav"), pill = document.getElementById("pill");
+const items = [...nav.querySelectorAll("button")];
+function movePill(btn) { pill.style.transform = `translateY(${btn.offsetTop}px)`; }
+items.forEach((b) => b.addEventListener("click", () => { items.forEach((x) => x.classList.remove("on")); b.classList.add("on"); movePill(b); }));
+
+const cta = document.getElementById("cta"), toast = document.getElementById("toast");
+let tid;
+cta.addEventListener("click", (e) => {
+  const r = cta.getBoundingClientRect(), s = document.createElement("span");
+  const size = Math.max(r.width, r.height);
+  s.className = "ripple"; s.style.width = s.style.height = size + "px";
+  s.style.left = e.clientX - r.left - size / 2 + "px"; s.style.top = e.clientY - r.top - size / 2 + "px";
+  cta.appendChild(s); setTimeout(() => s.remove(), 650);
+  toast.classList.add("show"); clearTimeout(tid); tid = setTimeout(() => toast.classList.remove("show"), 2200);
+});
+
+let saved = "day";
+try { saved = localStorage.getItem("fs-dir") || "day"; } catch (e) {}
+setDir(["day", "night", "lite"].includes(saved) ? saved : "day");
+requestAnimationFrame(() => movePill(items[0]));
+</script>
