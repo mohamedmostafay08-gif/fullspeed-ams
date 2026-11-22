@@ -31,7 +31,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
   const role = str(form, "role") as Role;
   if (!fullName || !email) return { error: t("الاسم والإيميل مطلوبين") };
   if (password.length < 8) return { error: t("كلمة السر لازم 8 حروف على الأقل") };
-  if (!["admin", "manager", "team_leader", "agent"].includes(role)) return { error: t("اختار الصلاحية") };
+  if (!["admin", "manager", "performance", "team_leader", "agent"].includes(role)) return { error: t("اختار الصلاحية") };
   if (!assignableRoles(me.role).includes(role)) return { error: t("المدير يقدر يضيف تيم ليدر أو أجنت بس — المدير والأدمن بيضيفهم الأدمن") };
   if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
 
