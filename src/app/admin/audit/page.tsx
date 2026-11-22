@@ -23,6 +23,8 @@ const TABLES: Record<string, string> = {
   lead_documents: "الأوراق",
   agent_breaks: "البريكات",
   leave_requests: "الإجازات",
+  hour_permits: "الأذونات",
+  public_holidays: "الإجازات الرسمية",
 };
 
 const FIELDS: Record<string, string> = {
