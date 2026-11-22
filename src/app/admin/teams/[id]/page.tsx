@@ -5,7 +5,7 @@ import { saveTeamCompanies } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { PeriodTabs } from "@/components/period-tabs";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
-import { MANAGERS, STAFF, requireRole } from "@/lib/auth";
+import { MANAGERS, requireRole, VIEWERS } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { asPeriod, loadTeamNumbers, periodRange } from "@/lib/teams";
@@ -16,7 +16,7 @@ const pct = (a: number, b: number) => (b > 0 ? `${Math.round((100 * a) / b)}%` :
 
 export default async function TeamPage({ params, searchParams }: PageProps<"/admin/teams/[id]">) {
   const t = await getT();
-  const me = await requireRole(...STAFF);
+  const me = await requireRole(...VIEWERS);
   const { id } = await params;
   if (me.role === "team_leader" && me.team_id !== id) redirect(me.team_id ? `/admin/teams/${me.team_id}` : "/admin");
   const isManager = MANAGERS.includes(me.role);
@@ -76,7 +76,7 @@ export default async function TeamPage({ params, searchParams }: PageProps<"/adm
               <tbody>
                 {members.map((m) => (
                   <tr key={m.agent_id}>
-                    <td className="font-semibold"><Link href={`/admin/agents/${m.agent_id}`} className="hover:underline">{m.full_name}</Link></td>
+                    <td className="font-semibold"><Link href={me.role === "performance" ? `/admin/scorecard?agent=${m.agent_id}` : `/admin/agents/${m.agent_id}`} className="hover:underline">{m.full_name}</Link></td>
                     <td className="num">{m.leads}</td>
                     <td className="num">{m.calls}</td>
                     <td className="num">{m.interviews}</td>

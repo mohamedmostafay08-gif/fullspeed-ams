@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live";
 import { LiveBoard, type LiveAgent } from "@/components/live-board";
 import { Empty } from "@/components/ui";
-import { cairoRange, cairoToday, requireRole, STAFF } from "@/lib/auth";
+import { cairoRange, cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import type { BoardRow } from "@/lib/badges";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +13,7 @@ const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString(
 
 export default async function LivePage() {
   const t = await getT();
-  await requireRole(...STAFF);
+  await requireRole(...VIEWERS);
   const supabase = await createClient();
   const today = cairoToday();
   const [dayStart] = cairoRange(today, today);

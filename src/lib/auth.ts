@@ -6,6 +6,8 @@ import type { Profile, Role } from "@/lib/types";
 
 export const STAFF: Role[] = ["admin", "manager", "team_leader"];
 export const MANAGERS: Role[] = ["admin", "manager"];
+/** Everyone who may open the numbers pages: staff plus the read-only performance role. */
+export const VIEWERS: Role[] = [...STAFF, "performance"];
 
 export type Session = { profile: Profile; unread: number; locationOk: boolean; locationName: string | null };
 

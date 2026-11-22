@@ -2,13 +2,13 @@ import { PageHeader } from "@/components/app-shell";
 import { RangePicker, readRange } from "@/components/range-picker";
 import { Scorecard } from "@/components/scorecard";
 import { Empty } from "@/components/ui";
-import { STAFF, requireRole } from "@/lib/auth";
+import { requireRole, VIEWERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 
 export default async function AdminScorecardPage({ searchParams }: PageProps<"/admin/scorecard">) {
   const t = await getT();
-  await requireRole(...STAFF);
+  await requireRole(...VIEWERS);
   const sp = await searchParams;
   const [from, to] = readRange(sp);
   const supabase = await createClient();

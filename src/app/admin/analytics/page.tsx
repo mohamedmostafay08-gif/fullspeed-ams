@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app-shell";
 import { BarList, TrendChart } from "@/components/charts";
 import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
-import { cairoToday, requireRole, STAFF } from "@/lib/auth";
+import { cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 import type { T } from "@/lib/i18n/translate";
@@ -60,7 +60,8 @@ const hours = (t: T, h: number | null) => (h == null ? "—" : h < 1 ? t("{0} د
 
 export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/analytics">) {
   const t = await getT();
-  await requireRole(...STAFF);
+  const me = await requireRole(...VIEWERS);
+  const viewer = me.role === "performance";
   const sp = await searchParams;
   const today = cairoToday();
   const shift = (days: number) => new Date(new Date(`${today}T12:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10);
@@ -159,7 +160,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
           <div className="mt-4 flex flex-wrap gap-1.5">
             {(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map((s) =>
               a.by_status[s] ? (
-                <Link key={s} href={`/admin/leads?status=${s}&${qs}`} className="chip">
+                <Link key={s} href={viewer ? "#" : `/admin/leads?status=${s}&${qs}`} className="chip">
                   {t(LEAD_STATUS_LABELS[s])} <b className="num">{a.by_status[s]}</b>
                 </Link>
               ) : null,
@@ -193,7 +194,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
                 {agents.map((r, i) => (
                   <tr key={r.id}>
                     <td className="num text-zinc-400">{i + 1}</td>
-                    <td><Link href={`/admin/agents/${r.id}`} className="font-semibold hover:text-brand-700">{r.full_name}</Link></td>
+                    <td><Link href={viewer ? `/admin/scorecard?agent=${r.id}` : `/admin/agents/${r.id}`} className="font-semibold hover:text-brand-700">{r.full_name}</Link></td>
                     <td className="text-zinc-500">{r.team_id ? teamName.get(r.team_id) : "—"}</td>
                     <td className="num">{r.leads}</td>
                     <td className="num">{pct(r.contacted, r.leads)}</td>

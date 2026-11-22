@@ -9,7 +9,7 @@ import { getT } from "@/lib/i18n/server";
 export async function GET(request: NextRequest) {
   const t = await getT();
   const profile = await getProfile();
-  if (!profile || profile.role === "agent") return new NextResponse("Forbidden", { status: 403 });
+  if (!profile || profile.role === "agent" || profile.role === "performance") return new NextResponse("Forbidden", { status: 403 });
 
   const f = readFilters(Object.fromEntries(request.nextUrl.searchParams));
   const supabase = await createClient();

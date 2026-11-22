@@ -6,7 +6,7 @@ import { AlertTriangle, Building2, Coffee, CheckCircle2, PieChart, TrendingUp, T
 import { PageHeader } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
-import { cairoRange, cairoToday, requireRole, STAFF } from "@/lib/auth";
+import { cairoRange, cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { MISSING_SERVICE_KEY, hasServiceKey } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
@@ -28,7 +28,7 @@ const STATUS_BAR: Record<LeadStatus, string> = {
 
 export default async function AdminOverview({ searchParams }: PageProps<"/admin">) {
   const t = await getT();
-  const profile = await requireRole(...STAFF);
+  const profile = await requireRole(...VIEWERS);
   const sp = await searchParams;
   const today = cairoToday();
   const from = typeof sp.from === "string" && DATE_RE.test(sp.from) ? sp.from : today;
@@ -118,7 +118,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
         </div>
       )}
 
-      {(pendingBreaks > 0 || onBreak > 0) && (
+      {profile.role !== "performance" && (pendingBreaks > 0 || onBreak > 0) && (
         <Link href="/admin/breaks" className="mb-5 flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 transition hover:bg-teal-100">
           <Coffee size={18} className="shrink-0" />
           {pendingBreaks > 0 && <span>{pendingBreaks} {t("طلب بريك مستني موافقتك")}</span>}
@@ -127,7 +127,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
         </Link>
       )}
 
-      {(unassigned.count ?? 0) > 0 && (
+      {profile.role !== "performance" && (unassigned.count ?? 0) > 0 && (
         <Link href="/admin/leads?agent=none" className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
           <AlertTriangle size={18} className="shrink-0" />
           {t("فيه")} {unassigned.count} {t("ليد مش متوزعين على حد — اضغط وزّعهم")}

@@ -4,7 +4,7 @@ import { Network, Trophy } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { PeriodTabs } from "@/components/period-tabs";
 import { Empty } from "@/components/ui";
-import { STAFF, requireRole } from "@/lib/auth";
+import { requireRole, VIEWERS } from "@/lib/auth";
 import { asPeriod, loadTeamNumbers, periodRange } from "@/lib/teams";
 import { getT } from "@/lib/i18n/server";
 
@@ -12,7 +12,7 @@ const pct = (a: number, b: number) => (b > 0 ? `${Math.round((100 * a) / b)}%` :
 
 export default async function TeamsPage({ searchParams }: PageProps<"/admin/teams">) {
   const t = await getT();
-  const me = await requireRole(...STAFF);
+  const me = await requireRole(...VIEWERS);
   // A team leader goes straight to their own team.
   if (me.role === "team_leader") redirect(me.team_id ? `/admin/teams/${me.team_id}` : "/admin");
   const period = asPeriod((await searchParams).period);

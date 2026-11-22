@@ -1,4 +1,4 @@
-export type Role = "admin" | "manager" | "team_leader" | "agent";
+export type Role = "admin" | "manager" | "team_leader" | "agent" | "performance";
 export type LeadStatus = "new" | "no_answer" | "contacted" | "interview" | "documents" | "hired" | "rejected";
 export type TaskStatus = "pending" | "in_progress" | "done" | "cancelled";
 export type TaskPriority = "low" | "medium" | "high";
@@ -61,6 +61,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   manager: "مدير أكوزيشن",
   team_leader: "تيم ليدر",
   agent: "أجنت",
+  performance: "متابعة الأداء",
 };
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
@@ -119,7 +120,7 @@ export const DOC_KINDS = {
 /** Who may give which role: only an admin creates admins and managers; a manager adds team leaders and
  * agents; a team leader adds agents to their own team. */
 export function assignableRoles(myRole: Role): Role[] {
-  if (myRole === "admin") return ["admin", "manager", "team_leader", "agent"];
+  if (myRole === "admin") return ["admin", "manager", "performance", "team_leader", "agent"];
   if (myRole === "manager") return ["team_leader", "agent"];
   if (myRole === "team_leader") return ["agent"];
   return [];

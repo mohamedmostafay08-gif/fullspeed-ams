@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, PhoneCall, TrendingUp, UserPlus } from "lucide-react";
+import { CalendarDays, CheckCircle2, FileSpreadsheet, ChevronLeft, ChevronRight, PhoneCall, TrendingUp, UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { TrendChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
-import { cairoToday, requireRole, STAFF } from "@/lib/auth";
+import { cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import type { BoardRow } from "@/lib/badges";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -39,7 +39,7 @@ const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : "�
 
 export default async function DailyReportPage({ searchParams }: PageProps<"/admin/report">) {
   const t = await getT();
-  await requireRole(...STAFF);
+  await requireRole(...VIEWERS);
   const today = cairoToday();
   const asked = String((await searchParams).date ?? "");
   const day = DATE_RE.test(asked) && asked <= today ? asked : today;
@@ -94,6 +94,7 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
           </form>
           {to < today && <Link href={link(period, nextAnchor > today ? today : nextAnchor)} className="btn-ghost px-2.5" aria-label={t("اللي بعده")}><ChevronLeft size={17} className="ltr:rotate-180" /></Link>}
         </div>
+        <a href={`/admin/report/export?from=${from}&to=${to}`} className="no-print btn-ghost"><FileSpreadsheet size={16} /> {t("تصدير Excel")}</a>
         <PrintButton />
       </PageHeader>
 
