@@ -1,0 +1,222 @@
+<title>خريطة صلاحيات Full Speed</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;700&display=swap">
+<style>
+/* Layout: one wide matrix grouped by area, role cards on top, legend pinned under them. */
+:root {
+  --bg: #f6f5f2; --surface: #ffffff; --ink: #1d1b19; --muted: #6b6560; --line: #e5e1da;
+  --accent: #e8590c; --accent-soft: #fdeee4;
+  --yes: #1f7a4d; --yes-bg: #e3f3ea; --part: #9a6100; --part-bg: #fbf0d9; --no: #a8a29b; --no-bg: #f1efeb;
+  --ask: #7048c6; --ask-bg: #efe9fb;
+  --display: "Readex Pro", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --body: "IBM Plex Sans Arabic", system-ui, "Segoe UI", Tahoma, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161412; --surface: #201d1a; --ink: #f0ece6; --muted: #a39c94; --line: #36312c;
+  --accent: #ff8a45; --accent-soft: #3a2416;
+  --yes: #6fd39e; --yes-bg: #173326; --part: #f0bd5c; --part-bg: #3a2c10; --no: #6f6861; --no-bg: #2a2623;
+  --ask: #b9a0ff; --ask-bg: #2c2340; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #161412; --surface: #201d1a; --ink: #f0ece6; --muted: #a39c94; --line: #36312c;
+  --accent: #ff8a45; --accent-soft: #3a2416;
+  --yes: #6fd39e; --yes-bg: #173326; --part: #f0bd5c; --part-bg: #3a2c10; --no: #6f6861; --no-bg: #2a2623;
+  --ask: #b9a0ff; --ask-bg: #2c2340; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.6; direction: rtl; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); }
+.lead { color: var(--muted); max-width: 62ch; margin: 6px 0 0; }
+
+.roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 860px) { .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px) { .roles { grid-template-columns: minmax(0, 1fr); } }
+.role { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.role .rank { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.role h3 { font-size: 1.1rem; }
+.role p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.role.focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+
+.chip { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 8px; border-radius: 8px; font-weight: 700; font-size: 13px; }
+.y { background: var(--yes-bg); color: var(--yes); }
+.p { background: var(--part-bg); color: var(--part); }
+.n { background: var(--no-bg); color: var(--no); }
+.a { background: var(--ask-bg); color: var(--ask); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters button { font: inherit; font-size: 14px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.matrix { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 720px; }
+th, td { padding: 10px 12px; text-align: right; vertical-align: top; border-bottom: 1px solid var(--line); }
+thead th { position: sticky; top: 0; background: var(--surface); font-family: var(--display); font-size: 14px; z-index: 1; }
+thead th.r { text-align: center; width: 15%; }
+td.c { text-align: center; }
+td.c small { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 4px; }
+tr.group th { background: var(--accent-soft); color: var(--ink); font-family: var(--display); font-size: 14.5px; padding-block: 8px; }
+td.what { font-weight: 500; }
+td.what small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
+.dim td.c:not(.hl), .dim thead th.r:not(.hl) { opacity: .35; }
+td.hl, th.hl { background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+
+.notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.note h3 { font-size: 1rem; margin-bottom: 8px; }
+.note ul { margin: 0; padding-inline-start: 20px; display: grid; gap: 6px; font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) { .role, .filters button { transition: border-color .15s, background .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>خريطة الصلاحيات</h1>
+    <p class="lead">مين يقدر يشوف ويعمل إيه في السيستم، من الأجنت لحد مدير الأكوزيشن، وعمود الأدمن للمقارنة. الخريطة مأخوذة من الكود وقواعد قاعدة البيانات الحالية (22 نوفمبر 2026).</p>
+  </header>
+
+  <section class="roles" aria-label="الأدوار">
+    <article class="role" data-role="agent"><span class="rank">المستوى 1</span><h3>أجنت</h3><p>بيكلم الكباتن ويسجل الليدز بتاعته بس، وعلى الشركات المتعين عليها.</p></article>
+    <article class="role" data-role="tl"><span class="rank">المستوى 2</span><h3>تيم ليدر</h3><p>مسؤول عن تيمه: يشوف أرقامهم، يضيف أجنتس جداد، ويوزع الشركات عليهم.</p></article>
+    <article class="role" data-role="mgr"><span class="rank">المستوى 3</span><h3>مدير الأكوزيشن</h3><p>يشوف كل التيمات ويديرها، بس الإيقاف وصلاحيات الأدمن والمديرين عند الأدمن.</p></article>
+    <article class="role" data-role="admin"><span class="rank">المستوى 4</span><h3>أدمن</h3><p>كل حاجة، بما فيها الإعدادات الحساسة والنسخ الاحتياطي وسجل الدخول.</p></article>
+  </section>
+
+  <div class="legend">
+    <span><b class="chip y">✓</b> مسموح بالكامل</span>
+    <span><b class="chip p">◐</b> مسموح بحدود (تيمه / بتاعه بس)</span>
+    <span><b class="chip a">⇢</b> بطلب موافقة من الأدمن</span>
+    <span><b class="chip n">✕</b> مش مسموح</span>
+  </div>
+
+  <div class="filters" role="group" aria-label="ركّز على دور">
+    <button type="button" id="f-all" data-f="all" aria-pressed="true">كل الأدوار</button>
+    <button type="button" id="f-agent" data-f="agent" aria-pressed="false">أجنت</button>
+    <button type="button" id="f-tl" data-f="tl" aria-pressed="false">تيم ليدر</button>
+    <button type="button" id="f-mgr" data-f="mgr" aria-pressed="false">مدير الأكوزيشن</button>
+    <button type="button" id="f-admin" data-f="admin" aria-pressed="false">أدمن</button>
+  </div>
+
+  <div class="matrix" id="matrix"><table>
+    <thead><tr><th>الصلاحية</th><th class="r" data-col="agent">أجنت</th><th class="r" data-col="tl">تيم ليدر</th><th class="r" data-col="mgr">مدير الأكوزيشن</th><th class="r" data-col="admin">أدمن</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table></div>
+
+  <section class="notes">
+    <div class="note">
+      <h3>حاجات مقفولة على مدير الأكوزيشن</h3>
+      <ul>
+        <li>مايقدرش يعمل حساب أدمن أو مدير، ولا يرقّي حد لمدير أو أدمن.</li>
+        <li>مايقدرش يعدّل حساب أدمن أو مدير تاني، ولا يشوف حسابات الأدمن في القوايم.</li>
+        <li>مايقدرش يوقف حساب. بيبعت طلب للأدمن (تفعيل الحساب الجديد مسموح له في أول 10 دقايق بس).</li>
+        <li>سجل التعديلات بيظهرله من غير تعديلات الأدمن.</li>
+        <li>مالوش دخول على سجل الدخول، ربط الـ CRM، والنسخ الاحتياطي.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>قواعد بتشتغل لوحدها للكل</h3>
+      <ul>
+        <li>أي حساب يتوقف بيطلع من كل أجهزته فوراً ومايقدرش يقرا أو يكتب أي حاجة.</li>
+        <li>الأجنت والتيم ليدر المربوطين بفرع لازم يكونوا في المكان عشان يشتغلوا ويتسجل حضورهم.</li>
+        <li>تاريخ تسجيل الليد وتاريخ التعيين بيتحطوا من السيرفر ومحدش يقدر يغيرهم.</li>
+        <li>الأجنت مايقدرش ينقل ليد لحد تاني أو يغير شركته أو مصدره.</li>
+        <li>كل تعديل بيتسجل باسم اللي عمله في سجل التعديلات.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+// [what, note, agent, tl, mgr, admin]; each cell: "y|p|a|n" optionally followed by ":note".
+const DATA = [
+  ["الليدز", [
+    ["يشوف الليدز", "", "p:بتاعته بس", "p:تيمه + الليدز اللي مش متوزعة", "y:كل الليدز", "y"],
+    ["يضيف ليد", "", "p:على شركاته وهو في الفرع", "p:لتيمه", "y", "y"],
+    ["يعدّل ليد ويسجل نتيجة المكالمة", "", "p:بتاعته وهو في الفرع", "p:ليدز تيمه", "y", "y"],
+    ["ينقل ليد لأجنت تاني", "", "n", "p:جوه تيمه", "y", "y"],
+    ["يستورد ليدز من ملف", "", "n", "y", "y", "y"],
+    ["يصدّر الليدز Excel", "", "n", "p:ليدز تيمه", "y", "y"],
+    ["يمسح مستند مرفوع", "", "p:اللي رفعه هو بس", "y", "y", "y"],
+  ]],
+  ["الفريق والحسابات", [
+    ["يشوف بيانات الموظفين", "", "p:نفسه بس", "p:تيمه بس", "p:الكل ما عدا الأدمن", "y"],
+    ["يضيف أجنت جديد", "", "n", "p:جوه تيمه بس", "y", "y"],
+    ["يضيف تيم ليدر", "", "n", "n", "y", "y"],
+    ["يضيف مدير أو أدمن", "", "n", "n", "n", "y"],
+    ["يغيّر دور موظف", "", "n", "n", "p:بين أجنت وتيم ليدر بس", "y"],
+    ["يعدّل بيانات موظف (اسم، تيم، فرع)", "", "n", "n", "p:الأجنتس والتيم ليدرز", "y"],
+    ["يوقف حساب", "", "n", "a:لأجنت في تيمه", "a", "y"],
+    ["يفعّل حساب", "", "n", "a", "p:الجديد في أول 10 دقايق، غير كده بطلب", "y"],
+    ["يوافق على طلبات الإيقاف والتفعيل", "", "n", "n", "n", "y"],
+    ["يطلّع حد من كل أجهزته", "", "n", "n", "n", "y"],
+  ]],
+  ["التيمات والشركات", [
+    ["ينشئ تيم ويعدّله", "", "n", "n", "y", "y"],
+    ["يحدد شركات كل تيم", "", "n", "n", "y", "y"],
+    ["يوزع الشركات على الأجنتس", "", "n", "p:من شركات تيمه", "y", "y"],
+    ["يشوف صفحة التيم وأرقامه", "", "n", "p:تيمه بس", "y:كل التيمات + المقارنة", "y"],
+    ["المرتب وسعر الأوردر والساعات", "", "p:يشوفها بس", "p:يشوفها بس", "y:يعدّلها", "y"],
+    ["فورم التسجيل وسكربت المكالمة", "", "p:يشوف السكربت", "p:يشوف بس", "p:يشوف بس", "y"],
+    ["يضيف شركة أو يعدّل بياناتها ولوجوها", "", "n", "n", "n", "y"],
+    ["ينشر بونص أو تعريفة لشركة", "", "n", "y", "y", "y"],
+  ]],
+  ["الحضور والبريكات", [
+    ["الحضور والانصراف", "بيتسجل لوحده أول ما يفتح السيستم", "p:بيتسجل له", "p:بيتسجل له + يشوف تيمه", "y:يشوف الكل", "y"],
+    ["يغيّر مواعيد الشيفت والسماح والإجازات", "", "n", "n", "y", "y"],
+    ["يطلب بريك", "بريكين في اليوم، نص ساعة لكل واحد", "y", "n", "n", "n"],
+    ["يوافق على البريك أو يرفضه", "", "n", "p:تيمه", "y", "y"],
+    ["أماكن الشغل (الفروع)", "", "n", "n", "y", "y"],
+  ]],
+  ["التاسكات والتعميمات", [
+    ["يشوف التاسكات", "", "p:بتاعته", "p:تيمه", "y", "y"],
+    ["يدي تاسك لأجنت", "", "n", "p:تيمه", "y", "y"],
+    ["يبعت تعميم", "", "n", "p:لتيمه بس", "y:للكل أو لتيم", "y"],
+    ["يقرا التعميمات", "", "y", "y", "y", "y"],
+    ["التارجت اليومي", "", "p:يشوف بتاعه", "p:يحدد لتيمه", "y", "y"],
+    ["قوالب واتساب والبلاك ليست", "", "p:يستخدم القوالب", "y", "y", "y"],
+  ]],
+  ["الأرقام والتقارير", [
+    ["التقييم", "", "p:تقييمه هو", "p:أجنتس تيمه", "y", "y"],
+    ["التحليلات والتقرير اليومي", "", "n", "p:على قد اللي يشوفه", "y", "y"],
+    ["المتابعة اللايف وشاشة التلفزيون", "", "n", "y", "y", "y"],
+    ["ترتيب النهارده والتوقع للشهر", "", "y", "y", "y", "y"],
+  ]],
+  ["الإدارة والأمان", [
+    ["سجل التعديلات", "", "n", "n", "p:من غير تعديلات الأدمن", "y"],
+    ["طلبات الموافقة", "", "n", "p:طلباته", "p:طلباته", "y:يقرر فيها"],
+    ["سجل الدخول والأجهزة", "", "n", "n", "n", "y"],
+    ["ربط الـ CRM", "", "n", "n", "n", "y"],
+    ["النسخ الاحتياطي وجوجل درايف وواتساب", "", "n", "n", "n", "y"],
+  ]],
+];
+const SYM = { y: "✓", p: "◐", a: "⇢", n: "✕" };
+const COLS = ["agent", "tl", "mgr", "admin"];
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cell = (v, col) => {
+  const [k, ...rest] = v.split(":");
+  const note = rest.join(":");
+  return `<td class="c" data-col="${col}"><b class="chip ${k}" aria-label="${k}">${SYM[k]}</b>${note ? `<small>${esc(note)}</small>` : ""}</td>`;
+};
+document.getElementById("rows").innerHTML = DATA.map(([group, rows]) =>
+  `<tr class="group"><th colspan="5">${group}</th></tr>` +
+  rows.map(([what, sub, ...vals]) =>
+    `<tr><td class="what">${esc(what)}${sub ? `<small>${esc(sub)}</small>` : ""}</td>${vals.map((v, i) => cell(v, COLS[i])).join("")}</tr>`
+  ).join("")
+).join("");
+
+const matrix = document.getElementById("matrix");
+function focusRole(f) {
+  document.querySelectorAll(".filters button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === f)));
+  document.querySelectorAll(".role").forEach((r) => r.classList.toggle("focus", r.dataset.role === f));
+  matrix.classList.toggle("dim", f !== "all");
+  matrix.querySelectorAll("[data-col]").forEach((el) => el.classList.toggle("hl", el.dataset.col === f));
+  try { localStorage.setItem("perm-focus", f); } catch (e) {}
+}
+document.querySelectorAll(".filters button").forEach((b) => b.addEventListener("click", () => focusRole(b.dataset.f)));
+let saved = "all";
+try { saved = localStorage.getItem("perm-focus") || "all"; } catch (e) {}
+focusRole(saved);
+</script>
