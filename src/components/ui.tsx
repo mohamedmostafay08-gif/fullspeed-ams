@@ -63,8 +63,8 @@ export function Progress({ value, target }: { value: number; target: number }) {
   const color = target === 0 ? "bg-zinc-300" : pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-brand-500" : "bg-rose-400";
   return (
     <div className="flex items-center gap-2.5">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-        <div className={`h-full rounded-full transition-[width] duration-500 ${color}`} style={{ width: `${pct}%` }} />
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/6 dark:bg-white/10" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <div className={`bar-fill h-full rounded-full transition-[width] duration-500 ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="num w-16 text-right rtl:text-left text-xs text-zinc-500" dir="ltr">
         {value}/{target || "—"}

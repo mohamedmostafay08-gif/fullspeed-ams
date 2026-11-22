@@ -37,24 +37,24 @@ export async function AppShell({
   const [t, theme] = await Promise.all([getT(), getTheme()]);
   return (
     <div className="min-h-screen md:flex">
-      <aside className="hidden bg-ink md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
+      <aside className="hidden border-e border-(--glass-line) bg-(--side-bg) backdrop-blur-2xl backdrop-saturate-150 md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
         <div className="flex items-center gap-3 px-5 pt-6 pb-8">
           <BrandMark />
           <div className="leading-tight">
-            <p className="font-extrabold tracking-tight text-white">Full Speed</p>
-            <p className="text-[11px] font-medium text-slate-ink">Acquisition</p>
+            <p className="font-extrabold tracking-tight">Full Speed</p>
+            <p className="text-[11px] font-medium text-zinc-500">Acquisition</p>
           </div>
         </div>
         <SideNav items={nav} />
         <div className="mt-auto p-3">
-          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">{initials(profile.full_name)}</span>
+          <div className="glass flex items-center gap-3 rounded-2xl p-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-linear-to-br from-brand-400 to-brand-600 text-sm font-bold text-white shadow-[0_6px_16px_-6px_rgba(249,115,22,0.8)]">{initials(profile.full_name)}</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{profile.full_name}</p>
-              <p className="text-[11px] text-slate-ink">{t(ROLE_LABELS[profile.role])}</p>
+              <p className="truncate text-sm font-semibold">{profile.full_name}</p>
+              <p className="text-[11px] text-zinc-500">{t(ROLE_LABELS[profile.role])}</p>
             </div>
             <SignOutForm>
-              <button className="rounded-lg p-2 text-slate-ink transition hover:bg-white/10 hover:text-white" aria-label={t("خروج")} title={t("خروج")}>
+              <button className="rounded-lg p-2 text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600" aria-label={t("خروج")} title={t("خروج")}>
                 <LogOut size={16} />
               </button>
             </SignOutForm>
@@ -63,7 +63,7 @@ export async function AppShell({
       </aside>
 
       <div className="min-w-0 flex-1 overflow-x-clip pb-28 md:pb-0">
-        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-zinc-200/80 bg-white/85 px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-2.5 backdrop-blur-xl md:gap-3 md:px-8 md:py-3">
+        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-(--glass-line) bg-(--side-bg) px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-2.5 backdrop-blur-2xl backdrop-saturate-150 md:gap-3 md:px-8 md:py-3">
           <div className="flex min-w-0 items-center gap-2.5 md:hidden">
             <BrandMark small />
             <div className="min-w-0 leading-tight">
