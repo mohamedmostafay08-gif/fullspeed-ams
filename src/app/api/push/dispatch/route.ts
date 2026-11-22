@@ -17,6 +17,9 @@ export async function POST(request: Request) {
   const db = createAdminClient();
   const { data: n } = await db.from("notifications").select("id, user_id, type, title, body, link").eq("id", id).maybeSingle();
   if (!n) return Response.json({ sent: 0 });
+  // Never push to a deactivated account.
+  const { data: owner } = await db.from("profiles").select("is_active").eq("id", n.user_id).maybeSingle();
+  if (!owner?.is_active) return Response.json({ sent: 0 });
   const { data: subs } = await db.from("push_subscriptions").select("id, endpoint, p256dh, auth, locale").eq("user_id", n.user_id);
 
   // VAPID "subject" must be an https: URL; local runs are plain http.

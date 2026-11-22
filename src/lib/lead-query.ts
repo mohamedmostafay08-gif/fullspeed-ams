@@ -30,6 +30,8 @@ export async function queryLeads(f: LeadFilters, opts: { limit: number; offset: 
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
+    // Leads imported together share a timestamp; the id keeps paging stable.
+    .order("id", { ascending: false })
     .range(opts.offset, opts.offset + opts.limit - 1);
   if (f.company) q = q.eq("company_id", f.company);
   if (f.agent === "none") q = q.is("agent_id", null);

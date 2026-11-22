@@ -2,7 +2,7 @@ import { LogOut } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 
 export { BrandMark };
-import { signOut } from "@/app/actions/auth";
+import { SignOutForm } from "@/components/sign-out-form";
 import { BottomNav, SideNav, type NavItem } from "@/components/nav-links";
 import { NotificationBell } from "@/components/notification-bell";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
@@ -53,11 +53,11 @@ export async function AppShell({
               <p className="truncate text-sm font-semibold text-white">{profile.full_name}</p>
               <p className="text-[11px] text-slate-ink">{t(ROLE_LABELS[profile.role])}</p>
             </div>
-            <form action={signOut}>
+            <SignOutForm>
               <button className="rounded-lg p-2 text-slate-ink transition hover:bg-white/10 hover:text-white" aria-label={t("خروج")} title={t("خروج")}>
                 <LogOut size={16} />
               </button>
-            </form>
+            </SignOutForm>
           </div>
         </div>
       </aside>

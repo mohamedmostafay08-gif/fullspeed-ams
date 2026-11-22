@@ -1,13 +1,14 @@
 import "server-only";
 import { gzipSync } from "node:zlib";
 import { cairoToday } from "@/lib/auth";
-import { getConfig } from "@/lib/app-config";
+import { getConfig, setConfig } from "@/lib/app-config";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const TABLES = [
-  "teams", "profiles", "companies", "company_governorates", "agent_companies", "work_locations", "daily_targets",
-  "leads", "lead_activities", "lead_documents", "call_logs", "tasks", "company_announcements", "agent_breaks",
-  "whatsapp_templates", "blacklist", "audit_log",
+  "governorates", "regions", "teams", "team_companies", "profiles", "companies", "company_governorates", "agent_companies",
+  "work_locations", "work_settings", "daily_targets", "leads", "lead_activities", "lead_documents", "call_logs", "tasks",
+  "company_announcements", "agent_breaks", "whatsapp_templates", "blacklist", "attendance", "broadcasts", "broadcast_reads",
+  "admin_requests", "geo_checkins", "login_events", "audit_log",
 ];
 const KEEP_DAYS = 30;
 const PAGE = 1000;
@@ -64,5 +65,8 @@ export async function runBackup(): Promise<BackupResult> {
       Object.assign(result, { drive: "error", driveError: e instanceof Error ? e.message : "network" });
     }
   }
+  // Read by the database's morning check, which alerts the admin when a backup is missing.
+  await setConfig("last_backup_at", new Date().toISOString());
+  await setConfig("last_backup_drive", result.drive);
   return result;
 }

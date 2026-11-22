@@ -26,8 +26,11 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
   redirect(profile.role === "agent" ? "/agent" : "/admin");
 }
 
-export async function signOut() {
+export async function signOut(form?: FormData) {
   const supabase = await createClient();
+  // Forget this device's push subscription (the browser already unsubscribed it).
+  const endpoint = String(form?.get("endpoint") ?? "");
+  if (endpoint) await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
   await supabase.auth.signOut();
   redirect("/login");
 }

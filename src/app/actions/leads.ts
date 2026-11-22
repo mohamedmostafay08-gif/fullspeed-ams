@@ -80,7 +80,12 @@ export async function updateLead(form: FormData) {
   const status = form.get("status") as LeadStatus | null;
   if (status && STATUSES.includes(status)) patch.status = status;
   if (form.has("notes")) patch.notes = String(form.get("notes")).trim() || null;
-  if (profile.role !== "agent" && form.has("agent_id")) patch.agent_id = String(form.get("agent_id")) || null;
+  if (profile.role !== "agent" && form.has("agent_id")) {
+    // Only reassign when the choice actually changed.
+    const wanted = String(form.get("agent_id")) || null;
+    const { data: current } = await supabase.from("leads").select("agent_id").eq("id", id).maybeSingle();
+    if (current && wanted !== current.agent_id) patch.agent_id = wanted;
+  }
 
   if (Object.keys(patch).length) {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
@@ -169,6 +174,8 @@ export async function scheduleLead(_prev: { error?: string; ok?: string } | unde
       patch.callback_at = at;
       note = OUTCOME_NOTE.callback;
     } else {
+      const { data: current } = await supabase.from("leads").select("status").eq("id", id).maybeSingle();
+      if (current?.status === "hired" || current?.status === "rejected") return { error: t("الليد ده مقفول — مفيش مقابلات جديدة.") };
       patch.interview_at = at;
       patch.interview_place = String(form.get("place") ?? "").trim().slice(0, 200) || null;
       patch.status = "interview";
@@ -203,8 +210,9 @@ export async function deleteDocument(form: FormData) {
   const id = String(form.get("id") ?? "");
   const { data: doc } = await supabase.from("lead_documents").select("id, path").eq("id", id).maybeSingle();
   if (!doc) return;
-  const { error } = await supabase.from("lead_documents").delete().eq("id", id);
-  if (!error) await supabase.storage.from("lead-docs").remove([doc.path]);
+  // Remove the file only when the row was really deleted (only the uploader or staff may).
+  const { data: gone } = await supabase.from("lead_documents").delete().eq("id", id).select("id");
+  if (gone?.length) await supabase.storage.from("lead-docs").remove([doc.path]);
   revalidatePath("/", "layout");
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
-import { signOut } from "@/app/actions/auth";
+import { SignOutForm } from "@/components/sign-out-form";
 import { PrefsControls } from "@/components/prefs";
 import {
   Activity,
@@ -195,11 +195,11 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
                 <p className="truncate font-bold">{profile.name}</p>
                 <p className="text-xs text-slate-ink">{t(profile.role)}</p>
               </div>
-              <form action={signOut}>
+              <SignOutForm>
                 <button className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold active:scale-95">
                   <LogOut size={15} /> {t("خروج")}
                 </button>
-              </form>
+              </SignOutForm>
             </div>
             <ul className="stagger grid grid-cols-3 gap-2.5">
               {rest.map((item) => {

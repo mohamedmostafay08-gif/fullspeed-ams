@@ -24,7 +24,7 @@ export default async function AgentLayout({ children }: LayoutProps<"/agent">) {
   return (
     <AppShell profile={profile} nav={[...NAV]} unread={unread} notificationsHref="/agent/notifications">
       <PresenceBeacon userId={profile.id} />
-      <AttendanceBeacon />
+      {!mustCheckIn && <AttendanceBeacon />}
       {mustCheckIn ? <GeoGate locationName={mustCheckIn} /> : children}
     </AppShell>
   );

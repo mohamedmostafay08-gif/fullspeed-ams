@@ -42,7 +42,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const nav = NAV.filter((n) => !n.roles || n.roles.includes(profile.role)).map(({ href, label, icon, exact, mobile, desktop }) => ({ href, label, icon, exact, mobile, desktop }));
   return (
     <AppShell profile={profile} nav={nav} unread={unread} notificationsHref="/admin/notifications">
-      {profile.role === "team_leader" && <AttendanceBeacon />}
+      {profile.role === "team_leader" && !mustCheckIn && <AttendanceBeacon />}
       {mustCheckIn ? <GeoGate locationName={mustCheckIn} /> : children}
     </AppShell>
   );

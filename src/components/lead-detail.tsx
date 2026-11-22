@@ -51,6 +51,10 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const agents = ((agentsRes.data ?? []) as unknown as { profiles: { id: string; full_name: string; is_active: boolean } | null }[])
     .map((r) => r.profiles)
     .filter((p): p is { id: string; full_name: string; is_active: boolean } => Boolean(p?.is_active));
+  // Keep the current agent selectable even if they left the company, so saving doesn't unassign the lead.
+  if (lead.agent_id && !agents.some((a) => a.id === lead.agent_id)) {
+    agents.unshift({ id: lead.agent_id, full_name: agent?.full_name ?? t("الأجنت الحالي"), is_active: true });
+  }
   const templates = templatesFor((tplRes.data ?? []) as Template[], lead.company_id);
   const vars = {
     name: lead.full_name.split(" ")[0],
@@ -142,12 +146,17 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
                 </form>
               </div>
             )}
-            <StateForm action={scheduleLead} className="space-y-2" submitLabel={lead.interview_at ? t("غيّر المعاد") : t("حدد مقابلة")}>
-              <input type="hidden" name="id" value={lead.id} />
-              <input type="hidden" name="kind" value="interview" />
-              <input type="datetime-local" name="at" required defaultValue={lead.interview_at ? toCairoLocal(lead.interview_at) : ""} className="input" aria-label={t("معاد المقابلة")} />
-              <input name="place" defaultValue={lead.interview_place ?? ""} placeholder={t("مكان المقابلة")} className="input" maxLength={200} />
-            </StateForm>
+            {closed ? (
+              // A hired or rejected lead is closed: booking an interview would undo the hire.
+              <p className="text-sm text-zinc-500">{t("الليد ده مقفول ({0}) — مفيش مقابلات جديدة.", t(LEAD_STATUS_LABELS[lead.status as keyof typeof LEAD_STATUS_LABELS]))}</p>
+            ) : (
+              <StateForm action={scheduleLead} className="space-y-2" submitLabel={lead.interview_at ? t("غيّر المعاد") : t("حدد مقابلة")}>
+                <input type="hidden" name="id" value={lead.id} />
+                <input type="hidden" name="kind" value="interview" />
+                <input type="datetime-local" name="at" required defaultValue={lead.interview_at ? toCairoLocal(lead.interview_at) : ""} className="input" aria-label={t("معاد المقابلة")} />
+                <input name="place" defaultValue={lead.interview_place ?? ""} placeholder={t("مكان المقابلة")} className="input" maxLength={200} />
+              </StateForm>
+            )}
           </div>
         </section>
 
