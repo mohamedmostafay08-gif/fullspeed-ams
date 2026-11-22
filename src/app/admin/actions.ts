@@ -21,7 +21,10 @@ function done(path: string, ok = "تم الحفظ"): ActionState {
 // ───────── People ─────────
 export async function createUser(_prev: ActionState, form: FormData): Promise<ActionState> {
   const t = await getT();
-  const me = await requireRole(...MANAGERS);
+  const me = await requireRole(...STAFF);
+  // A team leader only adds agents, always into their own team.
+  if (me.role === "team_leader" && !me.team_id) return { error: t("إنت مش متعين على تيم") };
+  const teamId = me.role === "team_leader" ? me.team_id : str(form, "team_id") || null;
   const email = str(form, "email").toLowerCase();
   const password = str(form, "password");
   const fullName = str(form, "full_name");
@@ -46,7 +49,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
     .from("profiles")
     .update({
       role,
-      team_id: str(form, "team_id") || null,
+      team_id: teamId,
       location_id: str(form, "location_id") || null,
       allow_anywhere: form.get("allow_anywhere") === "on",
       is_active: true,
@@ -61,6 +64,13 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
     .eq("row_id", data.user.id)
     .eq("action", "insert")
     .is("actor_id", null);
+  if (me.role === "team_leader") {
+    // Managers and the admin hear about agents a team leader adds.
+    const { data: bosses } = await createAdminClient().from("profiles").select("id").in("role", ["admin", "manager"]).eq("is_active", true);
+    await createAdminClient().from("notifications").insert(
+      (bosses ?? []).map((b) => ({ user_id: b.id, type: "info", title: `👤 ${me.full_name} ضاف أجنت جديد: ${fullName}`, link: `/admin/agents/${data.user.id}` })),
+    );
+  }
   return done("/admin/agents", t("تم إنشاء حساب {0}", fullName));
 }
 
@@ -119,6 +129,21 @@ export async function updateTeam(form: FormData) {
   const leaderId = str(form, "leader_id") || null;
   await supabase.from("teams").update({ name: str(form, "name"), leader_id: leaderId }).eq("id", id);
   if (leaderId) await supabase.from("profiles").update({ team_id: id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
+  revalidatePath("/admin", "layout");
+}
+
+// ───────── Team companies ─────────
+export async function saveTeamCompanies(form: FormData) {
+  await requireRole(...MANAGERS);
+  const supabase = await createClient();
+  const teamId = str(form, "team_id");
+  const wanted = new Set(form.getAll("company_id").map(String));
+  const { data: current } = await supabase.from("team_companies").select("company_id").eq("team_id", teamId);
+  const have = new Set((current ?? []).map((r) => r.company_id));
+  const toAdd = [...wanted].filter((c) => !have.has(c)).map((company_id) => ({ team_id: teamId, company_id }));
+  const toRemove = [...have].filter((c) => !wanted.has(c));
+  if (toAdd.length) await supabase.from("team_companies").insert(toAdd);
+  if (toRemove.length) await supabase.from("team_companies").delete().eq("team_id", teamId).in("company_id", toRemove);
   revalidatePath("/admin", "layout");
 }
 

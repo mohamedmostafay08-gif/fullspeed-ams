@@ -11,7 +11,7 @@ const str = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 // ───────── Approval requests (manager → admin) ─────────
 export async function requestAccountChange(_prev: ActionState, form: FormData): Promise<ActionState> {
   const t = await getT();
-  await requireRole("manager");
+  await requireRole("manager", "team_leader");
   const kind = str(form, "kind");
   const reason = str(form, "reason");
   if (kind !== "deactivate" && kind !== "activate") return { error: t("طلب غير معروف") };
@@ -35,7 +35,7 @@ export async function decideRequest(form: FormData) {
 }
 
 export async function cancelRequest(form: FormData) {
-  await requireRole("manager");
+  await requireRole("manager", "team_leader");
   const supabase = await createClient();
   await supabase.rpc("cancel_admin_request", { p_id: str(form, "id") });
   revalidatePath("/admin", "layout");

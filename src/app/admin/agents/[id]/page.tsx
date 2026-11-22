@@ -34,10 +34,20 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
     supabase.from("teams").select("id, name"),
     supabase.from("work_locations").select("id, name").order("name"),
   ]);
-  const { data: pendingRequest } =
-    me.role === "manager"
-      ? await supabase.from("admin_requests").select("kind, created_at").eq("target_id", id).eq("status", "pending").maybeSingle()
-      : { data: null };
+  // A manager may ask about team leaders and agents; a team leader about agents in their own team.
+  const canRequest =
+    agent.id !== me.id &&
+    ((me.role === "manager" && canManageRole(me.role, agent.role as Role)) ||
+      (me.role === "team_leader" && agent.role === "agent" && !!agent.team_id && agent.team_id === me.team_id));
+  const [{ data: pendingRequest }, { data: teamCompanyRows }] = await Promise.all([
+    canRequest
+      ? supabase.from("admin_requests").select("kind, created_at").eq("target_id", id).eq("status", "pending").maybeSingle()
+      : Promise.resolve({ data: null }),
+    agent.team_id ? supabase.from("team_companies").select("company_id").eq("team_id", agent.team_id) : Promise.resolve({ data: null }),
+  ]);
+  // An agent in a team can only work on that team's companies.
+  const teamCompanyIds = teamCompanyRows ? new Set(teamCompanyRows.map((r) => r.company_id)) : null;
+  const pickable = teamCompanyIds ? companies.filter((c) => teamCompanyIds.has(c.id)) : companies;
   const canManage = canManageRole(me.role, agent.role as Role);
   // Keep the current role visible even if this user may not assign it.
   const roleOptions = Object.entries(ROLE_LABELS).filter(([v]) => assignableRoles(me.role).includes(v as Role) || v === agent.role);
@@ -67,8 +77,12 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
           <h2 className="mb-3 font-semibold">{t("الشركات المتعين عليها")}</h2>
           <form action={saveAssignments} className="space-y-3">
             <input type="hidden" name="agent_id" value={agent.id} />
+            {teamCompanyIds && (
+              <p className="text-xs text-zinc-500">{t("بتظهر شركات التيم بس — شركات التيم بيحددها المدير أو الأدمن من صفحة التيم.")}</p>
+            )}
+            {pickable.length === 0 && <Empty>{t("التيم لسه ملوش شركات")}</Empty>}
             <div className="grid max-h-96 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
-              {companies.map((c) => (
+              {pickable.map((c) => (
                 <label key={c.id} className="flex items-center gap-2 rounded-lg p-1.5 text-sm hover:bg-zinc-50">
                   <input type="checkbox" name="company_id" value={c.id} defaultChecked={assigned.has(c.id)} className="accent-brand-600" />
                   <CompanyLogo name={c.name} src={c.logo_path} size={24} />
@@ -219,7 +233,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
           </section>
         ); })()}
 
-        {me.role === "manager" && canManage && agent.id !== me.id && (
+        {canRequest && (
           <section className="card lg:col-span-2">
             <h2 className="card-title">{agent.is_active ? t("طلب إيقاف الحساب") : t("طلب تفعيل الحساب")}</h2>
             {pendingRequest ? (

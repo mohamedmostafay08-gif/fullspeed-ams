@@ -3,7 +3,7 @@ import { History, ShieldCheck } from "lucide-react";
 import { cancelRequest, decideRequest } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
 import { Empty, formatDate } from "@/components/ui";
-import { MANAGERS, requireRole } from "@/lib/auth";
+import { STAFF, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 
@@ -29,7 +29,7 @@ const STATUS: Record<Row["status"], { label: string; cls: string }> = {
 
 export default async function RequestsPage() {
   const t = await getT();
-  const me = await requireRole(...MANAGERS);
+  const me = await requireRole(...STAFF);
   const isAdmin = me.role === "admin";
   const supabase = await createClient();
   const { data } = await supabase

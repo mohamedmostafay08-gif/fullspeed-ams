@@ -8,6 +8,7 @@ import { MANAGERS, STAFF, requireRole } from "@/lib/auth";
 import { loadMemosAndMarkRead } from "@/lib/memos";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
+import { teamLabel } from "@/lib/types";
 
 type Reader = { user_id: string; full_name: string; read_at: string | null };
 
@@ -48,10 +49,10 @@ export default async function MemosPage() {
               {isManager ? (
                 <select id="team_id" name="team_id" className="input" defaultValue="">
                   <option value="">{t("الفريق كله")}</option>
-                  {(teamsRes.data ?? []).map((x) => <option key={x.id} value={x.id}>{t("تيم {0}", x.name)}</option>)}
+                  {(teamsRes.data ?? []).map((x) => <option key={x.id} value={x.id}>{teamLabel(x.name, t)}</option>)}
                 </select>
               ) : (
-                <p className="input bg-zinc-50">{t("تيم {0}", myTeam?.name ?? "")}</p>
+                <p className="input bg-zinc-50">{teamLabel(myTeam?.name ?? "", t)}</p>
               )}
             </div>
           </StateForm>

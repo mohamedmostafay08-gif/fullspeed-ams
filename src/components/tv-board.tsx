@@ -9,16 +9,18 @@ import { celebrate, playSound } from "@/lib/fx";
 import { useLocale, useT } from "@/lib/i18n/client";
 import { cairoTime } from "@/lib/time";
 import type { BoardRow } from "@/lib/badges";
+import { teamLabel } from "@/lib/types";
 
 export type TvData = {
   day: string;
   board: BoardRow[];
   companies: { name: string; logo: string | null; leads: number; hired: number }[];
+  teams: { name: string; agents: number; leads: number; hired: number; points: number }[];
   hires: { id: string; lead: string; at: string; company: string; logo: string | null; agent: string }[];
   totals: { leads: number; calls: number; interviews: number; hired: number };
 };
 
-const PANELS = ["board", "companies", "hires"] as const;
+const PANELS = ["board", "teams", "companies", "hires"] as const;
 const ROTATE_MS = 15_000;
 const MEDAL = ["🥇", "🥈", "🥉"];
 
@@ -127,6 +129,32 @@ export function TvBoard({ data }: { data: TvData }) {
                 </li>
               ))}
             </ol>
+          </>
+        )}
+
+        {PANELS[panel] === "teams" && (
+          <>
+            <h2 className="mb-5 text-3xl font-extrabold">🏆 {t("ترتيب التيمات النهارده")}</h2>
+            {data.teams.length === 0 ? (
+              <p className="text-xl text-slate-ink">{t("لسه مفيش تيمات")}</p>
+            ) : (
+              <ol className="grid gap-3">
+                {data.teams.map((tm, i) => (
+                  <li key={tm.name} className={`flex items-center gap-5 rounded-2xl p-5 ring-1 ${i === 0 ? "bg-amber-400/15 ring-amber-300/40" : "bg-white/5 ring-white/10"}`}>
+                    <span className="w-12 text-center text-4xl">{MEDAL[i] ?? <span className="num text-2xl text-slate-ink">{i + 1}</span>}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-2xl font-bold">{teamLabel(tm.name, t)}</p>
+                      <p className="text-sm text-slate-ink">{t("{0} أجنت", tm.agents)}</p>
+                    </div>
+                    <div className="text-end text-lg">
+                      <span className="num text-sky-300">{tm.leads}</span> <span className="text-slate-ink">{t("ليد")}</span> ·{" "}
+                      <span className="num text-emerald-300">{tm.hired}</span> <span className="text-slate-ink">{t("اشتغلوا")}</span> ·{" "}
+                      <span className="num text-amber-300">{tm.points}</span> <span className="text-slate-ink">{t("نقطة")}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </>
         )}
 

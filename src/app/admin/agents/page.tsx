@@ -12,6 +12,8 @@ export default async function AgentsPage() {
   const t = await getT();
   const profile = await requireRole(...STAFF);
   const isAdmin = profile.role === "admin" || profile.role === "manager";
+  // Team leaders add agents straight into their own team.
+  const canAdd = isAdmin || (profile.role === "team_leader" && !!profile.team_id);
   const supabase = await createClient();
   const [{ data: people }, { data: teams }, { data: assignments }, { data: locations }] = await Promise.all([
     supabase.from("profiles").select("id, full_name, phone, role, team_id, is_active, location_id, allow_anywhere").order("role").order("full_name"),
@@ -81,10 +83,10 @@ export default async function AgentsPage() {
         </ul>
       </section>
 
-      {isAdmin && (
+      {canAdd && (
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className="card">
-            <h2 className="mb-3 font-semibold">{t("إضافة موظف")}</h2>
+            <h2 className="mb-3 font-semibold">{isAdmin ? t("إضافة موظف") : t("إضافة أجنت لتيمك")}</h2>
             <StateForm action={createUser} className="grid gap-3 sm:grid-cols-2" submitLabel={t("إنشاء الحساب")} resetOnSuccess>
               <div>
                 <label className="label" htmlFor="full_name">{t("الاسم")}</label>
@@ -122,14 +124,19 @@ export default async function AgentsPage() {
               </label>
               <div>
                 <label className="label" htmlFor="team_id">{t("التيم")}</label>
-                <select id="team_id" name="team_id" className="input">
-                  <option value="">—</option>
-                  {(teams ?? []).map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
-                </select>
+                {isAdmin ? (
+                  <select id="team_id" name="team_id" className="input">
+                    <option value="">—</option>
+                    {(teams ?? []).map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+                  </select>
+                ) : (
+                  <p className="input bg-zinc-50">{teamName.get(profile.team_id!) ?? "—"}</p>
+                )}
               </div>
             </StateForm>
           </section>
 
+          {isAdmin && (
           <section className="card space-y-4">
             <h2 className="font-semibold">{t("التيمز")}</h2>
             {(teams ?? []).map((row) => (
@@ -155,7 +162,9 @@ export default async function AgentsPage() {
                 <input id="team_name" name="name" required className="input" />
               </div>
             </StateForm>
+            <p className="text-xs text-zinc-500">{t("شركات كل تيم وأرقامه من صفحة «التيمات».")}</p>
           </section>
+          )}
         </div>
       )}
     </>

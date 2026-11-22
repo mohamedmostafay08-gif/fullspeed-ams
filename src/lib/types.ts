@@ -112,12 +112,18 @@ export const DOC_KINDS = {
   other: "أخرى",
 } as const;
 
-/** Who may give which role: only an admin creates admins and managers; a manager adds team leaders and agents. */
+/** Who may give which role: only an admin creates admins and managers; a manager adds team leaders and
+ * agents; a team leader adds agents to their own team. */
 export function assignableRoles(myRole: Role): Role[] {
   if (myRole === "admin") return ["admin", "manager", "team_leader", "agent"];
   if (myRole === "manager") return ["team_leader", "agent"];
+  if (myRole === "team_leader") return ["agent"];
   return [];
 }
 
 /** Whether `myRole` may edit an account that currently has `targetRole`. */
 export const canManageRole = (myRole: Role, targetRole: Role) => myRole === "admin" || (myRole === "manager" && (targetRole === "team_leader" || targetRole === "agent"));
+
+/** "تيم X" for a team name, unless the name already starts with the word. */
+export const teamLabel = (name: string, t: (s: string, ...a: (string | number)[]) => string) =>
+  /^\s*(تيم|team)(?=\s|$)/i.test(name) ? name : t("تيم {0}", name);

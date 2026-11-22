@@ -10,7 +10,7 @@ export default async function TvPage() {
   const supabase = await createClient();
   const today = cairoToday();
   const [start, end] = cairoRange(today, today);
-  const [boardRes, leadsRes, hiresRes] = await Promise.all([
+  const [boardRes, leadsRes, hiresRes, teamsRes] = await Promise.all([
     supabase.rpc("leaderboard", { p_from: today, p_to: today }),
     supabase.from("leads").select("company_id, companies(name, logo_path)").gte("created_at", start).lt("created_at", end).limit(10000),
     supabase
@@ -20,6 +20,7 @@ export default async function TvPage() {
       .lt("hired_at", end)
       .order("hired_at", { ascending: false })
       .limit(30),
+    supabase.from("teams").select("id, name"),
   ]);
 
   const board = (boardRes.data ?? []) as BoardRow[];
@@ -45,6 +46,19 @@ export default async function TvPage() {
     board,
     companies: [...byCompany.values()].sort((a, b) => b.hired - a.hired || b.leads - a.leads).slice(0, 12),
     hires,
+    // Teams ranked by today's hires, then points.
+    teams: (teamsRes.data ?? [])
+      .map((tm) => {
+        const members = board.filter((b) => b.team_id === tm.id);
+        return {
+          name: tm.name,
+          agents: members.length,
+          leads: members.reduce((s, m) => s + m.leads, 0),
+          hired: members.reduce((s, m) => s + m.hired, 0),
+          points: members.reduce((s, m) => s + m.points, 0),
+        };
+      })
+      .sort((a, b) => b.hired - a.hired || b.points - a.points),
     totals: {
       leads: board.reduce((s, r) => s + r.leads, 0),
       calls: board.reduce((s, r) => s + r.calls, 0),
