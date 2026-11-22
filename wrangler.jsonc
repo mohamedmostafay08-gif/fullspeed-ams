@@ -5,5 +5,9 @@
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
-  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "fullspeed-ams" }]
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "fullspeed-ams" }],
+  // Keep request and error logs in the Cloudflare dashboard (Workers → fullspeed-ams → Logs).
+  "observability": {
+    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true, "persist": true }
+  }
 }
