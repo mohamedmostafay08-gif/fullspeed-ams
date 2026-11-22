@@ -2,9 +2,14 @@
 alter table public.leads
   add column if not exists reject_reason text,
   add column if not exists rejected_at timestamptz;
-alter table public.leads drop constraint if exists leads_reject_reason_check;
-alter table public.leads add constraint leads_reject_reason_check check (reject_reason is null or reject_reason in
-  ('salary', 'no_vehicle', 'far', 'age', 'not_interested', 'other_job', 'documents', 'no_show', 'other'));
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'leads_reject_reason_check') then
+    alter table public.leads add constraint leads_reject_reason_check check (reject_reason is null or reject_reason in
+      ('salary', 'no_vehicle', 'far', 'age', 'not_interested', 'other_job', 'documents', 'no_show', 'other'));
+  end if;
+end;
+$$;
 
 -- The reason and date belong to a rejected lead only; reopening it clears them.
 create or replace function public.stamp_rejection()
@@ -21,8 +26,7 @@ begin
   return new;
 end;
 $$;
-drop trigger if exists leads_stamp_rejection on public.leads;
-create trigger leads_stamp_rejection before insert or update of status, reject_reason on public.leads
+create or replace trigger leads_stamp_rejection before insert or update of status, reject_reason on public.leads
   for each row execute function public.stamp_rejection();
 
 -- Reasons per company for leads rejected in a period, limited to what the caller may see.
@@ -147,10 +151,15 @@ create table if not exists public.team_targets (
 create index if not exists team_targets_company_idx on public.team_targets (company_id);
 create index if not exists team_targets_updated_by_idx on public.team_targets (updated_by);
 alter table public.team_targets enable row level security;
-drop policy if exists "read team targets" on public.team_targets;
-create policy "read team targets" on public.team_targets for select to authenticated
-  using ((select public.sees_all())
-         or team_id = (select team_id from public.profiles where id = (select auth.uid()) and role = 'team_leader'));
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'team_targets' and policyname = 'read team targets') then
+    create policy "read team targets" on public.team_targets for select to authenticated
+      using ((select public.sees_all())
+             or team_id = (select team_id from public.profiles where id = (select auth.uid()) and role = 'team_leader'));
+  end if;
+end;
+$$;
 grant select on public.team_targets to authenticated;
 
 create or replace function public.set_team_target(p_team uuid, p_company uuid, p_month date, p_target integer)
@@ -246,8 +255,7 @@ $$;
 revoke execute on function public.team_target_progress(uuid, date) from anon, public;
 grant execute on function public.team_target_progress(uuid, date) to authenticated;
 
-drop trigger if exists audit_team_targets on public.team_targets;
-create trigger audit_team_targets after insert or update or delete on public.team_targets
+create or replace trigger audit_team_targets after insert or update or delete on public.team_targets
   for each row execute function public.audit_row();
 
 -- ═════ 5. Performance users never read lead rows (names, phones, notes, files) ═════
@@ -256,7 +264,9 @@ do $$
 declare t text;
 begin
   foreach t in array array['leads', 'lead_activities', 'call_logs', 'lead_documents'] loop
-    execute format('drop policy if exists "no lead rows for performance" on public.%I', t);
+    if exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = 'no lead rows for performance') then
+      continue;
+    end if;
     execute format('create policy "no lead rows for performance" on public.%I as restrictive for select to authenticated
                     using (coalesce((select public.my_role())::text, %L) <> %L)', t, '', 'performance');
   end loop;
