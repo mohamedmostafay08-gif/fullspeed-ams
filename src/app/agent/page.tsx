@@ -5,6 +5,7 @@ import { getPushPublicKey } from "@/lib/push";
 import { BadgesCard, Leaderboard } from "@/components/leaderboard";
 import { badgesFor, type AgentStats, type BoardRow } from "@/lib/badges";
 import Link from "next/link";
+import { CompanyTerms } from "@/components/company-terms";
 import { BellRing, CalendarClock, CalendarDays, CheckCircle2, ClipboardList, Clock, Gift, Flame, PhoneCall, Plus, UserPlus } from "lucide-react";
 import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
@@ -177,6 +178,7 @@ export default async function AgentHome() {
                         </div>
                       </div>
                     ))}
+                    <CompanyTerms terms={c} compact />
                     {c.description && <p className="text-xs leading-5 text-zinc-500">{c.description}</p>}
                   </article>
                 );

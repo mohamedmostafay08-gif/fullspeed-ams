@@ -4,6 +4,8 @@ import { clearSchedule, scheduleLead, updateLead } from "@/app/actions/leads";
 import { addToBlacklist } from "@/app/admin/actions";
 import { CallPanel } from "@/components/call-panel";
 import { CallScript } from "@/components/call-script";
+import { CompanyTerms } from "@/components/company-terms";
+import type { Terms } from "@/lib/terms";
 import { CallButton } from "@/components/call-timer";
 import { LeadDocuments } from "@/components/lead-documents";
 import { StateForm } from "@/components/state-form";
@@ -23,13 +25,13 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const { data: lead } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, agent_id, company_id, attempts, last_contact_at, callback_at, interview_at, interview_place, companies(name, logo_path, form_schema, call_script), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
+      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, agent_id, company_id, attempts, last_contact_at, callback_at, interview_at, interview_place, companies(name, logo_path, form_schema, call_script, salary, order_price, working_hours, terms), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
     )
     .eq("id", id)
     .maybeSingle();
   if (!lead || !me) notFound();
 
-  const company = lead.companies as unknown as { name: string; logo_path: string | null; form_schema: FormField[]; call_script: string | null };
+  const company = lead.companies as unknown as { name: string; logo_path: string | null; form_schema: FormField[]; call_script: string | null } & Terms;
   const agent = lead.agent as unknown as { full_name: string } | null;
   const formData = (lead.form_data ?? {}) as Record<string, unknown>;
   const schemaKeys = new Set(company.form_schema.map((f) => f.key));
@@ -109,7 +111,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
 
         {!closed && (
           <section className="card">
-            <div className="mb-4"><CallScript script={company.call_script} defaultOpen={false} /></div>
+            <div className="mb-4 space-y-3"><CompanyTerms terms={company} /><CallScript script={company.call_script} defaultOpen={false} /></div>
             <h2 className="card-title"><PhoneCall size={18} className="text-brand-600" /> {t("نتيجة المكالمة")}</h2>
             <CallPanel leadId={lead.id} />
           </section>

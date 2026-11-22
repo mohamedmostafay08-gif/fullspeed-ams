@@ -1,17 +1,18 @@
 import { PageHeader } from "@/components/app-shell";
-import { Scorecard, weekRange } from "@/components/scorecard";
-import { cairoToday, requireRole } from "@/lib/auth";
+import { RangePicker, readRange } from "@/components/range-picker";
+import { Scorecard } from "@/components/scorecard";
+import { requireRole } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
 
 export default async function AgentScorecardPage({ searchParams }: PageProps<"/agent/scorecard">) {
   const t = await getT();
   const me = await requireRole("agent");
-  const which = (await searchParams).week === "current" ? "current" : "last";
-  const [from, to] = weekRange(cairoToday(), which);
+  const [from, to] = readRange(await searchParams);
   return (
     <>
-      <PageHeader title={t("تقييمي الأسبوعي")} subtitle={t("أرقامك مقارنة بمتوسط الفريق — عشان تعرف تتحسن في إيه")} />
-      <Scorecard agentId={me.id} from={from} to={to} link={(w) => `/agent/scorecard?week=${w}`} />
+      <PageHeader title={t("تقييمي")} subtitle={t("أرقامك مقارنة بمتوسط الفريق — عشان تعرف تتحسن في إيه")} />
+      <RangePicker path="/agent/scorecard" from={from} to={to} />
+      <Scorecard agentId={me.id} from={from} to={to} />
     </>
   );
 }

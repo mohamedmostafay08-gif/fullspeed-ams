@@ -1,6 +1,7 @@
 import { Megaphone, Send, Trash2 } from "lucide-react";
 import { deleteMemo, postMemo } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
+import { ADMIN_WORK_TABS, SubTabs } from "@/components/sub-tabs";
 import { MemoCard } from "@/components/memo-card";
 import { StateForm } from "@/components/state-form";
 import { Empty } from "@/components/ui";
@@ -29,6 +30,7 @@ export default async function MemosPage() {
   return (
     <>
       <PageHeader title={t("التعميمات")} subtitle={t("رسالة توصل للفريق كله أو لتيم معين، بإشعار على الموبايل، وتعرف مين قراها")} />
+      <SubTabs tabs={ADMIN_WORK_TABS} current="/admin/memos" />
 
       <section className="card">
         <h2 className="card-title"><Send size={18} className="text-brand-600" /> {t("تعميم جديد")}</h2>

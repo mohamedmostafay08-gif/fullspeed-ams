@@ -471,3 +471,31 @@ export async function saveCallScript(_prev: ActionState, form: FormData): Promis
   if (error) return { error: t("مقدرتش أحفظ") };
   return done("/admin/companies", t("تم الحفظ"));
 }
+
+/** Pay and work terms: admin and managers. Extra terms are one per line, "label: value". */
+export async function saveCompanyTerms(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole(...MANAGERS);
+  const terms = str(form, "terms")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 20)
+    .map((line) => {
+      const i = line.search(/[:：]/);
+      return i > 0
+        ? { label: line.slice(0, i).trim().slice(0, 60), value: line.slice(i + 1).trim().slice(0, 200) }
+        : { label: t("شرط"), value: line.slice(0, 200) };
+    })
+    .filter((x) => x.label && x.value);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("save_company_terms", {
+    p_id: str(form, "id"),
+    p_salary: str(form, "salary"),
+    p_order_price: str(form, "order_price"),
+    p_hours: str(form, "working_hours"),
+    p_terms: terms,
+  });
+  if (error) return { error: t("مقدرتش أحفظ") };
+  return done(`/admin/companies/${str(form, "id")}`, t("تم الحفظ"));
+}

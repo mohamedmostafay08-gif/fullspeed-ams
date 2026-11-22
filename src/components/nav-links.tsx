@@ -72,13 +72,16 @@ export interface NavItem {
   label: string;
   icon: string;
   exact?: boolean;
+  /** Other sections that live under this item (shown as tabs on the page). */
+  also?: readonly string[];
   /** Phone bottom bar: a tab (max 3) or the raised centre button; everything else lives under "More". */
   mobile?: "tab" | "fab";
   desktop?: false;
 }
 
 function isActive(pathname: string, item: NavItem) {
-  return item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/");
+  if (item.exact) return pathname === item.href;
+  return [item.href, ...(item.also ?? [])].some((h) => pathname === h || pathname.startsWith(h + "/"));
 }
 
 export function SideNav({ items }: { items: NavItem[] }) {

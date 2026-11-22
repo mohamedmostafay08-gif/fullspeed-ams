@@ -1,5 +1,6 @@
 import { Coffee, Hourglass, History } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { ATTENDANCE_TABS, SubTabs } from "@/components/sub-tabs";
 import { BreakDecision, Countdown } from "@/components/breaks";
 import { LiveRefresh } from "@/components/live";
 import { Empty, formatDate } from "@/components/ui";
@@ -52,6 +53,7 @@ export default async function BreaksPage() {
     <>
       <LiveRefresh channel="admin-breaks" />
       <PageHeader title={t("البريكات")} subtitle={t("كل أجنت ليه بريكين في اليوم — كل واحد نص ساعة")} />
+      <SubTabs tabs={ATTENDANCE_TABS} current="/admin/breaks" />
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="card">
           <h2 className="card-title"><Hourglass size={18} className="text-amber-500" /> {t("طلبات مستنية موافقتك (")}{pending.length})</h2>

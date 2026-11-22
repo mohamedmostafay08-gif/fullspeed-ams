@@ -1,5 +1,6 @@
 import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
+import { AGENT_WORK_TABS, SubTabs } from "@/components/sub-tabs";
 import { Empty, formatDate } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -28,6 +29,7 @@ export default async function AgentTasksPage() {
   return (
     <>
       <PageHeader title={t("التاسكات")} />
+      <SubTabs tabs={AGENT_WORK_TABS} current="/agent/tasks" />
       {(tasks ?? []).length === 0 ? (
         <Empty>{t("مفيش تاسكات")}</Empty>
       ) : (

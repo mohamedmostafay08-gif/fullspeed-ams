@@ -13,7 +13,7 @@ export async function getGeo(): Promise<{ governorates: Governorate[]; regions: 
 
 export async function getCompanies(activeOnly = false): Promise<Company[]> {
   const supabase = await createClient();
-  let q = supabase.from("companies").select("id, name, slug, logo_path, description, form_schema, is_active").order("name");
+  let q = supabase.from("companies").select("id, name, slug, logo_path, description, form_schema, is_active, salary, order_price, working_hours, terms").order("name");
   if (activeOnly) q = q.eq("is_active", true);
   const { data } = await q;
   return (data ?? []) as Company[];
@@ -23,7 +23,7 @@ export async function getAssignedCompanies(agentId: string): Promise<Company[]> 
   const supabase = await createClient();
   const { data } = await supabase
     .from("agent_companies")
-    .select("companies(id, name, slug, logo_path, description, form_schema, is_active)")
+    .select("companies(id, name, slug, logo_path, description, form_schema, is_active, salary, order_price, working_hours, terms)")
     .eq("agent_id", agentId);
   return ((data ?? []).map((r) => r.companies).filter(Boolean) as unknown as Company[])
     .filter((c) => c.is_active)

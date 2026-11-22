@@ -1,5 +1,6 @@
 import { Megaphone } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { AGENT_WORK_TABS, SubTabs } from "@/components/sub-tabs";
 import { MemoCard } from "@/components/memo-card";
 import { Empty } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
@@ -13,6 +14,7 @@ export default async function AgentMemosPage() {
   return (
     <>
       <PageHeader title={t("التعميمات")} subtitle={t("رسايل الإدارة والتيم ليدر ليك")} />
+      <SubTabs tabs={AGENT_WORK_TABS} current="/agent/memos" />
       <div className="grid gap-4">
         {memos.length === 0 ? (
           <section className="card"><Empty icon={Megaphone}>{t("لسه مفيش تعميمات")}</Empty></section>

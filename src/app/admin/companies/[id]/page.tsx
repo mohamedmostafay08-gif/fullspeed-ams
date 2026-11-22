@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createAnnouncement, updateCompany, saveCallScript } from "@/app/admin/actions";
+import { createAnnouncement, updateCompany, saveCallScript, saveCompanyTerms } from "@/app/admin/actions";
+import { CompanyTerms } from "@/components/company-terms";
+import { hasTerms, type Terms } from "@/lib/terms";
 import { PageHeader } from "@/components/app-shell";
 import { FormBuilder } from "@/components/form-builder";
 import { StateForm } from "@/components/state-form";
@@ -21,7 +23,7 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
   const supabase = await createClient();
   const { data: company } = await supabase
     .from("companies")
-    .select("id, name, slug, logo_path, description, form_schema, is_active, call_script")
+    .select("id, name, slug, logo_path, description, form_schema, is_active, call_script, salary, order_price, working_hours, terms")
     .eq("id", id)
     .maybeSingle();
   if (!company) notFound();
@@ -35,6 +37,8 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
   const hiring = new Set((hiringRes.data ?? []).map((r) => r.governorate_id));
   const agents = (agentsRes.data ?? []).map((r) => r.profiles as unknown as { id: string; full_name: string } | null).filter(Boolean) as { id: string; full_name: string }[];
   const isAdmin = profile.role === "admin";
+  const canEditTerms = isAdmin || profile.role === "manager";
+  const terms = company as unknown as Terms;
 
   return (
     <>
@@ -52,6 +56,43 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
               <ul className="list-disc space-y-1 ps-5 text-sm">
                 {(company.form_schema as FormField[]).map((f) => <li key={f.key}>{f.label}</li>)}
               </ul>
+            )}
+          </section>
+
+          <section className="card">
+            <h2 className="mb-1 font-semibold">{t("المرتب وشروط الشغل")}</h2>
+            <p className="mb-3 text-xs text-zinc-500">{t("بتظهر للأجنت وهو بيكلم الكابتن، وعلى كارت الشركة في صفحته")}</p>
+            {canEditTerms ? (
+              <StateForm action={saveCompanyTerms} className="grid gap-3 sm:grid-cols-3">
+                <input type="hidden" name="id" value={company.id} />
+                <div>
+                  <label className="label" htmlFor="salary">{t("المرتب")}</label>
+                  <input id="salary" name="salary" maxLength={120} defaultValue={terms.salary ?? ""} placeholder={t("مثلاً: 8000 ج ثابت")} className="input" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="order_price">{t("سعر الأوردر")}</label>
+                  <input id="order_price" name="order_price" maxLength={120} defaultValue={terms.order_price ?? ""} placeholder={t("مثلاً: 25 ج للأوردر")} className="input" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="working_hours">{t("عدد الساعات")}</label>
+                  <input id="working_hours" name="working_hours" maxLength={120} defaultValue={terms.working_hours ?? ""} placeholder={t("مثلاً: 10 ساعات / 6 أيام")} className="input" />
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="label" htmlFor="terms">{t("شروط ومميزات تانية — كل سطر: العنوان: القيمة")}</label>
+                  <textarea
+                    id="terms"
+                    name="terms"
+                    rows={4}
+                    defaultValue={(terms.terms ?? []).map((x) => `${x.label}: ${x.value}`).join("\n")}
+                    placeholder={t("التأمين: بعد 3 شهور\nالبونص: 500 ج لو عدّيت 300 أوردر\nالسن: من 21 لـ 45")}
+                    className="input text-sm leading-6"
+                  />
+                </div>
+              </StateForm>
+            ) : hasTerms(terms) ? (
+              <CompanyTerms terms={terms} />
+            ) : (
+              <p className="text-sm text-zinc-400">{t("لسه متحددتش")}</p>
             )}
           </section>
 

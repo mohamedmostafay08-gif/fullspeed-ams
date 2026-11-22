@@ -5,7 +5,7 @@ import { getSession, requireRole, STAFF } from "@/lib/auth";
 import { pendingLocationCheck } from "@/lib/location-gate";
 import type { Role } from "@/lib/types";
 
-type Item = { href: string; label: string; icon: string; exact?: boolean; roles?: Role[]; mobile?: "tab" | "fab"; desktop?: false };
+type Item = { href: string; label: string; icon: string; exact?: boolean; also?: string[]; roles?: Role[]; mobile?: "tab" | "fab"; desktop?: false };
 
 const NAV: Item[] = [
   { href: "/admin", label: "لوحة التحكم", icon: "dashboard", exact: true, mobile: "tab" },
@@ -16,12 +16,10 @@ const NAV: Item[] = [
   { href: "/admin/leads", label: "الليدز", icon: "leads", mobile: "tab" },
   { href: "/admin/agents", label: "الفريق", icon: "team" },
   { href: "/admin/teams", label: "التيمات", icon: "teams" },
-  { href: "/admin/breaks", label: "البريكات", icon: "coffee" },
-  { href: "/admin/attendance", label: "الحضور والانصراف", icon: "attendance" },
-  { href: "/admin/scorecard", label: "التقييم الأسبوعي", icon: "scorecard" },
-  { href: "/admin/memos", label: "التعميمات", icon: "memo" },
+  { href: "/admin/attendance", label: "الحضور والبريكات", icon: "attendance", also: ["/admin/breaks"] },
+  { href: "/admin/scorecard", label: "التقييم", icon: "scorecard" },
+  { href: "/admin/tasks", label: "التاسكات والتعميمات", icon: "tasks", also: ["/admin/memos"] },
   { href: "/admin/companies", label: "الشركات", icon: "companies" },
-  { href: "/admin/tasks", label: "التاسكات", icon: "tasks" },
   { href: "/admin/announcements", label: "البونص والإشعارات", icon: "bonus" },
   { href: "/admin/templates", label: "قوالب واتساب", icon: "whatsapp" },
   { href: "/admin/blacklist", label: "البلاك ليست", icon: "ban" },
@@ -39,7 +37,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const session = (await getSession())!;
   const unread = session.unread;
   const mustCheckIn = pendingLocationCheck(session);
-  const nav = NAV.filter((n) => !n.roles || n.roles.includes(profile.role)).map(({ href, label, icon, exact, mobile, desktop }) => ({ href, label, icon, exact, mobile, desktop }));
+  const nav = NAV.filter((n) => !n.roles || n.roles.includes(profile.role)).map(({ href, label, icon, exact, also, mobile, desktop }) => ({ href, label, icon, exact, also, mobile, desktop }));
   return (
     <AppShell profile={profile} nav={nav} unread={unread} notificationsHref="/admin/notifications">
       {profile.role === "team_leader" && !mustCheckIn && <AttendanceBeacon />}

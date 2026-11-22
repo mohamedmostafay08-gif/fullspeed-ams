@@ -34,6 +34,10 @@ export interface Company {
   description: string | null;
   form_schema: FormField[];
   is_active: boolean;
+  salary?: string | null;
+  order_price?: string | null;
+  working_hours?: string | null;
+  terms?: { label: string; value: string }[] | null;
 }
 
 export interface Governorate {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarCheck, ChevronLeft, ChevronRight, Clock, Settings2 } from "lucide-react";
 import { saveWorkSettings } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
+import { ATTENDANCE_TABS, SubTabs } from "@/components/sub-tabs";
 import { StateForm } from "@/components/state-form";
 import { Empty, StatCard } from "@/components/ui";
 import { MANAGERS, STAFF, cairoToday, requireRole } from "@/lib/auth";
@@ -76,6 +77,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
         title={t("الحضور والانصراف")}
         subtitle={t("الحضور بيتسجل لوحده أول ما الموظف يفتح السيستم، والانصراف آخر مرة كان فاتحه — الشيفت بيبدأ {0}، والسماح {1} دقيقة", shift, s.grace_minutes)}
       />
+      <SubTabs tabs={ATTENDANCE_TABS} current="/admin/attendance" />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label={t("حاضرين في المعاد")} value={count("on_time")} tone="good" icon={CalendarCheck} />

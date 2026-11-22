@@ -1,6 +1,7 @@
 import { createTask, deleteTask } from "@/app/admin/actions";
 import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
+import { ADMIN_WORK_TABS, SubTabs } from "@/components/sub-tabs";
 import { StateForm } from "@/components/state-form";
 import { Empty, formatDate } from "@/components/ui";
 import { requireRole, STAFF } from "@/lib/auth";
@@ -41,6 +42,7 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
   return (
     <>
       <PageHeader title={t("التاسكات")} />
+      <SubTabs tabs={ADMIN_WORK_TABS} current="/admin/tasks" />
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="card h-fit">
           <h2 className="mb-3 font-semibold">{t("تاسك جديد")}</h2>

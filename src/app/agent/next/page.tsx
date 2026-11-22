@@ -3,6 +3,8 @@ import { Clock, Coffee, ExternalLink, Phone, PhoneCall, RotateCcw, SkipForward, 
 import { PageHeader } from "@/components/app-shell";
 import { CallPanel } from "@/components/call-panel";
 import { CallScript } from "@/components/call-script";
+import { CompanyTerms } from "@/components/company-terms";
+import type { Terms } from "@/lib/terms";
 import { CallButton } from "@/components/call-timer";
 import { CompanyLogo, Empty, StatusBadge, formatDate } from "@/components/ui";
 import { WhatsAppMenu } from "@/components/whatsapp-menu";
@@ -15,7 +17,7 @@ import { placeName, type FormField, type LeadStatus } from "@/lib/types";
 import { templatesFor, type Template } from "@/lib/whatsapp";
 
 const SELECT =
-  "id, full_name, phone, status, notes, source, form_data, created_at, attempts, last_contact_at, callback_at, interview_at, interview_place, company_id, companies(name, logo_path, form_schema, call_script), governorates(name_ar, name_en), regions(name_ar)";
+  "id, full_name, phone, status, notes, source, form_data, created_at, attempts, last_contact_at, callback_at, interview_at, interview_place, company_id, companies(name, logo_path, form_schema, call_script, salary, order_price, working_hours, terms), governorates(name_ar, name_en), regions(name_ar)";
 const RETRY_AFTER_MS = 2 * 3_600_000;
 const MAX_ATTEMPTS = 5;
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -107,7 +109,7 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
     );
   }
 
-  const company = lead.companies as unknown as { name: string; logo_path: string | null; form_schema: FormField[]; call_script: string | null };
+  const company = lead.companies as unknown as { name: string; logo_path: string | null; form_schema: FormField[]; call_script: string | null } & Terms;
   const formData = (lead.form_data ?? {}) as Record<string, unknown>;
   const templates = templatesFor((tplRes.data ?? []) as Template[], lead.company_id);
   const vars = {
@@ -154,6 +156,7 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
             <Link href={skipHref} className="btn-ghost ms-auto"><SkipForward size={16} /> {t("عدّي")}</Link>
           </div>
 
+          <CompanyTerms terms={company} />
           <CallScript script={company.call_script} />
 
           <div>

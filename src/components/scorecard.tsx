@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Minus, Trophy } from "lucide-react";
 import { Empty } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -31,7 +30,7 @@ const METRICS: { key: keyof Numbers; label: string; unit?: string; lowerIsBetter
   { key: "talk_min", label: "دقايق الكلام", unit: "د", tip: "المكالمة الأطول بتقنع أكتر — اشرح المميزات كويس" },
 ];
 
-export async function Scorecard({ agentId, from, to, link }: { agentId: string; from: string; to: string; link: (week: "last" | "current") => string }) {
+export async function Scorecard({ agentId, from, to }: { agentId: string; from: string; to: string }) {
   const t = await getT();
   const supabase = await createClient();
   const { data } = await supabase.rpc("agent_scorecard", { p_agent: agentId, p_from: from, p_to: to });
@@ -53,12 +52,6 @@ export async function Scorecard({ agentId, from, to, link }: { agentId: string; 
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Link href={link("last")} className="btn-ghost">{t("الأسبوع اللي فات")}</Link>
-        <Link href={link("current")} className="btn-ghost">{t("الأسبوع ده لحد النهارده")}</Link>
-        <span className="num self-center text-sm text-zinc-500">{from} → {to}</span>
-      </div>
-
       <section className="card">
         <h2 className="card-title"><Trophy size={18} className="text-amber-500" /> {t("ترتيبك في التعيينات: {0} من {1}", card.rank, card.agents)}</h2>
         <div className="overflow-x-auto">
@@ -92,7 +85,7 @@ export async function Scorecard({ agentId, from, to, link }: { agentId: string; 
           {strong.length ? <ul className="list-disc space-y-1 ps-5 text-sm">{strong.map((m) => <li key={m.key}>{t(m.label)}</li>)}</ul> : <p className="text-sm text-zinc-500">{t("كمّل كده وهتلاقي نفسك فوق المتوسط")}</p>}
         </section>
         <section className="card">
-          <h3 className="mb-2 font-bold text-brand-700">🎯 {t("تركّز على إيه الأسبوع الجاي")}</h3>
+          <h3 className="mb-2 font-bold text-brand-700">🎯 {t("تركّز على إيه الفترة الجاية")}</h3>
           {weakest.length ? <ul className="list-disc space-y-1 ps-5 text-sm">{weakest.map((m) => <li key={m.key}><b>{t(m.label)}:</b> {t(m.tip)}</li>)}</ul> : <p className="text-sm text-zinc-500">{t("مفيش حاجة أقل من المتوسط — برافو!")}</p>}
         </section>
       </div>
