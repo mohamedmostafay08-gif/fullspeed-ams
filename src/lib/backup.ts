@@ -16,7 +16,7 @@ const PAGE = 1000;
 export type BackupResult = { file: string; bytes: number; rows: number; drive: "skipped" | "ok" | "error"; driveError?: string };
 
 /** Exports every business table (plus account e-mails) to one gzipped JSON file in the private "backups" bucket. */
-export async function runBackup(): Promise<BackupResult> {
+export async function runBackup(options: { withDrive?: boolean } = {}): Promise<BackupResult> {
   const db = createAdminClient();
   const data: Record<string, unknown[]> = {};
   let rows = 0;
@@ -49,24 +49,14 @@ export async function runBackup(): Promise<BackupResult> {
   if (old.length) await db.storage.from("backups").remove(old);
 
   const result: BackupResult = { file, bytes: body.length, rows, drive: "skipped" };
+  // The Google Drive copy is made by the database itself (backup_to_drive), so it never depends
+  // on this request's time limits; here we only ask it to run when a backup is started by hand.
   const cfg = await getConfig();
-  if (cfg.drive_script_url && cfg.drive_secret) {
-    try {
-      const res = await fetch(cfg.drive_script_url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: cfg.drive_secret, name: file, data: body.toString("base64") }),
-        redirect: "follow",
-      });
-      const out = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (out.ok) result.drive = "ok";
-      else Object.assign(result, { drive: "error", driveError: out.error ?? `HTTP ${res.status}` });
-    } catch (e) {
-      Object.assign(result, { drive: "error", driveError: e instanceof Error ? e.message : "network" });
-    }
+  if (cfg.drive_script_url && cfg.drive_secret && options.withDrive) {
+    const { error: driveError } = await db.rpc("backup_to_drive");
+    Object.assign(result, driveError ? { drive: "error", driveError: driveError.message } : { drive: "ok" });
   }
   // Read by the database's morning check, which alerts the admin when a backup is missing.
   await setConfig("last_backup_at", new Date().toISOString());
-  await setConfig("last_backup_drive", result.drive);
   return result;
 }

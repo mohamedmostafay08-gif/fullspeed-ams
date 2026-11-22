@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { importLeads } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { LeadsBoard } from "@/components/leads-board";
 import { LeadsTable, ViewToggle, type LeadRow } from "@/components/leads-table";
 import { LiveRefresh } from "@/components/live";
-import { StateForm } from "@/components/state-form";
+import { LeadImport } from "@/components/lead-import";
 import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { BOARD_LIMIT, filtersToQuery, queryLeads, readFilters, readView, toBoardLeads } from "@/lib/lead-query";
@@ -83,18 +82,7 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
         <p className="mb-3 text-xs text-zinc-500">
           {t("من Excel: احفظ الشيت كـ CSV UTF-8. لازم أول سطر فيه عمود")} <b>{t("الاسم")}</b> {t("وعمود")} <b>{t("الموبايل")}</b>{t("، وممكن كمان")} <b>{t("المحافظة")}</b> {t("و")}<b>{t("المنطقة")}</b>{t(". أي أعمدة تانية بتتحفظ مع الليد. الأرقام المكررة على نفس الشركة بتتشال.")}
         </p>
-        <StateForm action={importLeads} className="grid gap-3 sm:grid-cols-3" submitLabel={t("استيراد")} resetOnSuccess>
-          <select name="company_id" required className="input">
-            <option value="">{t("الشركة")}</option>
-            {companies.filter((c) => c.is_active).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <select name="distribute" defaultValue="auto" className="input">
-            <option value="auto">{t("وزّع بالتساوي على أجنتس الشركة")}</option>
-            <option value="none">{t("من غير تعيين")}</option>
-            {(agents ?? []).map((a) => <option key={a.id} value={a.id}>{t("كلهم لـ")} {a.full_name}</option>)}
-          </select>
-          <input name="file" type="file" accept=".csv,text/csv" required className="input" />
-        </StateForm>
+        <LeadImport companies={companies.filter((c) => c.is_active).map((c) => ({ id: c.id, name: c.name }))} agents={agents ?? []} />
       </section>
     </>
   );

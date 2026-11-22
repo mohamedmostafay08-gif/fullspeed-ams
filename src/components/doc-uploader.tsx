@@ -11,6 +11,24 @@ import { DOC_KINDS } from "@/lib/types";
 const MAX = 10 * 1024 * 1024;
 const OK_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
 
+/** Shrinks a phone photo (often 3–5 MB) to ≤1600 px JPEG before upload; other files pass through. */
+async function compress(file: File): Promise<File> {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size < 400 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/jpeg", 0.8));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 /** Uploads straight from the browser to the private bucket (RLS checks the lead), then records the file. */
 export function DocUploader({ leadId }: { leadId: string }) {
   const t = useT();
@@ -26,9 +44,10 @@ export function DocUploader({ leadId }: { leadId: string }) {
     setBusy(true);
     const supabase = createClient();
     try {
-      for (const file of Array.from(files)) {
-        if (!OK_TYPES.includes(file.type)) throw new Error(t("نوع الملف لازم يكون صورة أو PDF"));
-        if (file.size > MAX) throw new Error(t("الملف أكبر من 10 ميجا"));
+      for (const original of Array.from(files)) {
+        if (!OK_TYPES.includes(original.type)) throw new Error(t("نوع الملف لازم يكون صورة أو PDF"));
+        if (original.size > MAX) throw new Error(t("الملف أكبر من 10 ميجا"));
+        const file = await compress(original);
         const ext = (file.name.split(".").pop() || file.type.split("/")[1] || "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5);
         const path = `${leadId}/${crypto.randomUUID()}.${ext}`;
         const up = await supabase.storage.from("lead-docs").upload(path, file, { contentType: file.type });

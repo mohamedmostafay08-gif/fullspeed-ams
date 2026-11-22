@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { toCsv } from "@/lib/csv";
-import { queryLeads, readFilters } from "@/lib/lead-query";
+import { readFilters } from "@/lib/lead-query";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_LABELS, type FormField, type LeadStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -12,14 +12,19 @@ export async function GET(request: NextRequest) {
   if (!profile || profile.role === "agent") return new NextResponse("Forbidden", { status: 403 });
 
   const f = readFilters(Object.fromEntries(request.nextUrl.searchParams));
-  const all: Record<string, unknown>[] = [];
-  for (let offset = 0; offset < 50_000; offset += 1000) {
-    const { data } = await queryLeads(f, { limit: 1000, offset });
-    all.push(...(data ?? []));
-    if (!data || data.length < 1000) break;
-  }
+  const supabase = await createClient();
+  // One database call (row-level security still applies), instead of paging through the API.
+  const { data } = await supabase.rpc("export_leads", {
+    p_company: f.company ?? null,
+    p_agent: f.agent ?? null,
+    p_status: f.status ?? null,
+    p_from: f.from ?? null,
+    p_to: f.to ?? f.from ?? null,
+    p_q: f.q?.replace(/[%_\\]/g, "") || null,
+  });
+  const all = (data ?? []) as { full_name: string; phone: string; company: string; governorate: string | null; region: string | null; agent: string | null; status: string; source: string; created_at: string; notes: string | null; form_data: Record<string, unknown> | null }[];
 
-  const { data: companies } = await (await createClient()).from("companies").select("form_schema");
+  const { data: companies } = await supabase.from("companies").select("form_schema");
   const labelOf = new Map<string, string>();
   for (const c of companies ?? []) for (const f of c.form_schema as FormField[]) if (!labelOf.has(f.key)) labelOf.set(f.key, f.label);
 
@@ -29,16 +34,16 @@ export async function GET(request: NextRequest) {
     ...all.map((l) => {
       const fd = (l.form_data ?? {}) as Record<string, unknown>;
       return [
-        l.full_name as string,
-        l.phone as string,
-        (l.companies as { name: string })?.name,
-        (l.governorates as { name_ar: string } | null)?.name_ar,
-        (l.regions as { name_ar: string } | null)?.name_ar,
-        (l.agent as { full_name: string } | null)?.full_name,
+        l.full_name,
+        l.phone,
+        l.company,
+        l.governorate,
+        l.region,
+        l.agent,
         t(LEAD_STATUS_LABELS[l.status as LeadStatus]),
-        l.source as string,
-        new Date(l.created_at as string).toLocaleString("en-GB", { timeZone: "Africa/Cairo" }),
-        l.notes as string,
+        l.source,
+        new Date(l.created_at).toLocaleString("en-GB", { timeZone: "Africa/Cairo" }),
+        l.notes,
         ...extraKeys.map((k) => (typeof fd[k] === "boolean" ? (fd[k] ? t("نعم") : t("لا")) : (fd[k] as string))),
       ];
     }),

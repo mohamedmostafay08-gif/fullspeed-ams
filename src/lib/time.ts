@@ -12,9 +12,12 @@ function offsetAt(instant: Date): string {
 /** "2026-11-18T14:30" as read on a Cairo clock → ISO instant, or null when malformed. */
 export function cairoLocalToIso(local: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) return null;
-  const guess = new Date(`${local}:00Z`);
-  const d = new Date(`${local}:00${offsetAt(guess)}`);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  // Two passes: the offset is looked up at the real instant, not at the wall-clock read as UTC,
+  // so times entered just before Egypt's daylight-saving switch land on the right hour.
+  const first = new Date(`${local}:00${offsetAt(new Date(`${local}:00Z`))}`);
+  if (Number.isNaN(first.getTime())) return null;
+  const d = new Date(`${local}:00${offsetAt(first)}`);
+  return d.toISOString();
 }
 
 /** Instant → "YYYY-MM-DDTHH:mm" on the Cairo clock (for datetime-local inputs). */
@@ -43,3 +46,6 @@ export function cairoDateTime(iso: string, locale: string) {
     minute: "2-digit",
   }).format(new Date(iso));
 }
+
+/** ISO timestamp for `hours` ago (used for "last 24 hours" counts). */
+export const hoursAgoIso = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();

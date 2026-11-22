@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
-import { recordLogin } from "@/lib/login-log";
+import { recordFailedLogin, recordLogin } from "@/lib/login-log";
 
 export type SignInState = { error?: string; email?: string } | undefined;
 
@@ -15,7 +15,10 @@ export async function signIn(_prev: SignInState, form: FormData): Promise<SignIn
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) return { error: t("الإيميل أو كلمة السر غلط"), email };
+  if (error || !data.user) {
+    await recordFailedLogin(email);
+    return { error: t("الإيميل أو كلمة السر غلط"), email };
+  }
 
   const { data: profile } = await supabase.from("profiles").select("role, is_active").eq("id", data.user.id).single();
   if (!profile?.is_active) {

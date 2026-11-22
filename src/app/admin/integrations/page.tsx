@@ -1,8 +1,9 @@
-import { CloudUpload, DatabaseBackup, Download, MessageCircle } from "lucide-react";
+import { CloudUpload, DatabaseBackup, Download, Gauge, MessageCircle } from "lucide-react";
 import { backupNow, saveDriveUrl, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
-import { Empty } from "@/components/ui";
+import { Empty, formatDate } from "@/components/ui";
+import { createClient } from "@/lib/supabase/server";
 import { ensureSecret, getConfig } from "@/lib/app-config";
 import { requireRole } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
@@ -48,10 +49,42 @@ export default async function IntegrationsPage() {
   const backups = (files ?? []).filter((f) => f.name.endsWith(".json.gz"));
   const { data: signed } = backups.length ? await db.storage.from("backups").createSignedUrls(backups.map((f) => f.name), 600) : { data: [] };
   const url = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  // Usage is read as the signed-in admin (the function checks the caller).
+  const { data: usageData } = await (await createClient()).rpc("admin_usage");
+  const usage = usageData as {
+    db_bytes: number; leads: number; people: number; files: Record<string, { bytes: number; count: number }>;
+    last_backup_at: string | null; drive_backup_at: string | null; drive_status: number | null;
+  } | null;
+  const fileBytes = Object.values(usage?.files ?? {}).reduce((s, f) => s + Number(f.bytes), 0);
+  const MB = 1024 * 1024;
 
   return (
     <>
       <PageHeader title={t("النسخ والتكاملات")} subtitle={t("نسخة احتياطية كل يوم الساعة 3 الفجر، وربط Google Drive وواتساب")} />
+      {usage && (
+        <section className="card mb-6">
+          <h2 className="card-title"><Gauge size={18} className="text-teal-600" /> {t("الاستهلاك من الباقة المجانية")}</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { label: t("الداتابيز"), used: usage.db_bytes, limit: 500 * MB },
+              { label: t("الملفات (أوراق الكباتن والنسخ)"), used: fileBytes, limit: 1024 * MB },
+            ].map((m) => {
+              const pct = Math.min(100, Math.round((100 * m.used) / m.limit));
+              return (
+                <div key={m.label}>
+                  <div className="mb-1 flex justify-between text-sm"><span className="font-semibold">{m.label}</span><span className="num text-zinc-500">{Math.round(m.used / MB)} / {Math.round(m.limit / MB)} MB</span></div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-zinc-100"><div className={`h-full rounded-full ${pct >= 70 ? "bg-rose-500" : pct >= 50 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${Math.max(pct, 1)}%` }} /></div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-zinc-500">
+            {t("{0} ليد · {1} موظف نشط", usage.leads, usage.people)} · {t("آخر نسخة في السيستم:")} {formatDate(usage.last_backup_at)} · {t("آخر نسخة على Google Drive:")} {formatDate(usage.drive_backup_at)}
+            {usage.drive_status != null && (usage.drive_status === 200 || usage.drive_status === 302 ? " ✓" : ` ✗ (${usage.drive_status})`)}
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">{t("لما أي واحد يعدّي 70% (اللون الأحمر)، وقتها نطلع لباقة Supabase Pro.")}</p>
+        </section>
+      )}
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card">
           <h2 className="card-title"><DatabaseBackup size={18} className="text-brand-600" /> {t("النسخ الاحتياطية")}</h2>

@@ -328,115 +328,23 @@ export async function createTask(_prev: ActionState, form: FormData): Promise<Ac
 }
 
 // ───────── Bulk import (CSV exported from Excel / the CRM) ─────────
-const NAME_HEADERS = ["name", "full_name", "full name", "الاسم", "اسم", "الاسم بالكامل"];
-const PHONE_HEADERS = ["phone", "mobile", "phone_number", "الموبايل", "رقم الموبايل", "التليفون", "الرقم", "رقم"];
-const GOV_HEADERS = ["governorate", "city", "المحافظة", "محافظة"];
-const REGION_HEADERS = ["region", "area", "المنطقة", "منطقة"];
+// ───────── Lead import (the browser parses the file; the database does the rest) ─────────
+type ImportRow = { n: string; p: string; g: string; r: string; x: Record<string, string> };
+type ImportTotals = { inserted: number; dupes: number; skipped: number; blocked: number };
 
-export async function importLeads(_prev: ActionState, form: FormData): Promise<ActionState> {
+export async function importLeadRows(companyId: string, distribute: string, rows: ImportRow[]): Promise<ImportTotals | { error: string }> {
   const t = await getT();
-  const me = await requireRole(...STAFF);
-  const file = form.get("file") as File | null;
-  const companyId = str(form, "company_id");
-  const distribute = str(form, "distribute");
-  if (!file || file.size === 0 || !companyId) return { error: t("اختار الشركة والملف") };
-  if (file.size > 5 * 1024 * 1024) return { error: t("الملف أكبر من 5 ميجا") };
-  if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
-
-  const { parseCsv } = await import("@/lib/csv");
-  const rows = parseCsv(await file.text());
-  if (rows.length < 2) return { error: t("الملف فاضي — لازم أول سطر يكون أسماء الأعمدة") };
-
-  const headers = rows[0].map((h) => h.trim().toLowerCase());
-  const find = (opts: string[]) => headers.findIndex((h) => opts.includes(h));
-  const iName = find(NAME_HEADERS);
-  const iPhone = find(PHONE_HEADERS);
-  if (iName < 0 || iPhone < 0) return { error: t("لازم يكون فيه عمود للاسم (name / الاسم) وعمود للموبايل (phone / الموبايل)") };
-  const iGov = find(GOV_HEADERS);
-  const iRegion = find(REGION_HEADERS);
-
+  await requireRole(...STAFF);
+  if (!companyId || !Array.isArray(rows) || rows.length > 2000) return { error: t("حصلت مشكلة، جرّب تاني") };
   const supabase = await createClient();
-  const [{ data: govs }, { data: regions }, { data: assigned }] = await Promise.all([
-    supabase.from("governorates").select("id, name_ar, name_en"),
-    supabase.from("regions").select("id, governorate_id, name_ar").limit(5000),
-    supabase.from("agent_companies").select("profiles!agent_companies_agent_id_fkey(id, role, is_active)").eq("company_id", companyId),
-  ]);
-  const govByName = new Map<string, number>();
-  for (const g of govs ?? []) {
-    govByName.set(g.name_ar, g.id);
-    govByName.set(g.name_en.toLowerCase(), g.id);
-  }
-
-  // Duplicate check must see every agent's leads, not only the caller's team.
-  const filePhones = [...new Set(rows.slice(1).map((r) => normalizePhone(r[iPhone] ?? "")).filter(isValidEgyptMobile))];
-  const seen = new Set<string>();
-  const banned = new Set<string>();
-  const admin = createAdminClient();
-  for (let i = 0; i < filePhones.length; i += 300) {
-    const { data } = await admin.from("leads").select("phone").eq("company_id", companyId).in("phone", filePhones.slice(i, i + 300));
-    for (const l of data ?? []) seen.add(l.phone);
-    const { data: bl } = await admin.from("blacklist").select("phone").in("phone", filePhones.slice(i, i + 300));
-    for (const b of bl ?? []) banned.add(b.phone);
-  }
-
-  const pool =
-    distribute === "auto"
-      ? ((assigned ?? []) as unknown as { profiles: { id: string; role: string; is_active: boolean } | null }[])
-          .map((a) => a.profiles)
-          .filter((p) => p?.is_active && p.role === "agent")
-          .map((p) => p!.id)
-      : [];
-  if (distribute === "auto" && pool.length === 0) return { error: t("مفيش أجنتس متعينين على الشركة دي للتوزيع") };
-
-  let skipped = 0;
-  let dupes = 0;
-  let blocked = 0;
-  const toInsert = [];
-  for (const r of rows.slice(1)) {
-    const phone = normalizePhone(r[iPhone] ?? "");
-    const fullName = (r[iName] ?? "").trim();
-    if (!fullName || !isValidEgyptMobile(phone)) {
-      skipped++;
-      continue;
-    }
-    if (banned.has(phone)) {
-      blocked++;
-      continue;
-    }
-    if (seen.has(phone)) {
-      dupes++;
-      continue;
-    }
-    seen.add(phone);
-    const govId = iGov >= 0 ? govByName.get((r[iGov] ?? "").trim()) ?? govByName.get((r[iGov] ?? "").trim().toLowerCase()) ?? null : null;
-    const regionName = iRegion >= 0 ? (r[iRegion] ?? "").trim() : "";
-    const regionId = regionName ? (regions ?? []).find((x) => x.name_ar === regionName && (!govId || x.governorate_id === govId))?.id ?? null : null;
-    const extra: Record<string, string> = {};
-    headers.forEach((h, i) => {
-      if (![iName, iPhone, iGov, iRegion].includes(i) && r[i]?.trim()) extra[rows[0][i].trim()] = r[i].trim().slice(0, 500);
-    });
-    const agent: string | null =
-      distribute === "auto" ? pool[toInsert.length % pool.length] : distribute && distribute !== "none" ? distribute : null;
-    toInsert.push({
-      company_id: companyId,
-      agent_id: agent,
-      full_name: fullName.slice(0, 120),
-      phone,
-      governorate_id: govId,
-      region_id: regionId,
-      form_data: extra,
-      source: "import",
-      created_by: me.id,
-    });
-  }
-
-  for (let i = 0; i < toInsert.length; i += 500) {
-    const { error } = await supabase.from("leads").insert(toInsert.slice(i, i + 500));
-    if (error) return { error: t("اتسجل {0} بس — حصل خطأ: {1}", i, error.message) };
+  const { data, error } = await supabase.rpc("import_leads", { p_company: companyId, p_distribute: distribute, p_rows: rows });
+  if (error) {
+    if (error.message.includes("no_agents")) return { error: t("مفيش أجنتس متعينين على الشركة دي للتوزيع") };
+    if (error.message.includes("agent_not_on_company")) return { error: t("الأجنت ده مش متعين على الشركة دي") };
+    return { error: t("مقدرتش أستورد الملف") };
   }
   revalidatePath("/admin", "layout");
-  const summary = t("اتسجل {0} ليد · {1} مكرر · {2} بيانات ناقصة", toInsert.length, dupes, skipped);
-  return { ok: blocked ? `${summary} · ${t("{0} في البلاك ليست", blocked)}` : summary };
+  return data as ImportTotals;
 }
 
 export async function deleteTask(form: FormData) {
