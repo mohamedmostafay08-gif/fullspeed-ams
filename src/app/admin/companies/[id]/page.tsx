@@ -50,7 +50,7 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
         <div className="space-y-6 lg:col-span-2">
           <section className="card">
             <h2 className="mb-3 font-semibold">{t("فورم التسجيل الخاص بالشركة")}</h2>
-            {isAdmin ? (
+            {canEditTerms ? (
               <FormBuilder companyId={company.id} initial={company.form_schema as FormField[]} />
             ) : (
               <ul className="list-disc space-y-1 ps-5 text-sm">
@@ -99,7 +99,7 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
           <section className="card">
             <h2 className="mb-1 font-semibold">{t("سكربت المكالمة")}</h2>
             <p className="mb-3 text-xs text-zinc-500">{t("بيظهر للأجنت وهو بيكلم المتقدم. سطر يبدأ بـ # = عنوان · سطر يبدأ بـ ؟ = سؤال يعلّم عليه · أي سطر تاني = نقطة يقولها.")}</p>
-            {isAdmin ? (
+            {canEditTerms ? (
               <StateForm action={saveCallScript} className="space-y-3">
                 <input type="hidden" name="id" value={company.id} />
                 <textarea

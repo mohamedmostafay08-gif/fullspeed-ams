@@ -18,6 +18,7 @@ export async function SubTabs({ tabs, current }: { tabs: { href: string; label: 
 export const ATTENDANCE_TABS = [
   { href: "/admin/attendance", label: "الحضور والانصراف" },
   { href: "/admin/breaks", label: "البريكات" },
+  { href: "/admin/leaves", label: "الإجازات" },
 ];
 export const ADMIN_WORK_TABS = [
   { href: "/admin/tasks", label: "التاسكات" },

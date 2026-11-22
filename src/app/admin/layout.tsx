@@ -16,7 +16,7 @@ const NAV: Item[] = [
   { href: "/admin/leads", label: "الليدز", icon: "leads", mobile: "tab" },
   { href: "/admin/agents", label: "الفريق", icon: "team" },
   { href: "/admin/teams", label: "التيمات", icon: "teams" },
-  { href: "/admin/attendance", label: "الحضور والبريكات", icon: "attendance", also: ["/admin/breaks"] },
+  { href: "/admin/attendance", label: "الحضور والإجازات", icon: "attendance", also: ["/admin/breaks", "/admin/leaves"] },
   { href: "/admin/scorecard", label: "التقييم", icon: "scorecard" },
   { href: "/admin/tasks", label: "التاسكات والتعميمات", icon: "tasks", also: ["/admin/memos"] },
   { href: "/admin/companies", label: "الشركات", icon: "companies" },

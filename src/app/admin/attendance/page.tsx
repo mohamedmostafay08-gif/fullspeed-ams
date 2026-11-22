@@ -12,7 +12,7 @@ import { getT } from "@/lib/i18n/server";
 type Settings = { shift_start: string; grace_minutes: number; off_days: number[] };
 type MonthRow = {
   user_id: string; full_name: string; role: string; present: number; late_days: number;
-  late_minutes: number; absent: number; avg_hours: number | null; avg_first: string | null;
+  late_minutes: number; absent: number; leave_days: number; avg_hours: number | null; avg_first: string | null;
 };
 
 // ISO weekday numbers, in the order of the Egyptian week.
@@ -43,12 +43,14 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
   const month = typeof sp.month === "string" && MONTH_RE.test(sp.month) && sp.month <= today.slice(0, 7) ? sp.month : today.slice(0, 7);
   const supabase = await createClient();
 
-  const [settingsRes, monthRes, todayRes, peopleRes] = await Promise.all([
+  const [settingsRes, monthRes, todayRes, peopleRes, leaveRes] = await Promise.all([
     supabase.from("work_settings").select("shift_start, grace_minutes, off_days").eq("id", 1).single(),
     supabase.rpc("attendance_month", { p_month: `${month}-01` }),
     supabase.from("attendance").select("user_id, first_seen, last_seen").eq("day", today),
     supabase.from("profiles").select("id, full_name, role").eq("is_active", true).in("role", ["agent", "team_leader"]).order("full_name"),
+    supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today),
   ]);
+  const onLeave = new Set((leaveRes.data ?? []).map((l) => l.user_id));
   const s = (settingsRes.data ?? { shift_start: "10:00:00", grace_minutes: 15, off_days: [5] }) as Settings;
   const shift = s.shift_start.slice(0, 5);
   const rows = (monthRes.data ?? []) as MonthRow[];
@@ -60,7 +62,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
   const board = people.map((p) => {
     const a = seen.get(p.id);
     const late = a ? minutesLate(a.first_seen, shift) : 0;
-    const state = a ? (late > s.grace_minutes ? "late" : "on_time") : isOffToday || !shiftStarted ? "not_yet" : "absent";
+    const state = a ? (late > s.grace_minutes ? "late" : "on_time") : onLeave.has(p.id) ? "leave" : isOffToday || !shiftStarted ? "not_yet" : "absent";
     return { ...p, a, late, state };
   });
   const count = (st: string) => board.filter((b) => b.state === st).length;
@@ -68,6 +70,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
     on_time: { label: "في المعاد", cls: "bg-emerald-100 text-emerald-800" },
     late: { label: "متأخر", cls: "bg-amber-100 text-amber-800" },
     absent: { label: "لسه مجاش", cls: "bg-rose-100 text-rose-700" },
+    leave: { label: "في إجازة", cls: "bg-sky-100 text-sky-800" },
     not_yet: { label: "—", cls: "bg-zinc-100 text-zinc-500" },
   };
 
@@ -123,13 +126,14 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
-              <thead><tr><th>{t("الموظف")}</th><th>{t("أيام الحضور")}</th><th>{t("أيام الغياب")}</th><th>{t("أيام التأخير")}</th><th>{t("دقايق التأخير")}</th><th>{t("متوسط الوصول")}</th><th>{t("متوسط الساعات")}</th></tr></thead>
+              <thead><tr><th>{t("الموظف")}</th><th>{t("أيام الحضور")}</th><th>{t("أيام الغياب")}</th><th>{t("أيام الإجازة")}</th><th>{t("أيام التأخير")}</th><th>{t("دقايق التأخير")}</th><th>{t("متوسط الوصول")}</th><th>{t("متوسط الساعات")}</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.user_id}>
                     <td className="font-semibold">{r.full_name}</td>
                     <td className="num">{r.present}</td>
                     <td className={`num ${r.absent > 0 ? "font-bold text-rose-600" : ""}`}>{r.absent}</td>
+                    <td className="num text-sky-700">{r.leave_days}</td>
                     <td className={`num ${r.late_days > 0 ? "font-bold text-amber-600" : ""}`}>{r.late_days}</td>
                     <td className="num">{r.late_minutes}</td>
                     <td className="num">{r.avg_first?.slice(0, 5) ?? "—"}</td>

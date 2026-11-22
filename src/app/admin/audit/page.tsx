@@ -22,6 +22,7 @@ const TABLES: Record<string, string> = {
   whatsapp_templates: "قوالب واتساب",
   lead_documents: "الأوراق",
   agent_breaks: "البريكات",
+  leave_requests: "الإجازات",
 };
 
 const FIELDS: Record<string, string> = {

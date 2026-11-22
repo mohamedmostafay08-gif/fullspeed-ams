@@ -254,7 +254,7 @@ export async function updateCompany(_prev: ActionState, form: FormData): Promise
 
 export async function saveFormSchema(_prev: ActionState, form: FormData): Promise<ActionState> {
   const t = await getT();
-  await requireRole("admin");
+  await requireRole(...MANAGERS);
   let schema;
   try {
     schema = parseSchema(str(form, "schema"));
@@ -262,7 +262,7 @@ export async function saveFormSchema(_prev: ActionState, form: FormData): Promis
     return { error: (e as Error).message };
   }
   const supabase = await createClient();
-  const { error } = await supabase.from("companies").update({ form_schema: schema }).eq("id", str(form, "id"));
+  const { error } = await supabase.rpc("save_company_content", { p_id: str(form, "id"), p_form_schema: schema, p_call_script: null, p_set_script: false });
   if (error) return { error: t("مقدرتش أحفظ الفورم") };
   return done(`/admin/companies/${str(form, "id")}`, t("تم حفظ الفورم"));
 }
@@ -392,7 +392,7 @@ export type ImportState = { error?: string; fields?: FormField[]; source?: strin
 
 export async function importFormFields(_prev: ImportState, form: FormData): Promise<ImportState> {
   const t = await getT();
-  await requireRole("admin");
+  await requireRole(...MANAGERS);
   const input = str(form, "source");
   if (!input) return { error: t("الصق الفورم أو لينك Google Form") };
   const { parseFormText, parseGoogleForm } = await import("@/lib/form-import");
@@ -462,12 +462,14 @@ export async function removeFromBlacklist(form: FormData) {
 // ───────── Call script ─────────
 export async function saveCallScript(_prev: ActionState, form: FormData): Promise<ActionState> {
   const t = await getT();
-  await requireRole("admin");
+  await requireRole(...MANAGERS);
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("companies")
-    .update({ call_script: str(form, "call_script").slice(0, 4000) || null })
-    .eq("id", str(form, "id"));
+  const { error } = await supabase.rpc("save_company_content", {
+    p_id: str(form, "id"),
+    p_form_schema: null,
+    p_call_script: str(form, "call_script").slice(0, 4000),
+    p_set_script: true,
+  });
   if (error) return { error: t("مقدرتش أحفظ") };
   return done("/admin/companies", t("تم الحفظ"));
 }

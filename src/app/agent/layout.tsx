@@ -11,6 +11,7 @@ const NAV = [
   { href: "/agent/leads", label: "الليدز بتاعتي", icon: "leads", exact: true, mobile: "tab" },
   { href: "/agent/tasks", label: "التاسكات والتعميمات", icon: "tasks", also: ["/agent/memos"] },
   { href: "/agent/scorecard", label: "تقييمي", icon: "scorecard" },
+  { href: "/agent/leaves", label: "الإجازات", icon: "leave" },
   { href: "/agent/notifications", label: "الإشعارات", icon: "bell" },
   { href: "/agent/account", label: "حسابي", icon: "account" },
 ] as const;

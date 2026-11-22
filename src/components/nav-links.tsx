@@ -19,6 +19,7 @@ import {
   Coffee,
   KeyRound,
   Network,
+  Palmtree,
   Megaphone,
   ShieldCheck,
   TrendingUp,
@@ -65,6 +66,7 @@ const ICONS: Record<string, LucideIcon> = {
   requests: ShieldCheck,
   logins: KeyRound,
   teams: Network,
+  leave: Palmtree,
 };
 
 export interface NavItem {
