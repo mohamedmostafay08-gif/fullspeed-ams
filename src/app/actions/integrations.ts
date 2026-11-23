@@ -109,3 +109,32 @@ export async function deleteLeadForm(form: FormData) {
   await supabase.from("meta_lead_forms").delete().eq("form_id", String(form.get("form_id") ?? ""));
   revalidatePath("/admin/integrations");
 }
+
+/** «ليدز فيسبوك»: one waiting lead from an unlinked form → the company picked for it. */
+export async function assignFacebookLead(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin", "manager");
+  const leadgen = String(form.get("leadgen_id") ?? "");
+  const company = String(form.get("company_id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(company)) return { error: t("اختار الشركة") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("meta_assign_lead", { p_leadgen: leadgen, p_company: company });
+  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  revalidatePath("/admin/facebook-leads");
+  const RESULT: Record<string, ActionState> = {
+    created: { ok: t("✅ دخل على الشركة واتوزع") },
+    duplicate: { error: t("♻️ الرقم ده موجود قبل كده في الشركة دي") },
+    invalid: { error: t("❌ الاسم أو الرقم ناقص أو غلط") },
+    blacklisted: { error: t("⛔ الرقم ده في البلاك ليست") },
+    gone: { error: t("الليد ده اتوزع قبل كده") },
+    no_company: { error: t("اختار الشركة") },
+  };
+  return RESULT[String(data)] ?? { error: t("⚠️ مشكلة") };
+}
+
+export async function dismissFacebookLead(form: FormData) {
+  await requireRole("admin", "manager");
+  const supabase = await createClient();
+  await supabase.rpc("meta_dismiss_lead", { p_leadgen: String(form.get("leadgen_id") ?? "") });
+  revalidatePath("/admin/facebook-leads");
+}
