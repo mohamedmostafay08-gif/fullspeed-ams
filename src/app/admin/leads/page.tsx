@@ -8,8 +8,8 @@ import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { BOARD_LIMIT, filtersToQuery, queryLeads, readFilters, readView, toBoardLeads } from "@/lib/lead-query";
 import { createClient } from "@/lib/supabase/server";
-import { LEAD_STATUS_LABELS } from "@/lib/types";
-import { getT } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { LeadFilterForm } from "@/components/lead-filters";
 
 const PAGE_SIZE = 50;
 
@@ -20,10 +20,13 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
   const f = readFilters(sp);
   const view = readView(sp);
   const supabase = await createClient();
-  const [companies, { data: agents }, { data: leads, count }] = await Promise.all([
+  const locale = await getLocale();
+  const [companies, { data: agents }, { data: leads, count }, { data: teams }, { data: govs }] = await Promise.all([
     getCompanies(),
     supabase.from("profiles").select("id, full_name").eq("role", "agent").order("full_name"),
     view === "board" ? queryLeads(f, { limit: BOARD_LIMIT, offset: 0 }) : queryLeads(f, { limit: PAGE_SIZE, offset: (f.page - 1) * PAGE_SIZE }),
+    supabase.from("teams").select("id, name").order("name"),
+    supabase.from("governorates").select("id, name_ar, name_en").order("id"),
   ]);
   const pages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
   const qs = filtersToQuery(f);
@@ -39,28 +42,15 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
         </div>
       </PageHeader>
 
-      <form className="card mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
-        {view === "board" && <input type="hidden" name="view" value="board" />}
-        <input name="q" defaultValue={f.q} placeholder={t("اسم أو موبايل")} className="input lg:col-span-2" />
-        <select name="company" defaultValue={f.company ?? ""} className="input">
-          <option value="">{t("كل الشركات")}</option>
-          {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select name="agent" defaultValue={f.agent ?? ""} className="input">
-          <option value="">{t("كل الأجنتس")}</option>
-          <option value="none">{t("غير معيّن")}</option>
-          {(agents ?? []).map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
-        </select>
-        <select name="status" defaultValue={f.status ?? ""} className="input">
-          <option value="">{t("كل الحالات")}</option>
-          {Object.entries(LEAD_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
-        </select>
-        <input type="date" name="from" defaultValue={f.from} className="input" aria-label={t("من")} />
-        <div className="flex gap-2">
-          <input type="date" name="to" defaultValue={f.to} className="input" aria-label={t("إلى")} />
-          <button className="btn-ghost">{t("فلتر")}</button>
-        </div>
-      </form>
+      <LeadFilterForm
+        f={f}
+        view={view}
+        path="/admin/leads"
+        companies={companies.map((c) => ({ id: c.id, name: c.name, form_schema: c.form_schema }))}
+        agents={(agents ?? []).map((a) => ({ id: a.id, name: a.full_name }))}
+        teams={(teams ?? []).map((x) => ({ id: x.id, name: x.name }))}
+        governorates={(govs ?? []).map((g) => ({ id: g.id, name: locale === "en" && g.name_en ? g.name_en : g.name_ar }))}
+      />
 
       {view === "board" ? (
         <LeadsBoard leads={toBoardLeads((leads ?? []) as Parameters<typeof toBoardLeads>[0])} basePath="/admin/leads" showAgent={true} />

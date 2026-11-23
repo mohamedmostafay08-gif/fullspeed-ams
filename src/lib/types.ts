@@ -146,3 +146,14 @@ export const REJECT_REASONS = {
   other: "سبب تاني",
 } as const;
 export type RejectReason = keyof typeof REJECT_REASONS;
+
+/** Where a lead came from. */
+export const LEAD_SOURCES: Record<string, string> = {
+  manual: "إدخال يدوي",
+  facebook: "فيسبوك",
+  tiktok: "تيك توك",
+  referral: "ترشيح",
+  walk_in: "حضور للمقر",
+  import: "ملف Excel",
+  crm: "CRM",
+};

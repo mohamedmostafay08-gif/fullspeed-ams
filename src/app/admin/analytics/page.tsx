@@ -7,9 +7,12 @@ import { CompanyLogo, Empty, StatCard } from "@/components/ui";
 import { cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { LEAD_STATUS_LABELS, REJECT_REASONS, type LeadStatus, type RejectReason } from "@/lib/types";
+import { LEAD_SOURCES, LEAD_STATUS_LABELS, REJECT_REASONS, type LeadStatus, type RejectReason } from "@/lib/types";
 import type { T } from "@/lib/i18n/translate";
-import { getT } from "@/lib/i18n/server";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { AnalyticsCompare, type CompareDim } from "@/components/analytics-compare";
+import { AnalyticsFilterBar } from "@/components/analytics-filter-bar";
+import { afArgs, afQuery, anyFilter, readAnalyticsFilters } from "@/lib/analytics-filters";
 
 type AgentRow = {
   id: string;
@@ -39,15 +42,7 @@ type Analytics = {
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const SOURCES: Record<string, string> = {
-  manual: "إدخال يدوي",
-  facebook: "فيسبوك",
-  tiktok: "تيك توك",
-  referral: "ترشيح",
-  walk_in: "حضور للمقر",
-  import: "ملف Excel",
-  crm: "CRM",
-};
+const SOURCES = LEAD_SOURCES;
 const SORTS: Record<string, { label: string; key: (a: AgentRow) => number }> = {
   hired: { label: "اشتغلوا", key: (a) => a.hired },
   leads: { label: "ليدز", key: (a) => a.leads },
@@ -69,14 +64,39 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   const from = typeof sp.from === "string" && DATE_RE.test(sp.from) ? sp.from : shift(-29);
   const to = typeof sp.to === "string" && DATE_RE.test(sp.to) && sp.to >= from ? sp.to : today;
   const sortKey = typeof sp.sort === "string" && sp.sort in SORTS ? sp.sort : "hired";
+  const af = readAnalyticsFilters(sp);
+  const tab = sp.tab === "compare" ? "compare" : "overview";
+  const dim: CompareDim = sp.cmp === "team" || sp.cmp === "company" || sp.cmp === "source" ? sp.cmp : "agent";
+  const picked = [sp.pick].flat().filter((x): x is string => typeof x === "string");
+  const ids = (picked.length ? picked : typeof sp.ids === "string" ? sp.ids.split(",") : []).filter((x) => /^[\w-]{1,40}$/.test(x)).slice(0, 4);
 
   const supabase = await createClient();
   const db = viewer ? createAdminClient() : supabase;
-  const [{ data, error }, { data: teams }, { data: reasonsData }] = await Promise.all([
-    db.rpc("acquisition_analytics", { p_from: from, p_to: to }),
-    supabase.from("teams").select("id, name"),
+  const [filteredRes, { data: teams }, { data: reasonsData }, { data: companyList }, { data: agentList }, { data: govs }, locale] = await Promise.all([
+    db.rpc("analytics_filtered", { p_from: from, p_to: to, ...afArgs(af) }),
+    supabase.from("teams").select("id, name").order("name"),
     supabase.rpc("rejection_reasons", { p_from: from, p_to: to }),
+    supabase.from("companies").select("id, name").order("name"),
+    supabase.from("profiles").select("id, full_name").eq("role", "agent").eq("is_active", true).order("full_name"),
+    supabase.from("governorates").select("id, name_ar, name_en").order("id"),
+    getLocale(),
   ]);
+  // Before the filtered function exists in the database, fall back to the unfiltered one.
+  const { data, error } = filteredRes.error && !anyFilter(af) ? await db.rpc("acquisition_analytics", { p_from: from, p_to: to }) : filteredRes;
+  const opts = {
+    team: (teams ?? []).map((x) => ({ id: x.id, name: x.name })),
+    company: (companyList ?? []).map((x) => ({ id: x.id, name: x.name })),
+    agent: (agentList ?? []).map((x) => ({ id: x.id, name: x.full_name })),
+    source: Object.entries(LEAD_SOURCES).map(([id, name]) => ({ id, name: t(name) })),
+  };
+  const govOpts = (govs ?? []).map((g) => ({ id: g.id, name: locale === "en" && g.name_en ? g.name_en : g.name_ar }));
+  const filterQs = afQuery(af);
+  const state = (extra: Record<string, string> = {}) => {
+    const p = new URLSearchParams({ from, to, sort: sortKey, ...(tab === "compare" ? { tab, cmp: dim } : {}), ...extra });
+    for (const [k, v] of new URLSearchParams(filterQs)) p.set(k, v);
+    if (tab === "compare" && ids.length && !("ids" in extra)) p.set("ids", ids.join(","));
+    return p;
+  };
   const reasons = (reasonsData ?? []) as { company_id: string; company: string; reason: string; n: number }[];
   const reasonLabel = (r: string) => (r in REJECT_REASONS ? t(REJECT_REASONS[r as RejectReason]) : t("من غير سبب"));
   const byReason = [...reasons.reduce((m, r) => m.set(r.reason, (m.get(r.reason) ?? 0) + r.n), new Map<string, number>())].sort((x, y) => y[1] - x[1]);
@@ -97,23 +117,53 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
     <PageHeader title={t("تحليلات الأكوزيشن")} subtitle={t("من {0} إلى {1}", from, to)}>
       <div className="scroll-row -mx-4 w-[calc(100%+2rem)] px-4 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
         {presets.map((p) => (
-          <Link key={p.label} href={`/admin/analytics?from=${p.from}&to=${p.to}&sort=${sortKey}`} className={`chip ${p.from === from && p.to === to ? "chip-active" : ""}`}>
+          <Link key={p.label} href={`/admin/analytics?${state({ from: p.from, to: p.to })}`} className={`chip ${p.from === from && p.to === to ? "chip-active" : ""}`}>
             {p.label}
           </Link>
         ))}
       </div>
       <form className="grid w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1.5 sm:flex sm:w-auto">
-        <input type="hidden" name="sort" value={sortKey} />
+        {[...state().entries()].filter(([k]) => k !== "from" && k !== "to").map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
         <input type="date" name="from" defaultValue={from} className="input min-w-0 px-2.5 py-1.5 sm:w-auto" aria-label={t("من")} />
         <input type="date" name="to" defaultValue={to} className="input min-w-0 px-2.5 py-1.5 sm:w-auto" aria-label={t("إلى")} />
         <button className="btn-dark btn-sm">{t("عرض")}</button>
       </form>
     </PageHeader>
   );
+  const keepForBar = Object.fromEntries([...state().entries()].filter(([k]) => !["team", "company", "agent", "source", "gov"].includes(k)));
+  const toolbar = (
+    <>
+      <div className="mb-4 flex w-fit gap-1 rounded-xl bg-zinc-100 p-1">
+        <Link href={`/admin/analytics?${(() => { const p = state(); p.delete("tab"); p.delete("cmp"); p.delete("ids"); return p; })()}`} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === "overview" ? "bg-white shadow-sm" : "text-zinc-500"}`}>{t("نظرة عامة")}</Link>
+        <Link href={`/admin/analytics?${state({ tab: "compare", cmp: dim })}`} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === "compare" ? "bg-white shadow-sm" : "text-zinc-500"}`}>{t("مقارنات وترندات")}</Link>
+      </div>
+      <AnalyticsFilterBar path="/admin/analytics" f={af} keep={keepForBar} teams={opts.team} companies={opts.company} agents={opts.agent} governorates={govOpts} />
+    </>
+  );
+  if (tab === "compare") {
+    return (
+      <>
+        {header}
+        {toolbar}
+        <AnalyticsCompare
+          from={from}
+          to={to}
+          f={af}
+          asServer={viewer}
+          dim={dim}
+          ids={ids}
+          options={opts}
+          path="/admin/analytics"
+          keep={Object.fromEntries([...state().entries()].filter(([k]) => k !== "cmp" && k !== "ids"))}
+        />
+      </>
+    );
+  }
   if (error || !data) {
     return (
       <>
         {header}
+        {toolbar}
         <Empty icon={BarChart3}>{t("الفترة دي مش صالحة — اختار فترة أقل من سنة")}</Empty>
       </>
     );
@@ -130,12 +180,13 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
     { key: "hired", label: t("اشتغلوا"), value: a.by_status.hired ?? 0 },
   ];
   const totalBreakMin = a.by_agent.reduce((s, r) => s + Number(r.break_minutes), 0);
-  const qs = `from=${from}&to=${to}`;
+  const qs = `from=${from}&to=${to}${filterQs ? `&${filterQs}` : ""}`;
 
   return (
     <>
       <LiveRefresh channel="analytics" />
       {header}
+      {toolbar}
 
       <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 xl:gap-4">
         <StatCard label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={t("{0} مش متوزعين", a.totals.unassigned)} />

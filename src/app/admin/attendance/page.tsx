@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck, ChevronLeft, ChevronRight, Clock, Settings2 } from "lucide-react";
+import { CalendarCheck, ChevronLeft, ChevronRight, Clock, Filter, Settings2, X } from "lucide-react";
 import { saveWorkSettings } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
 import { ATTENDANCE_TABS, SubTabs } from "@/components/sub-tabs";
@@ -41,26 +41,39 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
   const today = cairoToday();
   const sp = await searchParams;
   const month = typeof sp.month === "string" && MONTH_RE.test(sp.month) && sp.month <= today.slice(0, 7) ? sp.month : today.slice(0, 7);
+  const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
+  const fTeam = /^[0-9a-f-]{36}$/i.test(str("team")) ? str("team") : "";
+  const fQ = str("q").trim().slice(0, 60);
+  const fState = ["on_time", "late", "absent", "leave", "not_yet"].includes(str("state")) ? str("state") : "";
+  const fIssue = ["absent", "late", "leave", "clean"].includes(str("issue")) ? str("issue") : "";
   const supabase = await createClient();
 
-  const [settingsRes, monthRes, todayRes, peopleRes, leaveRes, holidayRes, permitRes] = await Promise.all([
+  const [settingsRes, monthRes, todayRes, peopleRes, leaveRes, holidayRes, permitRes, teamsRes] = await Promise.all([
     supabase.from("work_settings").select("shift_start, grace_minutes, off_days").eq("id", 1).single(),
     supabase.rpc("attendance_month", { p_month: `${month}-01` }),
     supabase.from("attendance").select("user_id, first_seen, last_seen").eq("day", today),
-    supabase.from("profiles").select("id, full_name, role").eq("is_active", true).in("role", ["agent", "team_leader"]).order("full_name"),
+    supabase.from("profiles").select("id, full_name, role, team_id").eq("is_active", true).in("role", ["agent", "team_leader"]).order("full_name"),
     supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today),
     supabase.from("public_holidays").select("name").eq("day", today).maybeSingle(),
     supabase.from("hour_permits").select("user_id, kind, at_time").eq("day", today).eq("status", "approved"),
+    supabase.from("teams").select("id, name").order("name"),
   ]);
+  const teams = teamsRes.data ?? [];
   const holidayToday = holidayRes.data?.name ?? null;
   const lateUntil = new Map((permitRes.data ?? []).filter((p) => p.kind === "late_arrival").map((p) => [p.user_id, (p.at_time as string).slice(0, 5)]));
   const leavingAt = new Map((permitRes.data ?? []).filter((p) => p.kind === "early_leave").map((p) => [p.user_id, (p.at_time as string).slice(0, 5)]));
   const onLeave = new Set((leaveRes.data ?? []).map((l) => l.user_id));
   const s = (settingsRes.data ?? { shift_start: "10:00:00", grace_minutes: 15, off_days: [5] }) as Settings;
   const shift = s.shift_start.slice(0, 5);
-  const rows = (monthRes.data ?? []) as MonthRow[];
+  const allPeople = peopleRes.data ?? [];
+  const teamOf = new Map(allPeople.map((p) => [p.id, p.team_id as string | null]));
+  const matchPerson = (id: string, name: string) =>
+    (!fTeam || teamOf.get(id) === fTeam) && (!fQ || name.toLowerCase().includes(fQ.toLowerCase()));
+  const rows = ((monthRes.data ?? []) as MonthRow[]).filter((r) =>
+    matchPerson(r.user_id, r.full_name) &&
+    (!fIssue || (fIssue === "absent" ? r.absent > 0 : fIssue === "late" ? r.late_days > 0 : fIssue === "leave" ? r.leave_days > 0 : r.absent === 0 && r.late_days === 0)));
   const seen = new Map((todayRes.data ?? []).map((a) => [a.user_id, a]));
-  const people = peopleRes.data ?? [];
+  const people = allPeople.filter((p) => matchPerson(p.id, p.full_name));
   const isOffToday = !!holidayToday || s.off_days.includes(((new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7) + 1);
   const shiftStarted = minutesLate(new Date().toISOString(), shift) >= 0;
 
@@ -73,6 +86,10 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
     return { ...p, a, late, state, permit };
   });
   const count = (st: string) => board.filter((b) => b.state === st).length;
+  const shown = fState ? board.filter((b) => b.state === fState) : board;
+  const filterQs = new URLSearchParams(Object.entries({ team: fTeam, q: fQ, state: fState, issue: fIssue }).filter(([, v]) => v));
+  const monthHref = (m: string) => `/admin/attendance?${new URLSearchParams([...filterQs, ["month", m]])}`;
+  const anyF = filterQs.size > 0;
   const STATE: Record<string, { label: string; cls: string }> = {
     on_time: { label: "في المعاد", cls: "bg-emerald-100 text-emerald-800" },
     late: { label: "متأخر", cls: "bg-amber-100 text-amber-800" },
@@ -89,6 +106,30 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
       />
       <SubTabs tabs={ATTENDANCE_TABS} current="/admin/attendance" />
 
+      <form className="card mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <input type="hidden" name="month" value={month} />
+        <input name="q" defaultValue={fQ} placeholder={t("اسم الموظف")} className="input" aria-label={t("اسم الموظف")} />
+        <select name="team" defaultValue={fTeam} className="input" aria-label={t("التيم")}>
+          <option value="">{t("كل التيمات")}</option>
+          {teams.map((tm) => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+        </select>
+        <select name="state" defaultValue={fState} className="input" aria-label={t("حالة النهارده")}>
+          <option value="">{t("كل حالات النهارده")}</option>
+          {(["on_time", "late", "absent", "leave"] as const).map((k) => <option key={k} value={k}>{t(({ on_time: "في المعاد", late: "متأخر", absent: "لسه مجاش", leave: "في إجازة" })[k])}</option>)}
+        </select>
+        <select name="issue" defaultValue={fIssue} className="input" aria-label={t("في تقرير الشهر")}>
+          <option value="">{t("كل الموظفين في الشهر")}</option>
+          <option value="absent">{t("عنده غياب")}</option>
+          <option value="late">{t("عنده تأخير")}</option>
+          <option value="leave">{t("خد إجازات")}</option>
+          <option value="clean">{t("ملتزم (من غير غياب ولا تأخير)")}</option>
+        </select>
+        <div className="flex gap-2">
+          <button className="btn-primary flex-1"><Filter size={16} /> {t("فلتر")}</button>
+          {anyF && <Link href={`/admin/attendance?month=${month}`} className="btn-ghost" aria-label={t("امسح كل الفلاتر")}><X size={16} /></Link>}
+        </div>
+      </form>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label={t("حاضرين في المعاد")} value={count("on_time")} tone="good" icon={CalendarCheck} />
         <StatCard label={t("وصلوا متأخر")} value={count("late")} tone="warn" icon={Clock} />
@@ -97,14 +138,14 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
 
       <section className="card mt-6">
         <h2 className="card-title"><Clock size={18} className="text-brand-600" /> {t("النهارده")}</h2>
-        {board.length === 0 ? (
+        {shown.length === 0 ? (
           <Empty>{t("مفيش موظفين")}</Empty>
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead><tr><th>{t("الموظف")}</th><th>{t("الحالة")}</th><th>{t("الحضور")}</th><th>{t("آخر ظهور")}</th><th>{t("التأخير")}</th></tr></thead>
               <tbody>
-                {board.map((b) => (
+                {shown.map((b) => (
                   <tr key={b.id}>
                     <td className="font-semibold"><Link href={`/admin/agents/${b.id}`} className="hover:underline">{b.full_name}</Link></td>
                     <td>
@@ -126,9 +167,9 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="card-title mb-0"><CalendarCheck size={18} className="text-teal-600" /> {t("تقرير الشهر")}</h2>
           <div className="flex items-center gap-1">
-            <Link href={`/admin/attendance?month=${shiftMonth(month, -1)}`} className="btn-ghost px-2.5" aria-label={t("اللي قبله")}><ChevronRight size={17} className="ltr:rotate-180" /></Link>
+            <Link href={monthHref(shiftMonth(month, -1))} className="btn-ghost px-2.5" aria-label={t("اللي قبله")}><ChevronRight size={17} className="ltr:rotate-180" /></Link>
             <span className="num px-2 font-semibold">{month}</span>
-            {month < today.slice(0, 7) && <Link href={`/admin/attendance?month=${shiftMonth(month, 1)}`} className="btn-ghost px-2.5" aria-label={t("اللي بعده")}><ChevronLeft size={17} className="ltr:rotate-180" /></Link>}
+            {month < today.slice(0, 7) && <Link href={monthHref(shiftMonth(month, 1))} className="btn-ghost px-2.5" aria-label={t("اللي بعده")}><ChevronLeft size={17} className="ltr:rotate-180" /></Link>}
           </div>
         </div>
         {rows.length === 0 ? (

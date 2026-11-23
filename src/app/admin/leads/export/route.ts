@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { toCsv } from "@/lib/csv";
-import { readFilters } from "@/lib/lead-query";
+import { hasAdvanced, queryLeads, readFilters } from "@/lib/lead-query";
 import { createClient } from "@/lib/supabase/server";
 import { LEAD_STATUS_LABELS, type FormField, type LeadStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -13,16 +13,32 @@ export async function GET(request: NextRequest) {
 
   const f = readFilters(Object.fromEntries(request.nextUrl.searchParams));
   const supabase = await createClient();
-  // One database call (row-level security still applies), instead of paging through the API.
-  const { data } = await supabase.rpc("export_leads", {
-    p_company: f.company ?? null,
-    p_agent: f.agent ?? null,
-    p_status: f.status ?? null,
-    p_from: f.from ?? null,
-    p_to: f.to ?? f.from ?? null,
-    p_q: f.q?.replace(/[%_\\]/g, "") || null,
-  });
-  const all = (data ?? []) as { full_name: string; phone: string; company: string; governorate: string | null; region: string | null; agent: string | null; status: string; source: string; created_at: string; notes: string | null; form_data: Record<string, unknown> | null }[];
+  type ExportRow = { full_name: string; phone: string; company: string; governorate: string | null; region: string | null; agent: string | null; status: string; source: string; created_at: string; notes: string | null; form_data: Record<string, unknown> | null };
+  let all: ExportRow[];
+  if (!hasAdvanced(f)) {
+    // One database call (row-level security still applies), instead of paging through the API.
+    const { data } = await supabase.rpc("export_leads", {
+      p_company: f.company ?? null,
+      p_agent: f.agent ?? null,
+      p_status: f.status ?? null,
+      p_from: f.from ?? null,
+      p_to: f.to ?? f.from ?? null,
+      p_q: f.q?.replace(/[%_\\]/g, "") || null,
+    });
+    all = (data ?? []) as ExportRow[];
+  } else {
+    // Advanced filters: page through the same query the screen uses (up to 20,000 leads).
+    all = [];
+    for (let offset = 0; offset < 20_000; offset += 1000) {
+      const { data } = await queryLeads(f, { limit: 1000, offset });
+      const page = (data ?? []) as unknown as { full_name: string; phone: string; status: string; source: string; created_at: string; notes: string | null; form_data: Record<string, unknown> | null; companies: { name: string } | null; governorates: { name_ar: string } | null; regions: { name_ar: string } | null; agent: { full_name: string } | null }[];
+      all.push(...page.map((l) => ({
+        full_name: l.full_name, phone: l.phone, status: l.status, source: l.source, created_at: l.created_at, notes: l.notes, form_data: l.form_data,
+        company: l.companies?.name ?? "", governorate: l.governorates?.name_ar ?? null, region: l.regions?.name_ar ?? null, agent: l.agent?.full_name ?? null,
+      })));
+      if (page.length < 1000) break;
+    }
+  }
 
   const { data: companies } = await supabase.from("companies").select("form_schema");
   const labelOf = new Map<string, string>();

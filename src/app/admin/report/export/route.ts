@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { VIEWERS, getProfile } from "@/lib/auth";
 import { toCsv } from "@/lib/csv";
+import { readAnalyticsFilters } from "@/lib/analytics-filters";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest) {
   const from = sp.get("from") ?? "";
   const to = sp.get("to") ?? "";
   if (!DATE_RE.test(from) || !DATE_RE.test(to) || to < from) return new NextResponse("Bad dates", { status: 400 });
+  const { team, agent } = readAnalyticsFilters(Object.fromEntries(sp));
 
   const supabase = await createClient();
   const db = profile.role === "performance" ? createAdminClient() : supabase;
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const rows = [
     [t("الأجنت"), t("التيم"), t("الليدز"), t("المكالمات"), t("دقايق الكلام"), t("المقابلات"), t("اشتغلوا"), t("نسبة التحويل"), t("النقط")],
-    ...((board.data ?? []) as Row[]).map((r) => [
+    ...((board.data ?? []) as Row[]).filter((r) => (!team || r.team_id === team) && (!agent || r.agent_id === agent)).map((r) => [
       r.full_name,
       r.team_id ? teamName.get(r.team_id) ?? "" : "",
       r.leads,

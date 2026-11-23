@@ -67,6 +67,9 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   const table = typeof sp.table === "string" && sp.table in TABLES ? sp.table : "";
   const actor = typeof sp.actor === "string" && UUID.test(sp.actor) ? sp.actor : "";
   const day = typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : "";
+  const action = typeof sp.action === "string" && sp.action in ACTION ? sp.action : "";
+  const from = typeof sp.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.from) ? sp.from : day;
+  const to = typeof sp.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.to) ? sp.to : day;
   const page = Math.max(1, Number(sp.page) || 1);
   const supabase = await createClient();
 
@@ -77,8 +80,9 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
     .range((page - 1) * PAGE, page * PAGE - 1);
   if (table) q = q.eq("table_name", table);
   if (actor) q = q.eq("actor_id", actor);
-  if (day) {
-    const [s, e] = cairoRange(day, day);
+  if (action) q = q.eq("action", action);
+  if (from || to) {
+    const [s, e] = cairoRange(from || "2020-01-01", to || "2100-01-01");
     q = q.gte("at", s).lt("at", e);
   }
   const [{ data, count }, people, teams, companies] = await Promise.all([
@@ -111,13 +115,13 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   };
   const summary = (c: Record<string, unknown>) =>
     ["full_name", "name", "title", "phone", "status", "agent_id", "company_id", "reason"].filter((k) => c[k] != null).slice(0, 3).map((k) => show(k, c[k])).join(" · ");
-  const qs = (p: number) => new URLSearchParams({ ...(table && { table }), ...(actor && { actor }), ...(day && { day }), page: String(p) }).toString();
+  const qs = (p: number) => new URLSearchParams({ ...(table && { table }), ...(actor && { actor }), ...(action && { action }), ...(from && { from }), ...(to && { to }), page: String(p) }).toString();
   const pages = Math.max(1, Math.ceil((count ?? 0) / PAGE));
 
   return (
     <>
       <PageHeader title={t("سجل التعديلات")} subtitle={t("كل إضافة وتعديل وحذف في السيستم — مين عمل إيه وإمتى")} />
-      <form className="card mb-4 grid gap-3 sm:grid-cols-4">
+      <form className="card mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <select name="table" defaultValue={table} className="input">
           <option value="">{t("كل الأقسام")}</option>
           {Object.entries(TABLES).map(([k, l]) => <option key={k} value={k}>{t(l)}</option>)}
@@ -126,8 +130,16 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
           <option value="">{t("كل الناس")}</option>
           {(people.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
         </select>
-        <input type="date" name="day" defaultValue={day} className="input" aria-label={t("التاريخ")} />
-        <button className="btn-ghost">{t("فلتر")}</button>
+        <select name="action" defaultValue={action} className="input" aria-label={t("نوع التعديل")}>
+          <option value="">{t("إضافة وتعديل وحذف")}</option>
+          {Object.entries(ACTION).map(([k, a]) => <option key={k} value={k}>{t(a.label)}</option>)}
+        </select>
+        <input type="date" name="from" defaultValue={from} className="input" aria-label={t("من")} />
+        <input type="date" name="to" defaultValue={to} className="input" aria-label={t("إلى")} />
+        <div className="flex gap-2">
+          <button className="btn-primary flex-1">{t("فلتر")}</button>
+          {(table || actor || action || from || to) && <Link href="/admin/audit" className="btn-ghost">{t("امسح")}</Link>}
+        </div>
       </form>
 
       <section className="card">

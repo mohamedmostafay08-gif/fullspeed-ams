@@ -7,6 +7,8 @@ import { CompanyLogo, Empty, StatCard } from "@/components/ui";
 import { cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import type { BoardRow } from "@/lib/badges";
 import { getT } from "@/lib/i18n/server";
+import { AnalyticsFilterBar } from "@/components/analytics-filter-bar";
+import { afArgs, afQuery, anyFilter, readAnalyticsFilters } from "@/lib/analytics-filters";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,17 +52,30 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
   const [from, to, prevFrom, prevTo] = range(period, anchor);
   const supabase = await createClient();
   const db = me.role === "performance" ? createAdminClient() : supabase;
-  const [aRes, bRes, pRes, pbRes, talkRes] = await Promise.all([
-    db.rpc("acquisition_analytics", { p_from: from, p_to: to }),
+  const af = readAnalyticsFilters(sp);
+  const fq = afQuery(af);
+  const analytics = async (f: string, t2: string) => {
+    const r = await db.rpc("analytics_filtered", { p_from: f, p_to: t2, ...afArgs(af) });
+    // Before the filtered function exists in the database, fall back to the unfiltered one.
+    return r.error && !anyFilter(af) ? db.rpc("acquisition_analytics", { p_from: f, p_to: t2 }) : r;
+  };
+  const [aRes, bRes, pRes, pbRes, talkRes, teamsRes, companiesRes, agentsRes, govRes] = await Promise.all([
+    analytics(from, to),
     supabase.rpc("leaderboard", { p_from: from, p_to: to }),
-    db.rpc("acquisition_analytics", { p_from: prevFrom, p_to: prevTo }),
+    analytics(prevFrom, prevTo),
     supabase.rpc("leaderboard", { p_from: prevFrom, p_to: prevTo }),
     db.rpc("talk_time", { p_from: from, p_to: to }),
+    supabase.from("teams").select("id, name").order("name"),
+    supabase.from("companies").select("id, name").order("name"),
+    supabase.from("profiles").select("id, full_name").eq("role", "agent").eq("is_active", true).order("full_name"),
+    supabase.from("governorates").select("id, name_ar").order("id"),
   ]);
+  // The ranking is per agent, so only the team and agent filters narrow it.
+  const inScope = (r: BoardRow) => (!af.team || r.team_id === af.team) && (!af.agent || r.agent_id === af.agent);
   const a = aRes.data as Analytics | null;
   const prev = pRes.data as Analytics | null;
-  const board = ((bRes.data ?? []) as BoardRow[]).filter((r) => r.points > 0 || r.leads > 0);
-  const prevBoard = (pbRes.data ?? []) as BoardRow[];
+  const board = ((bRes.data ?? []) as BoardRow[]).filter((r) => (r.points > 0 || r.leads > 0) && inScope(r));
+  const prevBoard = ((pbRes.data ?? []) as BoardRow[]).filter(inScope);
   const talk = new Map(((talkRes.data ?? []) as { agent_id: string; minutes: number }[]).map((r) => [r.agent_id, r.minutes]));
   const extra = new Map((a?.by_agent ?? []).map((r) => [r.id, r]));
   const calls = board.reduce((s, r) => s + r.calls, 0);
@@ -74,7 +89,7 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
     return d === 0 ? t("زي الفترة اللي قبلها") : t("{0} {1}% عن الفترة اللي قبلها", d > 0 ? "▲" : "▼", Math.abs(d));
   };
   const titles: Record<Period, string> = { day: "التقرير اليومي", week: "التقرير الأسبوعي", month: "التقرير الشهري" };
-  const link = (pd: Period, d: string) => `/admin/report?period=${pd}&date=${d}`;
+  const link = (pd: Period, d: string) => `/admin/report?period=${pd}&date=${d}${fq ? `&${fq}` : ""}`;
   const step = period === "day" ? 1 : period === "week" ? 7 : 0;
   const prevAnchor = period === "month" ? prevTo : shift(anchor, -step);
   const nextAnchor = period === "month" ? shift(to, 1) : shift(anchor, step);
@@ -96,9 +111,19 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
           </form>
           {to < today && <Link href={link(period, nextAnchor > today ? today : nextAnchor)} className="btn-ghost px-2.5" aria-label={t("اللي بعده")}><ChevronLeft size={17} className="ltr:rotate-180" /></Link>}
         </div>
-        <a href={`/admin/report/export?from=${from}&to=${to}`} className="no-print btn-ghost"><FileSpreadsheet size={16} /> {t("تصدير Excel")}</a>
+        <a href={`/admin/report/export?from=${from}&to=${to}${fq ? `&${fq}` : ""}`} className="no-print btn-ghost"><FileSpreadsheet size={16} /> {t("تصدير Excel")}</a>
         <PrintButton />
       </PageHeader>
+      <AnalyticsFilterBar
+        path="/admin/report"
+        f={af}
+        keep={{ period, date: anchor }}
+        saved={false}
+        teams={(teamsRes.data ?? []).map((x) => ({ id: x.id, name: x.name }))}
+        companies={(companiesRes.data ?? []).map((x) => ({ id: x.id, name: x.name }))}
+        agents={(agentsRes.data ?? []).map((x) => ({ id: x.id, name: x.full_name }))}
+        governorates={(govRes.data ?? []).map((g) => ({ id: g.id, name: g.name_ar }))}
+      />
 
       {!a ? (
         <Empty>{t("مفيش بيانات لليوم ده")}</Empty>
