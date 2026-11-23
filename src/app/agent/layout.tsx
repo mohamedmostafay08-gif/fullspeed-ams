@@ -9,6 +9,7 @@ const NAV = [
   { href: "/agent/today", label: "شاشة اليوم", icon: "today" },
   { href: "/agent/next", label: "ابدأ المكالمات", icon: "phone", mobile: "tab" },
   { href: "/agent/leads/new", label: "ليد جديد", icon: "add", exact: true, mobile: "fab" },
+  { href: "/agent/inbox", label: "واتساب", icon: "whatsapp" },
   { href: "/agent/leads", label: "الليدز بتاعتي", icon: "leads", exact: true, mobile: "tab" },
   { href: "/agent/tasks", label: "التاسكات والتعميمات", icon: "tasks", also: ["/agent/memos"] },
   { href: "/agent/scorecard", label: "تقييمي", icon: "scorecard" },

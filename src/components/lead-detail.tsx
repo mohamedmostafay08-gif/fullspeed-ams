@@ -11,6 +11,8 @@ import { LeadDocuments } from "@/components/lead-documents";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, StatusBadge, formatDate } from "@/components/ui";
 import { WhatsAppMenu } from "@/components/whatsapp-menu";
+import { WaChat } from "@/components/wa-chat";
+import Link from "next/link";
 import { getProfile } from "@/lib/auth";
 import { formatFieldValue } from "@/lib/forms";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -211,6 +213,12 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
         )}
       </div>
 
+      <div className="space-y-5">
+      <section className="card h-fit">
+        <h2 className="card-title">💬 {t("محادثة واتساب")}</h2>
+        <WaChat phone={lead.phone} compact />
+        <Link href={`${staff ? "/admin" : "/agent"}/inbox?p=${lead.phone}`} className="mt-2 inline-block text-xs font-semibold text-brand-700 hover:underline">{t("افتحها في صندوق الواتساب ←")}</Link>
+      </section>
       <section className="card h-fit">
         <h2 className="mb-3 font-semibold">{t("سجل الحركة")}</h2>
         <ol className="space-y-3 text-sm">
@@ -227,6 +235,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
           ))}
         </ol>
       </section>
+      </div>
     </div>
   );
 }

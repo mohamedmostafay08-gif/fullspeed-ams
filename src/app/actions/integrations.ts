@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth";
 import { runBackup } from "@/lib/backup";
 import { getT } from "@/lib/i18n/server";
 import { hasServiceKey } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { normalizePhone, isValidEgyptMobile } from "@/lib/forms";
 import { sendWhatsAppTemplate, toWaNumber } from "@/lib/whatsapp-api";
 
@@ -66,4 +67,45 @@ export async function testWhatsApp(_prev: ActionState, form: FormData): Promise<
   if (!isValidEgyptMobile(phone)) return { error: t("رقم الموبايل غير صحيح (لازم 11 رقم ويبدأ بـ 01)") };
   const r = await sendWhatsAppTemplate(toWaNumber(phone), ["Full Speed", "Full Speed"]);
   return r.ok ? { ok: t("اتبعتت ✓ — شوف الواتساب على الرقم ده") } : { error: t("مااتبعتتش: {0}", r.error) };
+}
+
+// ───────── Meta: WhatsApp inbox + Facebook lead ads ─────────
+export async function saveMeta(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin");
+  const secret = String(form.get("app_secret") ?? "").trim();
+  const pageToken = String(form.get("page_token") ?? "").trim();
+  const company = String(form.get("inbox_company") ?? "").trim();
+  if (secret && !/^[a-f0-9]{32}$/i.test(secret)) return { error: t("App secret بيبقى 32 حرف ورقم (a-f و 0-9)") };
+  if (company && !/^[0-9a-f-]{36}$/i.test(company)) return { error: t("اختار الشركة") };
+  await Promise.all([
+    setConfig("wa_inbox_company", company),
+    setConfig("wa_auto_lead", form.get("auto_lead") === "on" ? "1" : "0"),
+    ...(secret ? [setConfig("meta_app_secret", secret)] : []),
+    ...(pageToken ? [setConfig("meta_page_token", pageToken)] : []),
+  ]);
+  revalidatePath("/admin/integrations");
+  return { ok: t("تم الحفظ") };
+}
+
+export async function addLeadForm(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin", "manager");
+  const formId = String(form.get("form_id") ?? "").trim();
+  const company = String(form.get("company_id") ?? "");
+  if (!/^\d{5,30}$/.test(formId)) return { error: t("رقم الفورم أرقام بس (من Meta Business Suite ← الفورمز)") };
+  const supabase = await createClient();
+  const { error } = await supabase.from("meta_lead_forms").upsert({ form_id: formId, company_id: company, name: String(form.get("name") ?? "").trim().slice(0, 80) || null });
+  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  // Leads that arrived before the form was linked come in now.
+  const { data: n } = await supabase.rpc("meta_retry_unmapped");
+  revalidatePath("/admin/integrations");
+  return { ok: n ? t("اتربط ✓ ودخل {0} ليد كانوا مستنيين", n) : t("اتربط ✓") };
+}
+
+export async function deleteLeadForm(form: FormData) {
+  await requireRole("admin", "manager");
+  const supabase = await createClient();
+  await supabase.from("meta_lead_forms").delete().eq("form_id", String(form.get("form_id") ?? ""));
+  revalidatePath("/admin/integrations");
 }

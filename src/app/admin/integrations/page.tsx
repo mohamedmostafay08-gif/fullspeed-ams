@@ -1,5 +1,6 @@
-import { CloudUpload, DatabaseBackup, Download, Gauge, MessageCircle } from "lucide-react";
-import { backupNow, saveDriveUrl, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
+import { CloudUpload, DatabaseBackup, Download, Gauge, Megaphone, MessageCircle, Trash2 } from "lucide-react";
+import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
+import { headers } from "next/headers";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
 import { Empty, formatDate } from "@/components/ui";
@@ -41,9 +42,10 @@ export default async function IntegrationsPage() {
   await requireRole("admin");
   if (!hasServiceKey()) return <Empty>{MISSING_SERVICE_KEY}</Empty>;
   const db = createAdminClient();
-  const [cfg, driveSecret, { data: files }] = await Promise.all([
+  const [cfg, driveSecret, verifyToken, { data: files }] = await Promise.all([
     getConfig(),
     ensureSecret("drive_secret"),
+    ensureSecret("meta_verify_token"),
     db.storage.from("backups").list("", { limit: 60, sortBy: { column: "name", order: "desc" } }),
   ]);
   const backups = (files ?? []).filter((f) => f.name.endsWith(".json.gz"));
@@ -55,6 +57,15 @@ export default async function IntegrationsPage() {
     db_bytes: number; leads: number; people: number; files: Record<string, { bytes: number; count: number }>;
     last_backup_at: string | null; drive_backup_at: string | null; drive_status: number | null;
   } | null;
+  const userDb = await createClient();
+  const [formsRes, eventsRes, companiesRes] = await Promise.all([
+    userDb.from("meta_lead_forms").select("form_id, name, companies(name)").order("created_at"),
+    userDb.from("meta_lead_events").select("leadgen_id, form_id, status, created_at").order("created_at", { ascending: false }).limit(10),
+    userDb.from("companies").select("id, name").eq("is_active", true).order("name"),
+  ]);
+  const host = (await headers()).get("host") ?? "ams.fullspeedlogistics.com";
+  const webhookUrl = `https://${host}/api/meta/webhook`;
+  const EVENT: Record<string, string> = { created: "✅ اتعمل ليد", duplicate: "♻️ مكرر", invalid: "❌ بيانات ناقصة", unmapped: "⏳ الفورم مش مربوط", no_access: "🔒 مقدرناش نقرا البيانات", blacklisted: "⛔ بلاك ليست", error: "⚠️ مشكلة", pending: "…" };
   const fileBytes = Object.values(usage?.files ?? {}).reduce((s, f) => s + Number(f.bytes), 0);
   const MB = 1024 * 1024;
 
@@ -154,6 +165,83 @@ export default async function IntegrationsPage() {
               <StateForm action={testWhatsApp} className="space-y-2" submitLabel={t("ابعت رسالة تجربة")}>
                 <input name="phone" inputMode="tel" dir="ltr" placeholder="01xxxxxxxxx" className="input text-left rtl:text-right" required />
               </StateForm>
+            </div>
+          </div>
+        </section>
+        <section className="card lg:col-span-2">
+          <h2 className="card-title"><Megaphone size={18} className="text-sky-600" /> {t("ربط Meta: رسايل الواتساب الجاية + فورم إعلانات فيسبوك")}</h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-3 text-sm leading-7">
+              <p className="font-semibold">{t("1) في Meta for Developers ← تطبيقك ← Webhooks، حط القيم دي:")}</p>
+              <label className="block"><span className="label">Callback URL</span><input readOnly value={webhookUrl} dir="ltr" className="input text-left font-mono text-xs" /></label>
+              <label className="block"><span className="label">Verify token</span><input readOnly value={verifyToken} dir="ltr" className="input text-left font-mono text-xs" /></label>
+              <p className="text-zinc-500">{t("2) اشترك في: WhatsApp Business Account ← messages، و Page ← leadgen.")}</p>
+              <StateForm action={saveMeta} className="space-y-3">
+                <label className="block">
+                  <span className="label">App secret</span>
+                  <input name="app_secret" type="password" dir="ltr" autoComplete="off" placeholder={cfg.meta_app_secret ? "•••••••• (" + t("محفوظ") + ")" : t("من App settings ← Basic")} className="input text-left" />
+                </label>
+                <label className="block">
+                  <span className="label">{t("توكن الصفحة (لفورم الإعلانات)")}</span>
+                  <input name="page_token" type="password" dir="ltr" autoComplete="off" placeholder={cfg.meta_page_token ? "•••••••• (" + t("محفوظ") + ")" : t("لو فاضي هيستخدم توكن الواتساب")} className="input text-left" />
+                </label>
+                <label className="block">
+                  <span className="label">{t("الشركة اللي ليدز الواتساب الجديدة بتدخل عليها")}</span>
+                  <select name="inbox_company" defaultValue={cfg.wa_inbox_company ?? ""} className="input">
+                    <option value="">{t("— ولا شركة (الأدمن يختار من صندوق الواتساب) —")}</option>
+                    {(companiesRes.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" name="auto_lead" defaultChecked={cfg.wa_auto_lead === "1"} className="size-4 accent-brand-600" /> {t("أي رقم جديد يبعت واتساب يبقى ليد أوتوماتيك ويتوزع")}
+                </label>
+              </StateForm>
+              <p className={`badge ${cfg.meta_app_secret ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                {cfg.meta_app_secret ? t("✅ الـ App secret متحفظ — الويب هوك جاهز") : t("⏳ لسه محتاج App secret")}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-sm font-semibold">{t("فورمز الإعلانات وكل فورم بيدخل على أنهي شركة")}</p>
+                {(formsRes.data ?? []).length === 0 ? (
+                  <p className="text-sm text-zinc-500">{t("مفيش فورمز مربوطة لسه")}</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {(formsRes.data ?? []).map((f) => (
+                      <li key={f.form_id} className="flex items-center gap-2 rounded-xl border border-(--glass-line) px-3 py-2 text-sm">
+                        <span className="num text-xs text-zinc-500" dir="ltr">{f.form_id}</span>
+                        <span className="flex-1 truncate">{f.name ?? ""} ← <b>{(f.companies as unknown as { name: string } | null)?.name}</b></span>
+                        <form action={deleteLeadForm}><input type="hidden" name="form_id" value={f.form_id} /><button className="btn-ghost px-2 text-rose-600" aria-label={t("امسح")}><Trash2 size={15} /></button></form>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <StateForm action={addLeadForm} className="grid gap-2 sm:grid-cols-2" submitLabel={t("اربط الفورم")}>
+                <input name="form_id" inputMode="numeric" dir="ltr" placeholder={t("رقم الفورم (Form ID)")} required className="input text-left" />
+                <input name="name" placeholder={t("اسم للفورم (اختياري)")} className="input" />
+                <select name="company_id" required defaultValue="" className="input sm:col-span-2">
+                  <option value="" disabled>{t("الشركة")}</option>
+                  {(companiesRes.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </StateForm>
+              <div>
+                <p className="mb-2 text-sm font-semibold">{t("آخر ليدز جت من فيسبوك")}</p>
+                {(eventsRes.data ?? []).length === 0 ? (
+                  <p className="text-sm text-zinc-500">{t("لسه مفيش")}</p>
+                ) : (
+                  <ul className="space-y-1 text-sm">
+                    {(eventsRes.data ?? []).map((e) => (
+                      <li key={e.leadgen_id} className="flex items-center gap-2">
+                        <span className="num text-xs text-zinc-400">{formatDate(e.created_at)}</span>
+                        <span className="num text-xs text-zinc-500" dir="ltr">{e.form_id}</span>
+                        <span className="ms-auto">{t(EVENT[e.status] ?? e.status)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
         </section>

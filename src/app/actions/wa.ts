@@ -1,0 +1,70 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import type { ActionState } from "@/app/admin/actions";
+import { getProfile } from "@/lib/auth";
+import { getT } from "@/lib/i18n/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { sendWhatsAppTemplate, sendWhatsAppText, toWaNumber } from "@/lib/whatsapp-api";
+
+const PHONE_RE = /^\d{8,15}$/;
+const DAY = 24 * 3600_000;
+
+/** Who may write to this number: anyone who can see its conversation or its lead (row-level security decides). */
+async function access(phone: string) {
+  const me = await getProfile();
+  if (!me || me.role === "performance" || !PHONE_RE.test(phone)) return null;
+  const supabase = await createClient();
+  const [{ data: thread }, { data: lead }] = await Promise.all([
+    supabase.from("wa_threads").select("phone, last_inbound_at").eq("phone", phone).maybeSingle(),
+    supabase.from("leads").select("id, full_name, companies(name)").eq("phone", phone).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (!thread && !lead) return null;
+  return { me, thread, lead };
+}
+
+export async function sendWaReply(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  const phone = String(form.get("phone") ?? "");
+  const text = String(form.get("text") ?? "").trim().slice(0, 4000);
+  if (!text) return { error: t("اكتب الرسالة") };
+  const a = await access(phone);
+  if (!a) return { error: t("مش مسموحلك تعمل ده") };
+  const last = a.thread?.last_inbound_at ? Date.parse(a.thread.last_inbound_at) : 0;
+  if (Date.now() - last > DAY) return { error: t("عدّى 24 ساعة من آخر رسالة منه — ابعت قالب الترحيب الأول") };
+  const r = await sendWhatsAppText(toWaNumber(phone), text);
+  if (!r.ok) return { error: t("مااتبعتتش: {0}", r.error) };
+  await createAdminClient().rpc("wa_record_out", { p_phone: phone, p_wa_id: r.id ?? null, p_kind: "text", p_body: text, p_user: a.me.id });
+  revalidatePath("/", "layout");
+  return { ok: t("اتبعتت ✓") };
+}
+
+/** Outside the 24-hour window only an approved template may start the conversation again. */
+export async function sendWaTemplate(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  const phone = String(form.get("phone") ?? "");
+  const a = await access(phone);
+  if (!a) return { error: t("مش مسموحلك تعمل ده") };
+  const name = a.lead?.full_name.split(" ")[0] ?? "";
+  const company = (a.lead?.companies as unknown as { name: string } | null)?.name ?? "";
+  const r = await sendWhatsAppTemplate(toWaNumber(phone), [name, company]);
+  if (!r.ok) return { error: t("مااتبعتتش: {0}", r.error) };
+  await createAdminClient().rpc("wa_record_out", { p_phone: phone, p_wa_id: r.id ?? null, p_kind: "template", p_body: t("📨 قالب الترحيب"), p_user: a.me.id });
+  revalidatePath("/", "layout");
+  return { ok: t("اتبعتت ✓ — لما يرد تقدر تكلمه عادي") };
+}
+
+/** A number that wrote in with no lead yet → a lead for the chosen company. */
+export async function waMakeLead(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("wa_make_lead", {
+    p_phone: String(form.get("phone") ?? ""),
+    p_company: String(form.get("company") ?? ""),
+    p_name: String(form.get("name") ?? ""),
+  });
+  if (error) return { error: /BLACKLISTED/.test(error.message) ? t("الرقم ده في البلاك ليست") : /bad_phone/.test(error.message) ? t("الرقم مش موبايل مصري") : t("حصلت مشكلة، جرّب تاني") };
+  revalidatePath("/", "layout");
+  return { ok: t("اتعمل ليد واتوزع ✓") };
+}

@@ -14,6 +14,7 @@ const NAV: Item[] = [
   { href: "/admin/analytics", label: "التحليلات", icon: "analytics" , perf: true },
   { href: "/admin/report", label: "التقرير اليومي", icon: "report" , perf: true },
   { href: "/admin/leads", label: "الليدز", icon: "leads", mobile: "tab" },
+  { href: "/admin/inbox", label: "واتساب", icon: "whatsapp" },
   { href: "/admin/agents", label: "الفريق", icon: "team" },
   { href: "/admin/teams", label: "التيمات", icon: "teams" , perf: true },
   { href: "/admin/attendance", label: "الحضور والإجازات", icon: "attendance", also: ["/admin/breaks", "/admin/leaves"] },

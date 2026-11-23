@@ -175,4 +175,5 @@ export const LEAD_SOURCES: Record<string, string> = {
   walk_in: "حضور للمقر",
   import: "ملف Excel",
   crm: "CRM",
+  whatsapp: "واتساب",
 };
