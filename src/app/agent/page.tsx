@@ -123,6 +123,7 @@ export default async function AgentHome() {
             🏆 {t("ترتيبك #{0} · {1} نقطة", myRank, myRow?.points ?? 0)}
           </span>
         )}
+        <Link href="/agent/today" className="btn-ghost">📋 {t("شاشة اليوم")}</Link>
         <Link href="/agent/leads/new" className="btn-ghost">
           <Plus size={18} /> {t("ليد جديد")}
         </Link>
