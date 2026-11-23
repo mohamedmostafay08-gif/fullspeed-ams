@@ -42,79 +42,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
   const items = (Array.isArray(body) ? body : [body]) as InboundLead[];
-  // Each lead costs 3 database calls and a Worker may make 50, so batches stay small.
-  if (items.length > 12) return NextResponse.json({ error: "max 12 leads per request" }, { status: 413 });
+  if (items.length > 500) return NextResponse.json({ error: "max 500 leads per request" }, { status: 413 });
 
-  const db = createAdminClient();
-  const [{ data: companies }, { data: govs }, { data: regions }] = await Promise.all([
-    db.from("companies").select("id, name, slug, is_active"),
-    db.from("governorates").select("id, name_ar, name_en"),
-    db.from("regions").select("id, governorate_id, name_ar").limit(5000),
-  ]);
-  const companyByKey = new Map<string, { id: string; is_active: boolean }>();
-  for (const c of companies ?? []) {
-    companyByKey.set(c.slug, c);
-    companyByKey.set(c.name.toLowerCase(), c);
-  }
-  const govByName = new Map<string, number>();
-  for (const g of govs ?? []) {
-    govByName.set(g.name_ar, g.id);
-    govByName.set(g.name_en.toLowerCase(), g.id);
-  }
-
-  const results = [];
-  for (const item of items) {
-    const externalId = item.external_id != null ? String(item.external_id).slice(0, 100) : null;
+  // Names and phones are checked here; the database does the rest of the batch in one call
+  // (company, governorate, region, duplicates, agent, insert) and answers per lead.
+  const prepared = items.map((item) => {
     const fullName = String(item.full_name ?? item.name ?? "").trim().slice(0, 120);
     const phone = normalizePhone(String(item.phone ?? ""));
-    const company = companyByKey.get(String(item.company ?? "").trim().toLowerCase());
-    if (!fullName || !isValidEgyptMobile(phone) || !company?.is_active) {
-      results.push({ external_id: externalId, status: "rejected", reason: !company?.is_active ? "unknown company" : "invalid name/phone" });
-      continue;
-    }
-
-    const { data: taken } = await db.rpc("lead_phone_taken", { p_company: company.id, p_phone: phone });
-    if (taken) {
-      results.push({ external_id: externalId, status: "duplicate" });
-      continue;
-    }
-
-    const govId = item.governorate ? govByName.get(item.governorate.trim()) ?? govByName.get(item.governorate.trim().toLowerCase()) ?? null : null;
-    const regionId = item.region ? (regions ?? []).find((r) => r.name_ar === item.region!.trim() && (!govId || r.governorate_id === govId))?.id ?? null : null;
-    const { data: agentId } = await db.rpc("pick_agent_for_company", { p_company: company.id });
-
     const fields: Record<string, string> = {};
     for (const [k, v] of Object.entries(item.fields ?? {}).slice(0, 50)) {
       if (v != null && v !== "") fields[k.slice(0, 60)] = String(v).slice(0, 500);
     }
-
-    const source = `crm${item.source ? `:${String(item.source).slice(0, 30)}` : ""}`;
-    const { data, error } = await db
-      .from("leads")
-      .insert({
-        company_id: company.id,
-        agent_id: agentId ?? null,
-        full_name: fullName,
-        phone,
-        governorate_id: govId,
-        region_id: regionId,
-        form_data: fields,
-        source: "crm",
-        external_id: externalId,
-        notes: source !== "crm" ? t("المصدر: {0}", source) : null,
-      })
-      .select("id")
-      .single();
-    if (error) {
-      results.push({
-        external_id: externalId,
-        status: error.code === "23505" ? "duplicate" : error.message.includes("BLACKLISTED") ? "blacklisted" : "error",
-      });
-      continue;
-    }
-    results.push({ external_id: externalId, status: "created", id: data.id, assigned: Boolean(agentId) });
-  }
-
+    return {
+      external_id: item.external_id != null ? String(item.external_id).slice(0, 100) : null,
+      full_name: fullName,
+      phone,
+      valid: Boolean(fullName) && isValidEgyptMobile(phone),
+      company: String(item.company ?? "").trim().toLowerCase(),
+      governorate: item.governorate ? String(item.governorate).trim() : null,
+      region: item.region ? String(item.region).trim() : null,
+      source: item.source ? String(item.source).slice(0, 30) : null,
+      fields,
+    };
+  });
+  const { data: results, error } = await createAdminClient().rpc("crm_import_leads", { p_items: prepared, p_note: t("المصدر: {0}", "{0}") });
+  if (error) return NextResponse.json({ error: "import failed" }, { status: 500 });
   return NextResponse.json({ results });
 }
 
