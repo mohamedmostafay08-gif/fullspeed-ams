@@ -26,7 +26,7 @@ export default async function LivePage() {
     supabase.rpc("leaderboard", { p_from: today, p_to: today }),
     supabase.from("profiles").select("id, full_name, teams!profiles_team_id_fkey(name)").eq("role", "agent").eq("is_active", true),
     supabase.from("agent_breaks").select("agent_id, status, ends_at").in("status", ["pending", "active"]).gte("requested_at", dayStart),
-    db.from("leads").select("agent_id, created_at").eq("status", "new").eq("attempts", 0).not("agent_id", "is", null).limit(5000),
+    db.rpc("waiting_leads_by_agent", { p_slow_before: slowBefore }),
     db.rpc("talk_time", { p_from: today, p_to: today }),
   ]);
   const talk = new Map(((talkRes.data ?? []) as { agent_id: string; minutes: number }[]).map((r) => [r.agent_id, r.minutes]));
@@ -36,14 +36,14 @@ export default async function LivePage() {
   const board = new Map(((boardRes.data ?? []) as BoardRow[]).map((r) => [r.agent_id, r]));
   const teamName = new Map((teamsRes.data ?? []).map((p) => [p.id, (p.teams as unknown as { name: string } | null)?.name ?? null]));
   const breaks = breaksRes.data ?? [];
-  const waiting = waitingRes.data ?? [];
+  const waiting = new Map(((waitingRes.data ?? []) as { agent_id: string; waiting: number; slow: number }[]).map((w) => [w.agent_id, w]));
 
   // team_activity_today already applies "who can I see", so it decides the roster.
   const agents: LiveAgent[] = [...activity.keys()].map((id) => {
     const b = board.get(id);
     const act = activity.get(id)!;
     const br = breaks.find((x) => x.agent_id === id && x.status === "active");
-    const mine = waiting.filter((w) => w.agent_id === id);
+    const mine = waiting.get(id);
     return {
       id,
       name: b?.full_name ?? "—",
@@ -57,8 +57,8 @@ export default async function LivePage() {
       lastNote: me.role === "performance" ? null : act.last_note,
       breakEndsAt: br?.ends_at ?? null,
       breakPending: breaks.some((x) => x.agent_id === id && x.status === "pending"),
-      waiting: mine.length,
-      slow: mine.filter((w) => w.created_at < slowBefore).length,
+      waiting: Number(mine?.waiting ?? 0),
+      slow: Number(mine?.slow ?? 0),
       talkMin: talk.get(id) ?? 0,
     };
   });

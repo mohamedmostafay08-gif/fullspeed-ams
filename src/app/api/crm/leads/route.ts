@@ -8,6 +8,7 @@ import { getT } from "@/lib/i18n/server";
 // Both require the shared secret in the `x-api-key` header.
 
 const NOT_CONFIGURED = { error: "server key not configured" };
+const PAGE_SIZE = 1000;
 
 function authorized(request: NextRequest) {
   const secret = process.env.CRM_WEBHOOK_SECRET;
@@ -76,12 +77,21 @@ export async function GET(request: NextRequest) {
   const since = request.nextUrl.searchParams.get("since");
   if (!since || Number.isNaN(Date.parse(since))) return NextResponse.json({ error: "pass ?since=ISO-timestamp" }, { status: 400 });
 
-  const { data, error } = await createAdminClient()
+  // Pass back next.since and next.after_id to continue: rows that share a timestamp across the
+  // 1000-row page boundary are no longer skipped. Old clients that only send ?since keep working.
+  const afterId = request.nextUrl.searchParams.get("after_id");
+  // Keep the timestamp exactly as given (microseconds included) so the cursor matches the row.
+  const sinceIso = /^[\d\-T:.+Z ]{10,40}$/.test(since) ? since.replace(" ", "+") : new Date(since).toISOString();
+  let q = createAdminClient()
     .from("leads")
     .select("id, external_id, phone, status, hired_at, updated_at, companies(slug), agent:profiles!leads_agent_id_fkey(full_name)")
-    .gt("updated_at", new Date(since).toISOString())
     .order("updated_at")
-    .limit(1000);
+    .order("id")
+    .limit(PAGE_SIZE);
+  q = afterId && /^[0-9a-f-]{36}$/i.test(afterId)
+    ? q.or(`updated_at.gt."${sinceIso}",and(updated_at.eq."${sinceIso}",id.gt.${afterId})`)
+    : q.gt("updated_at", sinceIso);
+  const { data, error } = await q;
   if (error) return NextResponse.json({ error: "query failed" }, { status: 500 });
 
   return NextResponse.json({
@@ -95,5 +105,7 @@ export async function GET(request: NextRequest) {
       hired_at: l.hired_at,
       updated_at: l.updated_at,
     })),
+    has_more: (data ?? []).length === PAGE_SIZE,
+    next: data?.length ? { since: data[data.length - 1].updated_at, after_id: data[data.length - 1].id } : null,
   });
 }

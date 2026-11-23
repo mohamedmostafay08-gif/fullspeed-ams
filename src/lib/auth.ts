@@ -36,11 +36,18 @@ export function cairoToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(new Date());
 }
 
-function cairoOffset(date: string): string {
+function offsetAt(instant: Date): string {
   const name = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Cairo", timeZoneName: "longOffset" })
-    .formatToParts(new Date(`${date}T12:00:00Z`))
+    .formatToParts(instant)
     .find((p) => p.type === "timeZoneName")?.value;
   return name?.replace("GMT", "") || "+02:00";
+}
+
+/** Offset in force when the Cairo day `date` begins. Two passes, so the day daylight-saving time
+ *  starts (clocks jump at midnight) begins at the real first instant, not an hour early. */
+function cairoOffset(date: string): string {
+  const guess = new Date(`${date}T00:00:00${offsetAt(new Date(`${date}T12:00:00Z`))}`);
+  return offsetAt(guess);
 }
 
 /** [start, end) ISO timestamps covering whole Cairo days from..to (Egypt observes DST). */

@@ -245,3 +245,197 @@ end;
 $$;
 revoke execute on function public.crm_import_leads(jsonb, text) from anon, authenticated, public;
 grant execute on function public.crm_import_leads(jsonb, text) to service_role;
+
+-- ═════ 4. Counting in the database instead of downloading thousands of rows ═════
+-- TV screen: today's new leads per company. Row-level security applies (security invoker).
+create or replace function public.leads_by_company(p_start timestamptz, p_end timestamptz)
+returns table (company_id uuid, name text, logo_path text, leads bigint)
+language sql stable security invoker set search_path = public
+as $$
+  select c.id, c.name, c.logo_path, count(*)
+  from public.leads l join public.companies c on c.id = l.company_id
+  where l.created_at >= p_start and l.created_at < p_end
+  group by c.id, c.name, c.logo_path
+$$;
+revoke execute on function public.leads_by_company(timestamptz, timestamptz) from anon, public;
+grant execute on function public.leads_by_company(timestamptz, timestamptz) to authenticated;
+
+-- Live board: per agent, new leads nobody has called yet, and how many of them waited too long.
+create or replace function public.waiting_leads_by_agent(p_slow_before timestamptz)
+returns table (agent_id uuid, waiting bigint, slow bigint)
+language sql stable security invoker set search_path = public
+as $$
+  select l.agent_id, count(*), count(*) filter (where l.created_at < p_slow_before)
+  from public.leads l
+  where l.status = 'new' and l.attempts = 0 and l.agent_id is not null
+  group by l.agent_id
+$$;
+revoke execute on function public.waiting_leads_by_agent(timestamptz) from anon, public;
+grant execute on function public.waiting_leads_by_agent(timestamptz) to authenticated;
+
+-- ═════ 5. Analytics: faster per-day counts, and a light version for comparisons ═════
+create or replace function public.analytics_filtered(
+  p_from date, p_to date,
+  p_team uuid default null, p_company uuid default null, p_agent uuid default null,
+  p_source text default null, p_governorate integer default null)
+returns jsonb
+language plpgsql stable security invoker set search_path = public
+as $$
+declare
+  v_start timestamptz := (p_from::timestamp at time zone 'Africa/Cairo');
+  v_end timestamptz := ((p_to + 1)::timestamp at time zone 'Africa/Cairo');
+  v_result jsonb;
+begin
+  if p_to < p_from or p_to - p_from > 366 then
+    raise exception 'INVALID_RANGE';
+  end if;
+
+  with agents as (
+    select id, full_name, team_id from public.profiles
+    where role = 'agent' and is_active
+      and (p_team is null or team_id = p_team)
+      and (p_agent is null or id = p_agent)
+  ),
+  scope as (
+    select * from public.leads x
+    where (p_company is null or x.company_id = p_company)
+      and (p_source is null or x.source = p_source)
+      and (p_governorate is null or x.governorate_id = p_governorate)
+      and (p_agent is null or x.agent_id = p_agent)
+      and (p_team is null or x.agent_id in (select id from public.profiles where team_id = p_team))
+  ),
+  l as (select * from scope where created_at >= v_start and created_at < v_end),
+  hires as (select * from scope where hired_at >= v_start and hired_at < v_end),
+  touch as (
+    select a.lead_id, min(a.created_at) as t
+    from public.lead_activities a
+    join l on l.id = a.lead_id
+    where a.from_status is not null
+    group by a.lead_id
+  ),
+  brk as (
+    select agent_id,
+           count(*) as taken,
+           sum(extract(epoch from (coalesce(ended_at, least(ends_at, now())) - started_at)) / 60) as minutes
+    from public.agent_breaks
+    where started_at >= v_start and started_at < v_end and status in ('active', 'ended')
+    group by agent_id
+  ),
+  per_agent as (
+    select a.id, a.full_name, a.team_id,
+           count(l.id) as leads,
+           count(l.id) filter (where l.status not in ('new', 'no_answer')) as contacted,
+           count(l.id) filter (where l.status = 'no_answer') as no_answer,
+           count(l.id) filter (where l.status = 'rejected') as rejected,
+           (select count(*) from hires h where h.agent_id = a.id) as hired,
+           round((avg(extract(epoch from (t.t - l.created_at))) / 3600)::numeric, 1) as first_touch_hours,
+           coalesce(max(b.taken), 0) as breaks,
+           round(coalesce(max(b.minutes), 0)::numeric) as break_minutes
+    from agents a
+    left join l on l.agent_id = a.id
+    left join touch t on t.lead_id = l.id
+    left join brk b on b.agent_id = a.id
+    group by a.id, a.full_name, a.team_id
+  )
+  select jsonb_build_object(
+    'totals', (
+      select jsonb_build_object(
+        'leads', count(*),
+        'contacted', count(*) filter (where status not in ('new', 'no_answer')),
+        'no_answer', count(*) filter (where status = 'no_answer'),
+        'rejected', count(*) filter (where status = 'rejected'),
+        'unassigned', count(*) filter (where agent_id is null),
+        'converted', count(*) filter (where status = 'hired')
+      ) from l
+    ),
+    'hired', (select count(*) from hires),
+    'avg_hours_to_hire', (select round((avg(extract(epoch from (hired_at - created_at))) / 3600)::numeric, 1) from hires),
+    'avg_hours_first_touch', (select round((avg(extract(epoch from (t.t - l.created_at))) / 3600)::numeric, 1) from l join touch t on t.lead_id = l.id),
+    'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) as n from l group by status) s),
+    'by_day', (
+      -- Counted once per day group, instead of re-scanning every lead for every day.
+      select coalesce(jsonb_agg(jsonb_build_object('day', g::date, 'leads', coalesce(lc.n, 0), 'hired', coalesce(hc.n, 0)) order by g), '[]'::jsonb)
+      from generate_series(p_from::timestamp, p_to::timestamp, interval '1 day') g
+      left join (select (created_at at time zone 'Africa/Cairo')::date as d, count(*) as n from l group by 1) lc on lc.d = g::date
+      left join (select (hired_at at time zone 'Africa/Cairo')::date as d, count(*) as n from hires group by 1) hc on hc.d = g::date
+    ),
+    'by_source', (
+      select coalesce(jsonb_agg(jsonb_build_object('source', source, 'leads', n, 'hired', h) order by n desc), '[]'::jsonb)
+      from (select source, count(*) as n, count(*) filter (where status = 'hired') as h from l group by source) s
+    ),
+    'by_governorate', (
+      select coalesce(jsonb_agg(jsonb_build_object('name', coalesce(g.name_ar, 'غير محدد'), 'leads', n, 'hired', h) order by n desc), '[]'::jsonb)
+      from (select governorate_id, count(*) as n, count(*) filter (where status = 'hired') as h from l group by governorate_id) s
+      left join public.governorates g on g.id = s.governorate_id
+    ),
+    'by_company', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+               'id', c.id, 'name', c.name, 'logo', c.logo_path, 'leads', coalesce(s.n, 0), 'contacted', coalesce(s.ct, 0),
+               'rejected', coalesce(s.r, 0), 'hired', (select count(*) from hires h where h.company_id = c.id)
+             ) order by coalesce(s.n, 0) desc), '[]'::jsonb)
+      from public.companies c
+      left join (
+        select company_id, count(*) as n,
+               count(*) filter (where status not in ('new', 'no_answer')) as ct,
+               count(*) filter (where status = 'rejected') as r
+        from l group by company_id
+      ) s on s.company_id = c.id
+      where s.n is not null or exists (select 1 from hires h where h.company_id = c.id)
+    ),
+    'by_agent', (select coalesce(jsonb_agg(to_jsonb(pa) order by pa.hired desc, pa.leads desc), '[]'::jsonb) from per_agent pa),
+    'by_team', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+               'id', t.id, 'name', t.name,
+               'agents', (select count(*) from per_agent pa where pa.team_id = t.id),
+               'leads', (select coalesce(sum(leads), 0) from per_agent pa where pa.team_id = t.id),
+               'hired', (select coalesce(sum(hired), 0) from per_agent pa where pa.team_id = t.id)
+             ) order by t.name), '[]'::jsonb)
+      from public.teams t
+      where p_team is null or t.id = p_team
+    )
+  ) into v_result;
+
+  return v_result;
+end;
+$$;
+
+-- The comparisons tab only needs the headline numbers; this skips the per-agent, per-company and
+-- per-day breakdowns that analytics_filtered builds.
+create or replace function public.analytics_totals(
+  p_from date, p_to date,
+  p_team uuid default null, p_company uuid default null, p_agent uuid default null,
+  p_source text default null, p_governorate integer default null)
+returns jsonb
+language sql stable security invoker set search_path = public
+as $$
+  with scope as (
+    select x.id, x.status, x.agent_id, x.created_at, x.hired_at from public.leads x
+    where (p_company is null or x.company_id = p_company)
+      and (p_source is null or x.source = p_source)
+      and (p_governorate is null or x.governorate_id = p_governorate)
+      and (p_agent is null or x.agent_id = p_agent)
+      and (p_team is null or x.agent_id in (select id from public.profiles where team_id = p_team))
+  ),
+  l as (select * from scope where created_at >= public.cairo_day_start(p_from) and created_at < public.cairo_day_start(p_to + 1)),
+  hires as (select * from scope where hired_at >= public.cairo_day_start(p_from) and hired_at < public.cairo_day_start(p_to + 1)),
+  touch as (
+    select a.lead_id, min(a.created_at) as t
+    from public.lead_activities a join l on l.id = a.lead_id
+    where a.from_status is not null
+    group by a.lead_id
+  )
+  select jsonb_build_object(
+    'totals', (select jsonb_build_object(
+        'leads', count(*),
+        'contacted', count(*) filter (where status not in ('new', 'no_answer')),
+        'no_answer', count(*) filter (where status = 'no_answer'),
+        'rejected', count(*) filter (where status = 'rejected'),
+        'unassigned', count(*) filter (where agent_id is null),
+        'converted', count(*) filter (where status = 'hired')) from l),
+    'hired', (select count(*) from hires),
+    'avg_hours_to_hire', (select round((avg(extract(epoch from (hired_at - created_at))) / 3600)::numeric, 1) from hires),
+    'avg_hours_first_touch', (select round((avg(extract(epoch from (t.t - l.created_at))) / 3600)::numeric, 1) from l join touch t on t.lead_id = l.id)
+  )
+$$;
+revoke execute on function public.analytics_totals(date, date, uuid, uuid, uuid, text, integer) from anon, public;
+grant execute on function public.analytics_totals(date, date, uuid, uuid, uuid, text, integer) to authenticated;

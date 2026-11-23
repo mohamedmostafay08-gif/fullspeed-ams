@@ -15,7 +15,7 @@ export default async function TvPage() {
   const [start, end] = cairoRange(today, today);
   const [boardRes, leadsRes, hiresRes, teamsRes] = await Promise.all([
     supabase.rpc("leaderboard", { p_from: today, p_to: today }),
-    db.from("leads").select("company_id, companies(name, logo_path)").gte("created_at", start).lt("created_at", end).limit(10000),
+    db.rpc("leads_by_company", { p_start: start, p_end: end }),
     db
       .from("leads")
       .select("id, full_name, hired_at, companies(name, logo_path), agent:profiles!leads_agent_id_fkey(full_name)")
@@ -28,11 +28,8 @@ export default async function TvPage() {
 
   const board = (boardRes.data ?? []) as BoardRow[];
   const byCompany = new Map<string, { name: string; logo: string | null; leads: number; hired: number }>();
-  for (const l of leadsRes.data ?? []) {
-    const c = l.companies as unknown as { name: string; logo_path: string | null };
-    const row = byCompany.get(l.company_id) ?? { name: c.name, logo: c.logo_path, leads: 0, hired: 0 };
-    row.leads++;
-    byCompany.set(l.company_id, row);
+  for (const l of (leadsRes.data ?? []) as { company_id: string; name: string; logo_path: string | null; leads: number }[]) {
+    byCompany.set(l.company_id, { name: l.name, logo: l.logo_path, leads: Number(l.leads), hired: 0 });
   }
   const hires = (hiresRes.data ?? []).map((h) => {
     const c = h.companies as unknown as { name: string; logo_path: string | null };

@@ -72,11 +72,11 @@ export async function AnalyticsCompare({
   const pick = (id: string): AnalyticsFilters => ({ ...f, [dim === "source" ? "source" : dim]: id });
 
   const [nowRes, prevRes, weeksRes, ...entityRes] = await Promise.all([
-    db.rpc("analytics_filtered", { p_from: from, p_to: to, ...afArgs(f) }),
-    db.rpc("analytics_filtered", { p_from: prevFrom, p_to: prevTo, ...afArgs(f) }),
+    db.rpc("analytics_totals", { p_from: from, p_to: to, ...afArgs(f) }),
+    db.rpc("analytics_totals", { p_from: prevFrom, p_to: prevTo, ...afArgs(f) }),
     db.rpc("analytics_weekly", { p_to: to, p_weeks: 12, ...afArgs(f) }),
     ...ids.flatMap((id) => [
-      db.rpc("analytics_filtered", { p_from: from, p_to: to, ...afArgs(pick(id)) }),
+      db.rpc("analytics_totals", { p_from: from, p_to: to, ...afArgs(pick(id)) }),
       db.rpc("analytics_weekly", { p_to: to, p_weeks: 8, ...afArgs(pick(id)) }),
     ]),
   ]);
