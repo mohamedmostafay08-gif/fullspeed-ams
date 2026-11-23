@@ -65,7 +65,7 @@ export default async function IntegrationsPage() {
   ]);
   const host = (await headers()).get("host") ?? "ams.fullspeedlogistics.com";
   const webhookUrl = `https://${host}/api/meta/webhook`;
-  const EVENT: Record<string, string> = { created: "✅ اتعمل ليد", duplicate: "♻️ مكرر", invalid: "❌ بيانات ناقصة", unmapped: "⏳ الفورم مش مربوط", no_access: "🔒 مقدرناش نقرا البيانات", blacklisted: "⛔ بلاك ليست", error: "⚠️ مشكلة", pending: "…" };
+  const EVENT: Record<string, string> = { created: "✅ اتعمل ليد", duplicate: "♻️ مكرر", invalid: "❌ بيانات ناقصة", unmapped: "⏳ مستني توزيع", dismissed: "🚫 اتجاهل", no_access: "🔒 مقدرناش نقرا البيانات", blacklisted: "⛔ بلاك ليست", error: "⚠️ مشكلة", pending: "…" };
   const fileBytes = Object.values(usage?.files ?? {}).reduce((s, f) => s + Number(f.bytes), 0);
   const MB = 1024 * 1024;
 
@@ -228,6 +228,9 @@ export default async function IntegrationsPage() {
               </StateForm>
               <div>
                 <p className="mb-2 text-sm font-semibold">{t("آخر ليدز جت من فيسبوك")}</p>
+                <p className="mb-2 text-xs text-zinc-500">
+                  {t("ليدز الفورمز اللي مش مربوطة بشركة بتستنى في")} <a href="/admin/facebook-leads" className="font-semibold text-brand-700 underline">{t("ليدز فيسبوك")}</a>
+                </p>
                 {(eventsRes.data ?? []).length === 0 ? (
                   <p className="text-sm text-zinc-500">{t("لسه مفيش")}</p>
                 ) : (
