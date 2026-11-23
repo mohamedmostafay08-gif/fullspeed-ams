@@ -19,15 +19,15 @@ const addDays = (d: string, n: number) => new Date(new Date(`${d}T12:00:00Z`).ge
 const rate = (n: number, d: number) => (d ? (100 * n) / d : null);
 
 /** Every number we compare, how to read it from a result, and whether higher is better. */
-const METRICS: { key: string; label: string; get: (r: Result) => number | null; kind: "count" | "rate" | "hours"; lowerBetter?: boolean }[] = [
-  { key: "leads", label: "ليدز جديدة", get: (r) => r.totals.leads, kind: "count" },
-  { key: "contact", label: "نسبة التواصل", get: (r) => rate(r.totals.contacted, r.totals.leads), kind: "rate" },
-  { key: "hired", label: "اشتغلوا", get: (r) => r.hired, kind: "count" },
-  { key: "conversion", label: "نسبة التحويل", get: (r) => rate(r.totals.converted, r.totals.leads), kind: "rate" },
-  { key: "rejected", label: "نسبة الرفض", get: (r) => rate(r.totals.rejected, r.totals.leads), kind: "rate", lowerBetter: true },
-  { key: "noanswer", label: "نسبة مردش", get: (r) => rate(r.totals.no_answer, r.totals.leads), kind: "rate", lowerBetter: true },
-  { key: "first", label: "متوسط أول رد", get: (r) => r.avg_hours_first_touch, kind: "hours", lowerBetter: true },
-  { key: "tohire", label: "متوسط وقت التعيين", get: (r) => r.avg_hours_to_hire, kind: "hours", lowerBetter: true },
+const METRICS: { key: string; emoji: string; label: string; get: (r: Result) => number | null; kind: "count" | "rate" | "hours"; lowerBetter?: boolean }[] = [
+  { key: "leads", emoji: "📥", label: "ليدز جديدة", get: (r) => r.totals.leads, kind: "count" },
+  { key: "contact", emoji: "💬", label: "نسبة التواصل", get: (r) => rate(r.totals.contacted, r.totals.leads), kind: "rate" },
+  { key: "hired", emoji: "🎉", label: "اشتغلوا", get: (r) => r.hired, kind: "count" },
+  { key: "conversion", emoji: "📈", label: "نسبة التحويل", get: (r) => rate(r.totals.converted, r.totals.leads), kind: "rate" },
+  { key: "rejected", emoji: "🚫", label: "نسبة الرفض", get: (r) => rate(r.totals.rejected, r.totals.leads), kind: "rate", lowerBetter: true },
+  { key: "noanswer", emoji: "📵", label: "نسبة مردش", get: (r) => rate(r.totals.no_answer, r.totals.leads), kind: "rate", lowerBetter: true },
+  { key: "first", emoji: "⚡", label: "متوسط أول رد", get: (r) => r.avg_hours_first_touch, kind: "hours", lowerBetter: true },
+  { key: "tohire", emoji: "⏱️", label: "متوسط وقت التعيين", get: (r) => r.avg_hours_to_hire, kind: "hours", lowerBetter: true },
 ];
 
 function fmt(t: T, kind: "count" | "rate" | "hours", v: number | null) {
@@ -109,7 +109,7 @@ export async function AnalyticsCompare({
             const b = prev ? m.get(prev) : null;
             return (
               <div key={m.key} className="rounded-2xl border border-(--glass-line) bg-(--glass-strong) p-4">
-                <p className="text-sm text-zinc-500">{t(m.label)}</p>
+                <p className="text-sm text-zinc-500">{m.emoji} {t(m.label)}</p>
                 <p className="num mt-1 text-2xl font-extrabold">{fmt(t, m.kind, v)}</p>
                 <p className="mt-1 text-xs text-zinc-500">{t("قبلها: {0}", fmt(t, m.kind, b))}</p>
                 <div className="mt-1"><Delta t={t} kind={m.kind} now={v} before={b} lowerBetter={m.lowerBetter} /></div>
@@ -182,7 +182,7 @@ export async function AnalyticsCompare({
                     const best = nums.length ? (m.lowerBetter ? Math.min(...nums) : Math.max(...nums)) : null;
                     return (
                       <tr key={m.key}>
-                        <td className="font-semibold">{t(m.label)}</td>
+                        <td className="font-semibold">{m.emoji} {t(m.label)}</td>
                         {vals.map((v, i) => (
                           <td key={entities[i].id} className={`num ${v != null && v === best && nums.length > 1 ? "font-extrabold text-emerald-700" : ""}`}>
                             {fmt(t, m.kind, v)} {v != null && v === best && nums.length > 1 ? "🏆" : ""}

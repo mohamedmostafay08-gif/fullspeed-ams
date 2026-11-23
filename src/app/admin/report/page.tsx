@@ -130,11 +130,11 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
       ) : (
         <div className="space-y-6">
           <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <StatCard label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={delta(a.totals.leads, prev?.totals.leads ?? 0)} />
-            <StatCard label={t("مكالمات")} value={calls} icon={PhoneCall} hint={delta(calls, prevCalls)} />
-            <StatCard label={t("مقابلات")} value={interviews} icon={CalendarDays} tone="warn" hint={delta(interviews, prevInterviews)} />
-            <StatCard label={t("اشتغلوا")} value={a.hired} icon={CheckCircle2} tone="good" hint={delta(a.hired, prev?.hired ?? 0)} />
-            <StatCard label={t("نسبة التحويل")} value={pct(a.hired, a.totals.leads)} icon={TrendingUp} tone="brand" hint={t("أول رد في المتوسط: {0}", hours(a.avg_hours_first_touch))} />
+            <StatCard emoji="📥" label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={delta(a.totals.leads, prev?.totals.leads ?? 0)} />
+            <StatCard emoji="📞" label={t("مكالمات")} value={calls} icon={PhoneCall} hint={delta(calls, prevCalls)} />
+            <StatCard emoji="🤝" label={t("مقابلات")} value={interviews} icon={CalendarDays} tone="warn" hint={delta(interviews, prevInterviews)} />
+            <StatCard emoji="🎉" label={t("اشتغلوا")} value={a.hired} icon={CheckCircle2} tone="good" hint={delta(a.hired, prev?.hired ?? 0)} />
+            <StatCard emoji="📈" label={t("نسبة التحويل")} value={pct(a.hired, a.totals.leads)} icon={TrendingUp} tone="brand" hint={t("أول رد في المتوسط: {0}", hours(a.avg_hours_first_touch))} />
           </div>
 
           {period !== "day" && a.by_day && (

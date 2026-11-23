@@ -133,10 +133,10 @@ export default async function AgentHome() {
       </PageHeader>
 
       <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatCard label={t("ليدز النهارده")} value={sum("leads_count")} icon={UserPlus} progress={{ value: sum("leads_count"), target: sum("target_leads") }} />
-        <StatCard label={t("اشتغلوا")} value={sum("hired_count")} tone="good" icon={CheckCircle2} progress={{ value: sum("hired_count"), target: sum("target_hired") }} />
-        <StatCard label={t("محتاجين متابعة")} value={followRes.count ?? 0} tone="brand" icon={BellRing} hint={t("جديد + مردش")} />
-        <StatCard label={t("تاسكات مفتوحة")} value={tasks.length} tone="warn" icon={ClipboardList} hint={t("من التيم ليدر")} />
+        <StatCard emoji="📥" label={t("ليدز النهارده")} value={sum("leads_count")} icon={UserPlus} progress={{ value: sum("leads_count"), target: sum("target_leads") }} />
+        <StatCard emoji="🎉" label={t("اشتغلوا")} value={sum("hired_count")} tone="good" icon={CheckCircle2} progress={{ value: sum("hired_count"), target: sum("target_hired") }} />
+        <StatCard emoji="🔔" label={t("محتاجين متابعة")} value={followRes.count ?? 0} tone="brand" icon={BellRing} hint={t("جديد + مردش")} />
+        <StatCard emoji="📝" label={t("تاسكات مفتوحة")} value={tasks.length} tone="warn" icon={ClipboardList} hint={t("من التيم ليدر")} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">

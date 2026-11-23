@@ -284,7 +284,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* The colour field the glass sits on: soft light pools, drifting slowly on big screens. */
+/* The colour field the glass sits on: soft light pools. It stays still: moving it under blurred
+   glass forces the browser to re-blur every card on every frame, which made the app stutter. */
 body::before {
   content: "";
   position: fixed;
@@ -295,12 +296,6 @@ body::before {
     radial-gradient(38% 42% at 88% 6%, var(--mesh-1), transparent 70%),
     radial-gradient(40% 45% at 12% 92%, var(--mesh-2), transparent 70%),
     radial-gradient(30% 35% at 6% 30%, var(--mesh-3), transparent 70%);
-}
-@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
-  body::before { animation: mesh-drift 28s ease-in-out infinite alternate; }
-}
-@keyframes mesh-drift {
-  to { transform: translate3d(3%, 2%, 0) scale(1.05); }
 }
 
 /* Glass surfaces. Phones get a more solid pane and less blur: smoother scrolling on cheap devices. */
@@ -374,10 +369,19 @@ body::before {
     @apply border-ink bg-ink text-white hover:border-ink;
   }
   .data-table {
-    @apply w-full text-start text-sm;
+    @apply w-full text-center text-sm;
+  }
+  /* Data sits centred; the first column (usually a name) stays on the reading edge. */
+  .data-table th,
+  .data-table td {
+    text-align: center;
+  }
+  .data-table th:first-child,
+  .data-table td:first-child {
+    text-align: start;
   }
   .data-table th {
-    @apply border-b border-(--glass-line) px-3 py-2.5 text-xs font-semibold tracking-wide text-zinc-500;
+    @apply whitespace-nowrap border-b border-(--glass-line) px-3 py-2.5 text-xs font-semibold tracking-wide text-zinc-500;
   }
   .data-table td {
     @apply border-b border-(--glass-line) px-3 py-3 align-middle;
@@ -494,4 +498,54 @@ body::before {
 
 html {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Page transitions ──────────────────────────────────────────────
+   Navigation crossfades the content area only; the sidebar, header and
+   bottom bar stay put. Old page leaves fast, new one settles in gently. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(app-side),
+::view-transition-group(app-header),
+::view-transition-group(app-bottom) {
+  animation: none;
+  z-index: 50;
+}
+::view-transition-old(app-side),
+::view-transition-old(app-header),
+::view-transition-old(app-bottom) {
+  display: none;
+}
+::view-transition-new(app-side),
+::view-transition-new(app-header),
+::view-transition-new(app-bottom) {
+  animation: none;
+}
+::view-transition-group(.page) {
+  animation: none;
+}
+::view-transition-old(.page) {
+  animation: 110ms ease-out both vt-out;
+}
+::view-transition-new(.page) {
+  animation: 240ms cubic-bezier(0.2, 0.7, 0.2, 1) 70ms both vt-in;
+}
+@keyframes vt-out {
+  to { opacity: 0; }
+}
+@keyframes vt-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

@@ -189,12 +189,12 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
       {toolbar}
 
       <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 xl:gap-4">
-        <StatCard label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={t("{0} مش متوزعين", a.totals.unassigned)} />
-        <StatCard label={t("اتكلّموا")} value={pct(a.totals.contacted, a.totals.leads)} icon={PhoneCall} tone="brand" hint={t("{0} ليد · {1} مردوش", a.totals.contacted, a.totals.no_answer)} />
-        <StatCard label={t("اشتغلوا في الفترة")} value={a.hired} icon={CheckCircle2} tone="good" hint={t("تحويل {0}", pct(a.totals.converted, a.totals.leads))} />
-        <StatCard label={t("اترفضوا")} value={a.totals.rejected} icon={Filter} tone="warn" hint={pct(a.totals.rejected, a.totals.leads)} />
-        <StatCard label={t("متوسط أول رد")} value={hours(t, a.avg_hours_first_touch)} icon={Timer} hint={t("من التسجيل لأول تغيير حالة")} />
-        <StatCard label={t("متوسط وقت التعيين")} value={hours(t, a.avg_hours_to_hire)} icon={Clock} hint={t("بريكات: {0} دقيقة", Math.round(totalBreakMin))} />
+        <StatCard emoji="📥" label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={t("{0} مش متوزعين", a.totals.unassigned)} />
+        <StatCard emoji="💬" label={t("اتكلّموا")} value={pct(a.totals.contacted, a.totals.leads)} icon={PhoneCall} tone="brand" hint={t("{0} ليد · {1} مردوش", a.totals.contacted, a.totals.no_answer)} />
+        <StatCard emoji="🎉" label={t("اشتغلوا في الفترة")} value={a.hired} icon={CheckCircle2} tone="good" hint={t("تحويل {0}", pct(a.totals.converted, a.totals.leads))} />
+        <StatCard emoji="🚫" label={t("اترفضوا")} value={a.totals.rejected} icon={Filter} tone="warn" hint={pct(a.totals.rejected, a.totals.leads)} />
+        <StatCard emoji="⚡" label={t("متوسط أول رد")} value={hours(t, a.avg_hours_first_touch)} icon={Timer} hint={t("من التسجيل لأول تغيير حالة")} />
+        <StatCard emoji="⏱️" label={t("متوسط وقت التعيين")} value={hours(t, a.avg_hours_to_hire)} icon={Clock} hint={t("بريكات: {0} دقيقة", Math.round(totalBreakMin))} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">

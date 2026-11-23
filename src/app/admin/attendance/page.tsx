@@ -131,9 +131,9 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
       </form>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label={t("حاضرين في المعاد")} value={count("on_time")} tone="good" icon={CalendarCheck} />
-        <StatCard label={t("وصلوا متأخر")} value={count("late")} tone="warn" icon={Clock} />
-        <StatCard label={holidayToday ? t("إجازة رسمية: {0}", holidayToday) : isOffToday ? t("النهارده إجازة") : t("لسه مجوش")} value={isOffToday ? "—" : count("absent")} icon={CalendarCheck} />
+        <StatCard emoji="✅" label={t("حاضرين في المعاد")} value={count("on_time")} tone="good" icon={CalendarCheck} />
+        <StatCard emoji="⏰" label={t("وصلوا متأخر")} value={count("late")} tone="warn" icon={Clock} />
+        <StatCard emoji="🌴" label={holidayToday ? t("إجازة رسمية: {0}", holidayToday) : isOffToday ? t("النهارده إجازة") : t("لسه مجوش")} value={isOffToday ? "—" : count("absent")} icon={CalendarCheck} />
       </div>
 
       <section className="card mt-6">
@@ -149,7 +149,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
                   <tr key={b.id}>
                     <td className="font-semibold"><Link href={`/admin/agents/${b.id}`} className="hover:underline">{b.full_name}</Link></td>
                     <td>
-                      <span className={`badge ${STATE[b.state].cls}`}>{t(STATE[b.state].label)}</span>
+                      <span className={`badge ${STATE[b.state].cls}`}>{({ on_time: "✅", late: "⏰", absent: "❌", leave: "🌴", not_yet: "" } as Record<string, string>)[b.state]} {t(STATE[b.state].label)}</span>
                       {b.permit && <span className="badge ms-1 bg-violet-100 text-violet-800">⏱️ {b.permit}</span>}
                     </td>
                     <td className="num">{cairoTime(b.a?.first_seen ?? null)}</td>

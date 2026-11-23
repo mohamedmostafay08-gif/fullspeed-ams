@@ -6,7 +6,7 @@ import { StateForm } from "@/components/state-form";
 import { Empty } from "@/components/ui";
 import { requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ROLE_LABELS, assignableRoles, type Role } from "@/lib/types";
+import { ROLE_EMOJI, ROLE_LABELS, assignableRoles, type Role } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 
 export default async function AgentsPage({ searchParams }: PageProps<"/admin/agents">) {
@@ -100,7 +100,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
               {list.map((p) => (
                 <tr key={p.id} className={p.is_active ? "" : "opacity-50"}>
                   <td><Link href={`/admin/agents/${p.id}`} className="font-medium hover:text-brand-700">{p.full_name}</Link></td>
-                  <td>{t(ROLE_LABELS[p.role as Role])}</td>
+                  <td>{ROLE_EMOJI[p.role]} {t(ROLE_LABELS[p.role as Role])}</td>
                   <td className="text-zinc-500">{p.team_id ? teamName.get(p.team_id) : "—"}</td>
                   <td className="text-zinc-500">
                     {p.location_id ? locationName.get(p.location_id) : "—"}
@@ -108,7 +108,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
                   </td>
                   <td className="tabular-nums">{companyCount.get(p.id) ?? 0}</td>
                   <td className="text-zinc-500"><span dir="ltr">{p.phone ?? "—"}</span></td>
-                  <td>{p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">{t("نشط")}</span> : <span className="badge bg-zinc-200">{t("موقوف")}</span>}</td>
+                  <td>{p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">🟢 {t("نشط")}</span> : <span className="badge bg-zinc-200">⏸️ {t("موقوف")}</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -131,7 +131,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  {p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">{t("نشط")}</span> : <span className="badge bg-zinc-200">{t("موقوف")}</span>}
+                  {p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">🟢 {t("نشط")}</span> : <span className="badge bg-zinc-200">⏸️ {t("موقوف")}</span>}
                   <span className="text-[11px] text-zinc-400">{t("{0} شركة", companyCount.get(p.id) ?? 0)}</span>
                 </div>
               </Link>

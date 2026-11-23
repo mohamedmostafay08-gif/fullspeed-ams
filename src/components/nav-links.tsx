@@ -173,6 +173,7 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
   return (
     <>
       <nav
+        style={{ viewTransitionName: "app-bottom" }}
         className="glass fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+10px)] z-40 flex items-center gap-1 rounded-[26px] p-1.5 shadow-[0_10px_40px_-10px_rgba(11,16,32,0.35)] backdrop-blur-xl md:hidden"
         aria-label={t("القائمة")}
       >

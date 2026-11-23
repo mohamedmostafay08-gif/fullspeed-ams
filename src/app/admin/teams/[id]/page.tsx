@@ -100,10 +100,10 @@ export default async function TeamPage({ params, searchParams }: PageProps<"/adm
       </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label={t("الليدز")} value={team.leads} icon={Users} hint={team.targetLeads ? t("من تارجت {0}", team.targetLeads) : undefined} />
-        <StatCard label={t("المكالمات")} value={team.calls} icon={PhoneCall} />
-        <StatCard label={t("المقابلات")} value={team.interviews} tone="warn" />
-        <StatCard label={t("اشتغلوا")} value={team.hired} icon={CheckCircle2} tone="good" hint={team.targetHired ? t("{0} من التارجت ({1})", pct(team.hired, team.targetHired), team.targetHired) : undefined} />
+        <StatCard emoji="📥" label={t("الليدز")} value={team.leads} icon={Users} hint={team.targetLeads ? t("من تارجت {0}", team.targetLeads) : undefined} />
+        <StatCard emoji="📞" label={t("المكالمات")} value={team.calls} icon={PhoneCall} />
+        <StatCard emoji="🤝" label={t("المقابلات")} value={team.interviews} tone="warn" />
+        <StatCard emoji="🎉" label={t("اشتغلوا")} value={team.hired} icon={CheckCircle2} tone="good" hint={team.targetHired ? t("{0} من التارجت ({1})", pct(team.hired, team.targetHired), team.targetHired) : undefined} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">

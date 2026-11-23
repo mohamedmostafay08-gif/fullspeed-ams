@@ -74,6 +74,25 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   rejected: "مرفوض",
 };
 
+/** A glanceable emoji next to each lead status. */
+export const LEAD_STATUS_EMOJI: Record<LeadStatus, string> = {
+  new: "🆕",
+  no_answer: "📵",
+  contacted: "📞",
+  interview: "🤝",
+  documents: "📄",
+  hired: "🎉",
+  rejected: "🚫",
+};
+
+export const ROLE_EMOJI: Record<string, string> = {
+  admin: "👑",
+  manager: "🧭",
+  team_leader: "⭐",
+  agent: "🎧",
+  performance: "📊",
+};
+
 export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   new: "bg-sky-100 text-sky-800",
   no_answer: "bg-zinc-200 text-zinc-700",

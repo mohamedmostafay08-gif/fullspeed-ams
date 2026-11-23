@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Inbox, type LucideIcon } from "lucide-react";
 import { CountUp } from "@/components/count-up";
 import { Tr, When } from "@/components/tr";
-import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
+import { LEAD_STATUS_COLORS, LEAD_STATUS_EMOJI, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
 export function CompanyLogo({ name, src, size = 36 }: { name: string; src: string | null; size?: number }) {
   if (!src) {
@@ -32,6 +32,7 @@ export function StatCard({
   hint,
   tone = "default",
   icon: Icon,
+  emoji,
   progress,
 }: {
   label: string;
@@ -39,6 +40,7 @@ export function StatCard({
   hint?: string;
   tone?: Tone;
   icon?: LucideIcon;
+  emoji?: string;
   progress?: { value: number; target: number };
 }) {
   const t = TONE[tone];
@@ -46,7 +48,9 @@ export function StatCard({
     <div className="group card lift flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-zinc-500">{label}</p>
-        {Icon && (
+        {emoji ? (
+          <span aria-hidden className={`grid size-9 place-items-center rounded-xl text-lg transition-transform duration-300 group-hover:scale-110 ${t.icon}`}>{emoji}</span>
+        ) : Icon && (
           <span className={`grid size-9 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${t.icon}`}>
             <Icon size={18} />
           </span>
@@ -76,7 +80,7 @@ export function Progress({ value, target }: { value: number; target: number }) {
 export function StatusBadge({ status }: { status: LeadStatus }) {
   return (
     <span className={`badge ${LEAD_STATUS_COLORS[status]}`}>
-      <span className="size-1.5 rounded-full bg-current opacity-70" />
+      <span aria-hidden>{LEAD_STATUS_EMOJI[status]}</span>
       <Tr text={LEAD_STATUS_LABELS[status]} />
     </span>
   );

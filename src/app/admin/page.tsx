@@ -10,7 +10,7 @@ import { cairoRange, cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { MISSING_SERVICE_KEY, hasServiceKey } from "@/lib/supabase/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
+import { LEAD_STATUS_COLORS, LEAD_STATUS_EMOJI, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 
 type Row = { agent_id: string; company_id: string; leads_count: number; hired_count: number; target_leads: number; target_hired: number };
@@ -138,10 +138,10 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
       )}
 
       <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatCard label={t("ليدز جديدة")} value={total.leads} icon={UserPlus} progress={{ value: total.leads, target: total.tLeads }} />
-        <StatCard label={t("اشتغلوا")} value={total.hired} tone="good" icon={CheckCircle2} progress={{ value: total.hired, target: total.tHired }} />
-        <StatCard label={t("نسبة التحويل")} value={`${conversion}%`} tone="brand" icon={TrendingUp} hint={t("اشتغلوا ÷ ليدز")} />
-        <StatCard label={t("أجنتس نشطين")} value={agents.length} icon={Users} hint={t("{0} تيم", teamName.size)} />
+        <StatCard emoji="📥" label={t("ليدز جديدة")} value={total.leads} icon={UserPlus} progress={{ value: total.leads, target: total.tLeads }} />
+        <StatCard emoji="🎉" label={t("اشتغلوا")} value={total.hired} tone="good" icon={CheckCircle2} progress={{ value: total.hired, target: total.tHired }} />
+        <StatCard emoji="📈" label={t("نسبة التحويل")} value={`${conversion}%`} tone="brand" icon={TrendingUp} hint={t("اشتغلوا ÷ ليدز")} />
+        <StatCard emoji="👥" label={t("أجنتس نشطين")} value={agents.length} icon={Users} hint={t("{0} تيم", teamName.size)} />
       </div>
 
       {forecastRes.data && <div className="mt-6"><ForecastCard f={forecastRes.data as Forecast} /></div>}
@@ -192,7 +192,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
                 {(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map((s) =>
                   statusCounts.get(s) ? (
                     <li key={s} className="flex items-center justify-between">
-                      <Link href={`/admin/leads?status=${s}&from=${from}&to=${to}`} className={`badge ${LEAD_STATUS_COLORS[s]} hover:opacity-80`}>{t(LEAD_STATUS_LABELS[s])}</Link>
+                      <Link href={`/admin/leads?status=${s}&from=${from}&to=${to}`} className={`badge ${LEAD_STATUS_COLORS[s]} hover:opacity-80`}>{LEAD_STATUS_EMOJI[s]} {t(LEAD_STATUS_LABELS[s])}</Link>
                       <span className="num text-sm font-semibold">{statusCounts.get(s)}</span>
                     </li>
                   ) : null,

@@ -23,7 +23,9 @@ export type Leave = {
 export const LEAVE_SELECT =
   "id, user_id, kind, start_date, end_date, days, reason, status, decision_note, created_at, person:profiles!leave_requests_user_id_fkey(full_name), decider:profiles!leave_requests_decided_by_fkey(full_name)";
 
+export const LEAVE_EMOJI: Record<Leave["kind"], string> = { annual: "🏖️", casual: "⚡", sick: "🤒", unpaid: "💸" };
 export const LEAVE_KINDS: Record<Leave["kind"], string> = { annual: "اعتيادي", casual: "عارضة", sick: "مرضي", unpaid: "بدون مرتب" };
+const STATUS_EMOJI: Record<Leave["status"], string> = { pending: "⏳", approved: "✅", rejected: "❌", cancelled: "🚫" };
 const STATUS: Record<Leave["status"], { label: string; cls: string }> = {
   pending: { label: "مستني الرد", cls: "bg-amber-100 text-amber-800" },
   approved: { label: "اتوافق عليها", cls: "bg-emerald-100 text-emerald-800" },
@@ -78,8 +80,8 @@ export async function MyLeaves({ rows }: { rows: Leave[] }) {
             <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div>
                 <p className="font-semibold">
-                  <span className={`badge me-2 ${STATUS[l.status].cls}`}>{t(STATUS[l.status].label)}</span>
-                  {t(LEAVE_KINDS[l.kind])} · <span className="num">{range(l)}</span> · {t("{0} يوم", l.days)}
+                  <span className={`badge me-2 ${STATUS[l.status].cls}`}>{STATUS_EMOJI[l.status]} {t(STATUS[l.status].label)}</span>
+                  {LEAVE_EMOJI[l.kind]} {t(LEAVE_KINDS[l.kind])} · <span className="num">{range(l)}</span> · {t("{0} يوم", l.days)}
                 </p>
                 <p className="text-xs text-zinc-500">
                   {l.reason ?? ""}
@@ -113,7 +115,7 @@ export async function LeavesToDecide({ rows, load = {} }: { rows: Leave[]; load?
           {rows.map((l) => (
             <li key={l.id} className="grid gap-3 py-4 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
-                <p className="font-semibold">{l.person?.full_name ?? "—"} <span className="badge ms-2 bg-sky-100 text-sky-800">{t(LEAVE_KINDS[l.kind])}</span></p>
+                <p className="font-semibold">{l.person?.full_name ?? "—"} <span className="badge ms-2 bg-sky-100 text-sky-800">{LEAVE_EMOJI[l.kind]} {t(LEAVE_KINDS[l.kind])}</span></p>
                 <p className="mt-1 text-sm"><span className="num">{range(l)}</span> · {t("{0} يوم", l.days)}{l.reason ? ` · «${l.reason}»` : ""}</p>
                 <p className="mt-1 text-xs text-zinc-500">{t("اتطلبت")} {formatDate(l.created_at)}</p>
                 {load[l.id] && load[l.id].team > 1 && (load[l.id].peak + 1) * 2 > load[l.id].team && (
@@ -151,10 +153,10 @@ export async function LeavesTable({ rows, title }: { rows: Leave[]; title: strin
               {rows.map((l) => (
                 <tr key={l.id}>
                   <td className="font-semibold">{l.person?.full_name ?? "—"}</td>
-                  <td>{t(LEAVE_KINDS[l.kind])}</td>
+                  <td>{LEAVE_EMOJI[l.kind]} {t(LEAVE_KINDS[l.kind])}</td>
                   <td className="num">{l.days}</td>
                   <td className="num text-sm">{range(l)}</td>
-                  <td><span className={`badge ${STATUS[l.status].cls}`}>{t(STATUS[l.status].label)}</span></td>
+                  <td><span className={`badge ${STATUS[l.status].cls}`}>{STATUS_EMOJI[l.status]} {t(STATUS[l.status].label)}</span></td>
                   <td className="text-sm text-zinc-600">{l.decider?.full_name ?? "—"}{l.decision_note ? ` · «${l.decision_note}»` : ""}</td>
                 </tr>
               ))}
@@ -228,7 +230,7 @@ export async function MyPermits({ rows }: { rows: Permit[] }) {
           <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
             <div>
               <p className="font-semibold">
-                <span className={`badge me-2 ${STATUS[p.status].cls}`}>{t(STATUS[p.status].label)}</span>
+                <span className={`badge me-2 ${STATUS[p.status].cls}`}>{STATUS_EMOJI[p.status]} {t(STATUS[p.status].label)}</span>
                 {t(permitLabel(p), p.at_time.slice(0, 5))} · <span className="num">{p.day}</span>
               </p>
               <p className="text-xs text-zinc-500">

@@ -67,9 +67,9 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
       </PageHeader>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label={t("ليدز آخر 7 أيام")} value={weekLeads} />
-        <StatCard label={t("اشتغلوا آخر 7 أيام")} value={weekHired} tone="good" />
-        <StatCard label={t("الشركات المتعين عليها")} value={assigned.size} tone="brand" />
+        <StatCard emoji="📥" label={t("ليدز آخر 7 أيام")} value={weekLeads} />
+        <StatCard emoji="🎉" label={t("اشتغلوا آخر 7 أيام")} value={weekHired} tone="good" />
+        <StatCard emoji="🏢" label={t("الشركات المتعين عليها")} value={assigned.size} tone="brand" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
