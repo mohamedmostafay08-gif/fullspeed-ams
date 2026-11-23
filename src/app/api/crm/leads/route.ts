@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
   const items = (Array.isArray(body) ? body : [body]) as InboundLead[];
-  if (items.length > 500) return NextResponse.json({ error: "max 500 leads per request" }, { status: 413 });
+  // Each lead costs 3 database calls and a Worker may make 50, so batches stay small.
+  if (items.length > 12) return NextResponse.json({ error: "max 12 leads per request" }, { status: 413 });
 
   const db = createAdminClient();
   const [{ data: companies }, { data: govs }, { data: regions }] = await Promise.all([

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
 import { History, ShieldCheck } from "lucide-react";
 import { cancelRequest, decideRequest } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
@@ -65,17 +66,17 @@ export default async function RequestsPage() {
                   <p className="mt-1 text-xs text-zinc-500">{t("طلب من {0}", r.requester?.full_name ?? "—")} · {formatDate(r.created_at)}</p>
                 </div>
                 {isAdmin ? (
-                  <form action={decideRequest} className="flex flex-wrap items-center gap-2">
+                  <ActionForm action={decideRequest} className="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="id" value={r.id} />
                     <input name="note" placeholder={t("ملاحظة (اختياري)")} className="input py-2 sm:w-56" />
                     <button name="decision" value="approve" className="btn-primary">{t("موافق")}</button>
                     <button name="decision" value="reject" className="btn-ghost text-rose-600">{t("رفض")}</button>
-                  </form>
+                  </ActionForm>
                 ) : (
-                  <form action={cancelRequest}>
+                  <ActionForm action={cancelRequest}>
                     <input type="hidden" name="id" value={r.id} />
                     <button className="btn-ghost text-zinc-600">{t("إلغاء الطلب")}</button>
-                  </form>
+                  </ActionForm>
                 )}
               </li>
             ))}

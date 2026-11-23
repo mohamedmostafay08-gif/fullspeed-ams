@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
 import { notFound } from "next/navigation";
 import { saveAssignments, saveTargets, updateUser } from "@/app/admin/actions";
 import { requestAccountChange } from "@/app/actions/management";
@@ -75,7 +76,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="card">
           <h2 className="mb-3 font-semibold">{t("الشركات المتعين عليها")}</h2>
-          <form action={saveAssignments} className="space-y-3">
+          <ActionForm action={saveAssignments} className="space-y-3">
             <input type="hidden" name="agent_id" value={agent.id} />
             {teamCompanyIds && (
               <p className="text-xs text-zinc-500">{t("بتظهر شركات التيم بس — شركات التيم بيحددها المدير أو الأدمن من صفحة التيم.")}</p>
@@ -91,7 +92,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
               ))}
             </div>
             <button className="btn-primary">{t("حفظ التعيينات")}</button>
-          </form>
+          </ActionForm>
         </section>
 
         <section className="card">
@@ -105,7 +106,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
           {assignedCompanies.length === 0 ? (
             <Empty>{t("عيّن شركات الأول")}</Empty>
           ) : (
-            <form action={saveTargets} className="space-y-3">
+            <ActionForm action={saveTargets} className="space-y-3">
               <input type="hidden" name="agent_id" value={agent.id} />
               <input type="hidden" name="date" value={date} />
               <table className="data-table">
@@ -136,7 +137,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                 <input type="checkbox" name="apply_week" className="accent-brand-600" /> {t("طبّق نفس التارجت على الـ 7 أيام الجاية")}
               </label>
               <button className="btn-primary">{t("حفظ التارجت")}</button>
-            </form>
+            </ActionForm>
           )}
         </section>
 
@@ -183,7 +184,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
         {canManage && (() => { const self = agent.id === me.id; const activeLocked = self || me.role !== "admin"; return (
           <section className="card lg:col-span-2">
             <h2 className="card-title">{t("بيانات الحساب ومكان الشغل")}</h2>
-            <form action={updateUser} className="grid gap-3 sm:grid-cols-3">
+            <ActionForm action={updateUser} className="grid gap-3 sm:grid-cols-3">
               <input type="hidden" name="id" value={agent.id} />
               <div>
                 <label className="label">{t("الاسم")}</label>
@@ -229,7 +230,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                 <p className="text-xs text-zinc-500 sm:col-span-3">{t("إيقاف الحساب للأدمن بس — وتقدر تخلّي الموظف تيم ليدر أو أجنت.")}</p>
               )}
               <div className="sm:col-span-3"><button className="btn-primary">{t("حفظ")}</button></div>
-            </form>
+            </ActionForm>
           </section>
         ); })()}
 

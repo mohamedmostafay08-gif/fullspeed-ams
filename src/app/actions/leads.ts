@@ -124,7 +124,7 @@ export async function recordCall(form: FormData): Promise<CallResult> {
   const supabase = await createClient();
   const id = String(form.get("id") ?? "");
   const outcome = String(form.get("outcome") ?? "") as CallOutcome;
-  if (!(outcome in OUTCOME_NOTE)) return { error: t("حصلت مشكلة، جرّب تاني") };
+  if (!Object.hasOwn(OUTCOME_NOTE, outcome)) return { error: t("حصلت مشكلة، جرّب تاني") };
 
   const { data: lead } = await supabase.from("leads").select("id, status, attempts").eq("id", id).maybeSingle();
   if (!lead) return { error: t("مقدرتش أعدل الليد") };
@@ -148,7 +148,7 @@ export async function recordCall(form: FormData): Promise<CallResult> {
   }
   if (outcome === "rejected") {
     const reason = String(form.get("reason") ?? "");
-    if (!(reason in REJECT_REASONS)) return { error: t("اختار سبب الرفض") };
+    if (!Object.hasOwn(REJECT_REASONS, reason)) return { error: t("اختار سبب الرفض") };
     patch.status = "rejected";
     patch.reject_reason = reason;
   }

@@ -49,7 +49,11 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
   const sp = await searchParams;
   const period: Period = sp.period === "week" || sp.period === "month" ? sp.period : "day";
   const anchor = day;
-  const [from, to, prevFrom, prevTo] = range(period, anchor);
+  const [from, fullTo, prevFrom, fullPrevTo] = range(period, anchor);
+  // A week or month still in progress is compared with the same number of days of the one before.
+  const to = fullTo > today ? today : fullTo;
+  const elapsed = Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
+  const prevTo = to === fullTo ? fullPrevTo : [shift(prevFrom, elapsed), fullPrevTo].sort()[0];
   const supabase = await createClient();
   const db = me.role === "performance" ? createAdminClient() : supabase;
   const af = readAnalyticsFilters(sp);

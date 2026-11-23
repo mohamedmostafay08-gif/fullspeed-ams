@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
 import { notFound, redirect } from "next/navigation";
 import { Building2, CheckCircle2, PhoneCall, Target, UserPlus, Users } from "lucide-react";
 import { saveTeamCompanies, saveTeamTargets } from "@/app/admin/actions";
@@ -180,7 +181,7 @@ export default async function TeamPage({ params, searchParams }: PageProps<"/adm
         <section className="card mt-6">
           <h2 className="card-title"><Building2 size={18} className="text-zinc-500" /> {t("شركات التيم")}</h2>
           <p className="mb-3 text-sm text-zinc-500">{t("التيم ليدر بيوزّع الشركات دي على أجنتس التيم. لو شلت شركة، بتتشال من أجنتس التيم كمان.")}</p>
-          <form action={saveTeamCompanies} className="space-y-3">
+          <ActionForm action={saveTeamCompanies} className="space-y-3">
             <input type="hidden" name="team_id" value={id} />
             <div className="grid max-h-96 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
               {companies.map((c) => (
@@ -192,7 +193,7 @@ export default async function TeamPage({ params, searchParams }: PageProps<"/adm
               ))}
             </div>
             <button className="btn-primary">{t("حفظ شركات التيم")}</button>
-          </form>
+          </ActionForm>
         </section>
       )}
     </>

@@ -12,7 +12,7 @@ export function readAnalyticsFilters(sp: Record<string, string | string[] | unde
     team: UUID_RE.test(s("team") ?? "") ? s("team") : undefined,
     company: UUID_RE.test(s("company") ?? "") ? s("company") : undefined,
     agent: UUID_RE.test(s("agent") ?? "") ? s("agent") : undefined,
-    source: s("source") && s("source")! in LEAD_SOURCES ? s("source") : undefined,
+    source: s("source") && Object.hasOwn(LEAD_SOURCES, s("source")!) ? s("source") : undefined,
     gov: /^\d{1,4}$/.test(s("gov") ?? "") ? s("gov") : undefined,
   };
 }

@@ -74,7 +74,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
   return done("/admin/agents", t("تم إنشاء حساب {0}", fullName));
 }
 
-export async function updateUser(form: FormData) {
+export async function updateUser(_prev: ActionState, form: FormData): Promise<ActionState> {
   const me = await requireRole(...MANAGERS);
   const supabase = await createClient();
   const id = str(form, "id");
@@ -86,8 +86,8 @@ export async function updateUser(form: FormData) {
   const activeLocked = self || me.role !== "admin";
   const { data: target } = await supabase.from("profiles").select("role").eq("id", id).maybeSingle();
   // A manager can't touch other managers or admins (the database enforces the same rule).
-  if (!target || (!self && !canManageRole(me.role, target.role as Role))) return;
-  await supabase
+  if (!target || (!self && !canManageRole(me.role, target.role as Role))) return { error: "مش مسموحلك تعدّل الحساب ده" };
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({
       full_name: str(form, "full_name"),
@@ -100,12 +100,15 @@ export async function updateUser(form: FormData) {
       allow_anywhere: form.get("allow_anywhere") === "on",
     })
     .eq("id", id);
+  if (profileError) return { error: "مقدرتش أحفظ — جرّب تاني" };
 
   const password = str(form, "password");
   if (password.length >= 8 && hasServiceKey()) {
-    await createAdminClient().auth.admin.updateUserById(id, { password });
+    const { error: pwError } = await createAdminClient().auth.admin.updateUserById(id, { password });
+    if (pwError) return { error: "البيانات اتحفظت بس كلمة السر متغيرتش" };
   }
   revalidatePath("/admin", "layout");
+  return { ok: "اتحفظ ✓" };
 }
 
 export async function createTeam(_prev: ActionState, form: FormData): Promise<ActionState> {
@@ -122,18 +125,20 @@ export async function createTeam(_prev: ActionState, form: FormData): Promise<Ac
   return done("/admin/agents", t("تم إنشاء التيم"));
 }
 
-export async function updateTeam(form: FormData) {
+export async function updateTeam(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...MANAGERS);
   const supabase = await createClient();
   const id = str(form, "id");
   const leaderId = str(form, "leader_id") || null;
-  await supabase.from("teams").update({ name: str(form, "name"), leader_id: leaderId }).eq("id", id);
+  const { error } = await supabase.from("teams").update({ name: str(form, "name"), leader_id: leaderId }).eq("id", id);
+  if (error) return { error: "مقدرتش أحفظ — جرّب تاني" };
   if (leaderId) await supabase.from("profiles").update({ team_id: id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
   revalidatePath("/admin", "layout");
+  return { ok: "اتحفظ ✓" };
 }
 
 // ───────── Team companies ─────────
-export async function saveTeamCompanies(form: FormData) {
+export async function saveTeamCompanies(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...MANAGERS);
   const supabase = await createClient();
   const teamId = str(form, "team_id");
@@ -142,13 +147,15 @@ export async function saveTeamCompanies(form: FormData) {
   const have = new Set((current ?? []).map((r) => r.company_id));
   const toAdd = [...wanted].filter((c) => !have.has(c)).map((company_id) => ({ team_id: teamId, company_id }));
   const toRemove = [...have].filter((c) => !wanted.has(c));
-  if (toAdd.length) await supabase.from("team_companies").insert(toAdd);
-  if (toRemove.length) await supabase.from("team_companies").delete().eq("team_id", teamId).in("company_id", toRemove);
+  const added = toAdd.length ? await supabase.from("team_companies").insert(toAdd) : { error: null };
+  const removed = toRemove.length ? await supabase.from("team_companies").delete().eq("team_id", teamId).in("company_id", toRemove) : { error: null };
+  if (added.error || removed.error) return { error: "مقدرتش أحفظ — جرّب تاني" };
   revalidatePath("/admin", "layout");
+  return { ok: "اتحفظ ✓" };
 }
 
 // ───────── Assignments & targets ─────────
-export async function saveAssignments(form: FormData) {
+export async function saveAssignments(_prev: ActionState, form: FormData): Promise<ActionState> {
   const me = await requireRole(...STAFF);
   const supabase = await createClient();
   const agentId = str(form, "agent_id");
@@ -158,16 +165,19 @@ export async function saveAssignments(form: FormData) {
 
   const toAdd = [...wanted].filter((c) => !have.has(c)).map((company_id) => ({ agent_id: agentId, company_id, assigned_by: me.id }));
   const toRemove = [...have].filter((c) => !wanted.has(c));
-  if (toAdd.length) await supabase.from("agent_companies").insert(toAdd);
-  if (toRemove.length) await supabase.from("agent_companies").delete().eq("agent_id", agentId).in("company_id", toRemove);
+  const added = toAdd.length ? await supabase.from("agent_companies").insert(toAdd) : { error: null };
+  const removed = toRemove.length ? await supabase.from("agent_companies").delete().eq("agent_id", agentId).in("company_id", toRemove) : { error: null };
+  if (added.error || removed.error) return { error: "مقدرتش أحفظ — جرّب تاني" };
   revalidatePath("/admin", "layout");
+  return { ok: "اتحفظ ✓" };
 }
 
-export async function saveTargets(form: FormData) {
+export async function saveTargets(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...STAFF);
   const supabase = await createClient();
   const agentId = str(form, "agent_id");
   const date = str(form, "date");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) return { error: "اختار التاريخ" };
   const companyIds = form.getAll("company_id").map(String);
   const rows = companyIds.map((company_id) => ({
     agent_id: agentId,
@@ -178,8 +188,12 @@ export async function saveTargets(form: FormData) {
   }));
   const dates = form.get("apply_week") === "on" ? weekFrom(date) : [date];
   const all = dates.flatMap((d) => rows.map((r) => ({ ...r, date: d })));
-  if (all.length) await supabase.from("daily_targets").upsert(all, { onConflict: "agent_id,company_id,date" });
+  if (all.length) {
+    const { error } = await supabase.from("daily_targets").upsert(all, { onConflict: "agent_id,company_id,date" });
+    if (error) return { error: "مقدرتش أحفظ — جرّب تاني" };
+  }
   revalidatePath("/admin", "layout");
+  return { ok: "اتحفظ ✓" };
 }
 
 function weekFrom(date: string): string[] {
@@ -247,8 +261,12 @@ export async function updateCompany(_prev: ActionState, form: FormData): Promise
   if (error) return { error: t("مقدرتش أحفظ") };
 
   const govs = form.getAll("governorate_id").map(Number);
-  await supabase.from("company_governorates").delete().eq("company_id", id);
-  if (govs.length) await supabase.from("company_governorates").insert(govs.map((g) => ({ company_id: id, governorate_id: g })));
+  const cleared = await supabase.from("company_governorates").delete().eq("company_id", id);
+  if (cleared.error) return { error: t("الشركة اتحفظت بس المحافظات متحفظتش — جرّب تاني") };
+  if (govs.length) {
+    const { error: govError } = await supabase.from("company_governorates").insert(govs.map((g) => ({ company_id: id, governorate_id: g })));
+    if (govError) return { error: t("الشركة اتحفظت بس المحافظات متحفظتش — جرّب تاني") };
+  }
   return done(`/admin/companies/${id}`);
 }
 

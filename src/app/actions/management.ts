@@ -23,22 +23,24 @@ export async function requestAccountChange(_prev: ActionState, form: FormData): 
   return { ok: t("الطلب اتبعت للأدمن") };
 }
 
-export async function decideRequest(form: FormData) {
+export async function decideRequest(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("admin");
   const supabase = await createClient();
-  await supabase.rpc("decide_admin_request", {
+  const { error } = await supabase.rpc("decide_admin_request", {
     p_id: str(form, "id"),
     p_approve: str(form, "decision") === "approve",
     p_note: str(form, "note") || null,
   });
-  revalidatePath("/admin", "layout");
+  if (error) return { error: await actionFailed(error.message) };
+  revalidatePath("/admin", "layout");  return {};
 }
 
-export async function cancelRequest(form: FormData) {
+export async function cancelRequest(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("manager", "team_leader");
   const supabase = await createClient();
-  await supabase.rpc("cancel_admin_request", { p_id: str(form, "id") });
-  revalidatePath("/admin", "layout");
+  const { error } = await supabase.rpc("cancel_admin_request", { p_id: str(form, "id") });
+  if (error) return { error: await actionFailed(error.message) };
+  revalidatePath("/admin", "layout");  return {};
 }
 
 // ───────── Attendance settings ─────────
@@ -121,18 +123,20 @@ export async function requestLeave(_prev: ActionState, form: FormData): Promise<
   return { ok: t("الطلب اتبعت — هيوصلك إشعار بالرد") };
 }
 
-export async function decideLeave(form: FormData) {
+export async function decideLeave(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...STAFF);
   const supabase = await createClient();
-  await supabase.rpc("decide_leave", { p_id: str(form, "id"), p_approve: str(form, "decision") === "approve", p_note: str(form, "note") });
-  revalidatePath("/admin", "layout");
+  const { error } = await supabase.rpc("decide_leave", { p_id: str(form, "id"), p_approve: str(form, "decision") === "approve", p_note: str(form, "note") });
+  if (error) return { error: await actionFailed(error.message) };
+  revalidatePath("/admin", "layout");  return {};
 }
 
-export async function cancelLeave(form: FormData) {
+export async function cancelLeave(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("agent", "team_leader", "manager");
   const supabase = await createClient();
-  await supabase.rpc("cancel_leave", { p_id: str(form, "id") });
-  revalidatePath("/", "layout");
+  const { error } = await supabase.rpc("cancel_leave", { p_id: str(form, "id") });
+  if (error) return { error: await actionFailed(error.message) };
+  revalidatePath("/", "layout");  return {};
 }
 
 // ───────── Hourly permits ─────────
@@ -163,18 +167,20 @@ export async function requestPermit(_prev: ActionState, form: FormData): Promise
   return { ok: t("الطلب اتبعت — هيوصلك إشعار بالرد") };
 }
 
-export async function decidePermit(form: FormData) {
+export async function decidePermit(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...STAFF);
   const supabase = await createClient();
-  await supabase.rpc("decide_permit", { p_id: str(form, "id"), p_approve: str(form, "decision") === "approve", p_note: str(form, "note") });
-  revalidatePath("/admin", "layout");
+  const { error } = await supabase.rpc("decide_permit", { p_id: str(form, "id"), p_approve: str(form, "decision") === "approve", p_note: str(form, "note") });
+  if (error) return { error: await actionFailed(error.message) };
+  revalidatePath("/admin", "layout");  return {};
 }
 
-export async function cancelPermit(form: FormData) {
+export async function cancelPermit(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("agent", "team_leader", "manager");
   const supabase = await createClient();
-  await supabase.rpc("cancel_permit", { p_id: str(form, "id") });
-  revalidatePath("/", "layout");
+  const { error } = await supabase.rpc("cancel_permit", { p_id: str(form, "id") });
+  if (error) return { error: await actionFailed(error.message) };
+  revalidatePath("/", "layout");  return {};
 }
 
 // ───────── Official holidays (admin & managers) ─────────
@@ -202,4 +208,13 @@ export async function deleteHoliday(form: FormData) {
   const supabase = await createClient();
   await supabase.from("public_holidays").delete().eq("day", str(form, "day"));
   revalidatePath("/", "layout");
+}
+
+/** A readable reason for a failed decision; shown by the error page instead of a silent "done". */
+async function actionFailed(message: string) {
+  const t = await getT();
+  if (/not_pending/.test(message)) return t("الطلب ده اتقرر قبل كده");
+  if (/not_allowed|permission/.test(message)) return t("مش مسموحلك تعمل ده");
+  if (/cannot_cancel/.test(message)) return t("مينفعش تلغي الطلب ده دلوقتي");
+  return t("حصلت مشكلة، جرّب تاني");
 }

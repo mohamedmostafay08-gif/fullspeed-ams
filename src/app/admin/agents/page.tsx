@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
 import { Filter, X } from "lucide-react";
 import { createTeam, createUser, updateTeam } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
@@ -19,7 +20,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const UUID = /^[0-9a-f-]{36}$/i;
   const fQ = str("q").trim().slice(0, 60);
-  const fRole = str("role") in ROLE_LABELS ? str("role") : "";
+  const fRole = Object.hasOwn(ROLE_LABELS, str("role")) ? str("role") : "";
   const fTeam = UUID.test(str("team")) || str("team") === "none" ? str("team") : "";
   const fCompany = UUID.test(str("company")) || str("company") === "none" ? str("company") : "";
   const fLoc = UUID.test(str("loc")) ? str("loc") : "";
@@ -197,7 +198,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
           <section className="card space-y-4">
             <h2 className="font-semibold">{t("التيمز")}</h2>
             {(teams ?? []).map((row) => (
-              <form key={row.id} action={updateTeam} className="flex flex-wrap items-end gap-2 rounded-xl border border-zinc-200 p-3">
+              <ActionForm key={row.id} action={updateTeam} className="flex flex-wrap items-end gap-2 rounded-xl border border-zinc-200 p-3">
                 <input type="hidden" name="id" value={row.id} />
                 <div className="min-w-32 flex-1">
                   <label className="label">{t("اسم التيم")}</label>
@@ -211,7 +212,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
                   </select>
                 </div>
                 <button className="btn-ghost">{t("حفظ")}</button>
-              </form>
+              </ActionForm>
             ))}
             <StateForm action={createTeam} className="flex flex-wrap items-end gap-2" submitLabel={t("تيم جديد")} resetOnSuccess>
               <div className="min-w-32 flex-1">

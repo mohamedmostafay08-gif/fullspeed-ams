@@ -25,7 +25,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_RE = /^[0-9a-f-]{36}$/i;
 const KEY_RE = /^[a-z0-9_]{1,40}$/i;
 const NO_MATCH = "00000000-0000-0000-0000-000000000000";
-const pick = <T extends Record<string, unknown>>(v: string | undefined, map: T) => (v && v in map ? (v as keyof T & string) : undefined);
+const pick = <T extends Record<string, unknown>>(v: string | undefined, map: T) => (v && Object.hasOwn(map, v) ? (v as keyof T & string) : undefined);
 
 /** The filters that go beyond the basic row; the advanced panel opens when any is set. */
 export const ADVANCED_KEYS = ["team", "gov", "source", "reason", "attempts", "flag", "datefield", "fkey", "sort"] as const;

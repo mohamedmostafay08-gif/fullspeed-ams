@@ -54,7 +54,7 @@ export default async function LivePage() {
       hired: b?.hired ?? 0,
       streak: b?.streak ?? 0,
       lastAt: act.last_at,
-      lastNote: act.last_note,
+      lastNote: me.role === "performance" ? null : act.last_note,
       breakEndsAt: br?.ends_at ?? null,
       breakPending: breaks.some((x) => x.agent_id === id && x.status === "pending"),
       waiting: mine.length,

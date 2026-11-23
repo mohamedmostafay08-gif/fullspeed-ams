@@ -1,4 +1,5 @@
 import { CalendarPlus, CalendarX2, Flag, History, Timer, Trash2, TriangleAlert } from "lucide-react";
+import { ActionForm } from "@/components/action-form";
 import { addHoliday, cancelLeave, cancelPermit, decideLeave, decidePermit, deleteHoliday, requestLeave, requestPermit } from "@/app/actions/management";
 import { StateForm } from "@/components/state-form";
 import { Empty, formatDate } from "@/components/ui";
@@ -90,10 +91,10 @@ export async function MyLeaves({ rows }: { rows: Leave[] }) {
                 </p>
               </div>
               {(l.status === "pending" || (l.status === "approved" && l.start_date > today)) && (
-                <form action={cancelLeave}>
+                <ActionForm action={cancelLeave}>
                   <input type="hidden" name="id" value={l.id} />
                   <button className="btn-ghost text-zinc-600">{t("إلغاء")}</button>
-                </form>
+                </ActionForm>
               )}
             </li>
           ))}
@@ -124,12 +125,12 @@ export async function LeavesToDecide({ rows, load = {} }: { rows: Leave[]; load?
                   </p>
                 )}
               </div>
-              <form action={decideLeave} className="flex flex-wrap items-center gap-2">
+              <ActionForm action={decideLeave} className="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="id" value={l.id} />
                 <input name="note" placeholder={t("ملاحظة (اختياري)")} className="input py-2 sm:w-48" />
                 <button name="decision" value="approve" className="btn-primary">{t("موافق")}</button>
                 <button name="decision" value="reject" className="btn-ghost text-rose-600">{t("رفض")}</button>
-              </form>
+              </ActionForm>
             </li>
           ))}
         </ul>
@@ -240,10 +241,10 @@ export async function MyPermits({ rows }: { rows: Permit[] }) {
               </p>
             </div>
             {(p.status === "pending" || p.status === "approved") && p.day >= today && (
-              <form action={cancelPermit}>
+              <ActionForm action={cancelPermit}>
                 <input type="hidden" name="id" value={p.id} />
                 <button className="btn-ghost text-zinc-600">{t("إلغاء")}</button>
-              </form>
+              </ActionForm>
             )}
           </li>
         ))}
@@ -265,12 +266,12 @@ export async function PermitsToDecide({ rows }: { rows: Permit[] }) {
               <p className="font-semibold">{p.person?.full_name ?? "—"}</p>
               <p className="mt-1 text-sm">{t(permitLabel(p), p.at_time.slice(0, 5))} · <span className="num">{p.day}</span>{p.reason ? ` · «${p.reason}»` : ""}</p>
             </div>
-            <form action={decidePermit} className="flex flex-wrap items-center gap-2">
+            <ActionForm action={decidePermit} className="flex flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={p.id} />
               <input name="note" placeholder={t("ملاحظة (اختياري)")} className="input py-2 sm:w-48" />
               <button name="decision" value="approve" className="btn-primary">{t("موافق")}</button>
               <button name="decision" value="reject" className="btn-ghost text-rose-600">{t("رفض")}</button>
-            </form>
+            </ActionForm>
           </li>
         ))}
       </ul>

@@ -24,7 +24,7 @@ export default async function AdminLeavesPage({ searchParams }: PageProps<"/admi
   const fTeam = /^[0-9a-f-]{36}$/i.test(str("team")) ? str("team") : "";
   const fQ = str("q").trim().slice(0, 60);
   const fStatus = ["approved", "rejected", "cancelled"].includes(str("status")) ? str("status") : "";
-  const fKind = str("kind") in LEAVE_KINDS ? str("kind") : "";
+  const fKind = Object.hasOwn(LEAVE_KINDS, str("kind")) ? str("kind") : "";
   const fFrom = DAY.test(str("from")) ? str("from") : "";
   const fTo = DAY.test(str("to")) ? str("to") : "";
   const supabase = await createClient();
@@ -66,7 +66,8 @@ export default async function AdminLeavesPage({ searchParams }: PageProps<"/admi
 
   // How full each requester's team already is on their busiest day.
   const loads = await Promise.all(
-    pending.map(async (l) => [l.id, (await supabase.rpc("team_leave_load", { p_user: l.user_id, p_from: l.start_date, p_to: l.end_date })).data as Load] as const),
+    // One call per request; the nearest 15 are enough and keep the page under the Workers call limit.
+    pending.slice(0, 15).map(async (l) => [l.id, (await supabase.rpc("team_leave_load", { p_user: l.user_id, p_from: l.start_date, p_to: l.end_date })).data as Load] as const),
   );
 
   return (

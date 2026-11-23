@@ -9,6 +9,7 @@ const TABLES = [
   "work_locations", "work_settings", "daily_targets", "leads", "lead_activities", "lead_documents", "call_logs", "tasks",
   "company_announcements", "agent_breaks", "whatsapp_templates", "blacklist", "attendance", "broadcasts", "broadcast_reads",
   "admin_requests", "geo_checkins", "login_events", "audit_log",
+  "leave_requests", "hour_permits", "public_holidays", "team_targets", "saved_filters", "interview_wa_reminders",
 ];
 const KEEP_DAYS = 30;
 const PAGE = 1000;

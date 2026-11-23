@@ -64,10 +64,10 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   await requireRole(...MANAGERS);
   const sp = await searchParams;
-  const table = typeof sp.table === "string" && sp.table in TABLES ? sp.table : "";
+  const table = typeof sp.table === "string" && Object.hasOwn(TABLES, sp.table) ? sp.table : "";
   const actor = typeof sp.actor === "string" && UUID.test(sp.actor) ? sp.actor : "";
   const day = typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : "";
-  const action = typeof sp.action === "string" && sp.action in ACTION ? sp.action : "";
+  const action = typeof sp.action === "string" && Object.hasOwn(ACTION, sp.action) ? sp.action : "";
   const from = typeof sp.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.from) ? sp.from : day;
   const to = typeof sp.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.to) ? sp.to : day;
   const page = Math.max(1, Number(sp.page) || 1);
@@ -104,8 +104,8 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
     if (v == null || v === "") return "—";
     if (typeof v === "boolean") return v ? t("نعم") : t("لا");
     if (typeof v === "string") {
-      if (key === "status" && v in LEAD_STATUS_LABELS) return t(LEAD_STATUS_LABELS[v as keyof typeof LEAD_STATUS_LABELS]);
-      if (key === "role" && v in ROLE_LABELS) return t(ROLE_LABELS[v as keyof typeof ROLE_LABELS]);
+      if (key === "status" && Object.hasOwn(LEAD_STATUS_LABELS, v)) return t(LEAD_STATUS_LABELS[v as keyof typeof LEAD_STATUS_LABELS]);
+      if (key === "role" && Object.hasOwn(ROLE_LABELS, v)) return t(ROLE_LABELS[v as keyof typeof ROLE_LABELS]);
       if (UUID.test(v)) return names.get(v) ?? v.slice(0, 8);
       if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return cairoDateTime(v, locale);
       return v.length > 80 ? `${v.slice(0, 80)}…` : v;

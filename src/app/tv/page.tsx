@@ -9,7 +9,8 @@ export const metadata = { title: "Full Speed — TV" };
 
 export default async function TvPage() {
   const supabase = await createClient();
-  const db = (await getProfile())?.role === "performance" ? createAdminClient() : supabase;
+  const isPerf = (await getProfile())?.role === "performance";
+  const db = isPerf ? createAdminClient() : supabase;
   const today = cairoToday();
   const [start, end] = cairoRange(today, today);
   const [boardRes, leadsRes, hiresRes, teamsRes] = await Promise.all([
@@ -35,7 +36,7 @@ export default async function TvPage() {
   }
   const hires = (hiresRes.data ?? []).map((h) => {
     const c = h.companies as unknown as { name: string; logo_path: string | null };
-    return { id: h.id, lead: h.full_name, at: h.hired_at!, company: c.name, logo: c.logo_path, agent: (h.agent as unknown as { full_name: string } | null)?.full_name ?? "—" };
+    return { id: h.id, lead: isPerf ? "🎉" : h.full_name, at: h.hired_at!, company: c.name, logo: c.logo_path, agent: (h.agent as unknown as { full_name: string } | null)?.full_name ?? "—" };
   });
   for (const h of hires) {
     const row = [...byCompany.values()].find((r) => r.name === h.company);

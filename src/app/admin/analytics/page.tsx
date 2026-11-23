@@ -63,7 +63,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   const shift = (days: number) => new Date(new Date(`${today}T12:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10);
   const from = typeof sp.from === "string" && DATE_RE.test(sp.from) ? sp.from : shift(-29);
   const to = typeof sp.to === "string" && DATE_RE.test(sp.to) && sp.to >= from ? sp.to : today;
-  const sortKey = typeof sp.sort === "string" && sp.sort in SORTS ? sp.sort : "hired";
+  const sortKey = typeof sp.sort === "string" && Object.hasOwn(SORTS, sp.sort) ? sp.sort : "hired";
   const af = readAnalyticsFilters(sp);
   const tab = sp.tab === "compare" ? "compare" : "overview";
   const dim: CompareDim = sp.cmp === "team" || sp.cmp === "company" || sp.cmp === "source" ? sp.cmp : "agent";
@@ -98,7 +98,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
     return p;
   };
   const reasons = (reasonsData ?? []) as { company_id: string; company: string; reason: string; n: number }[];
-  const reasonLabel = (r: string) => (r in REJECT_REASONS ? t(REJECT_REASONS[r as RejectReason]) : t("من غير سبب"));
+  const reasonLabel = (r: string) => (Object.hasOwn(REJECT_REASONS, r) ? t(REJECT_REASONS[r as RejectReason]) : t("من غير سبب"));
   const byReason = [...reasons.reduce((m, r) => m.set(r.reason, (m.get(r.reason) ?? 0) + r.n), new Map<string, number>())].sort((x, y) => y[1] - x[1]);
   const topByCompany = [...reasons.reduce((m, r) => {
     const cur = m.get(r.company_id);
@@ -289,7 +289,11 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
                 <tbody>
                   {a.by_company.map((c) => (
                     <tr key={c.id}>
-                      <td><Link href={`/admin/companies/${c.id}`} className="flex items-center gap-2 font-semibold"><CompanyLogo name={c.name} src={c.logo} size={26} />{c.name}</Link></td>
+                      <td>{me.role === "performance" ? (
+                        <span className="flex items-center gap-2 font-semibold"><CompanyLogo name={c.name} src={c.logo} size={26} />{c.name}</span>
+                      ) : (
+                        <Link href={`/admin/companies/${c.id}`} className="flex items-center gap-2 font-semibold"><CompanyLogo name={c.name} src={c.logo} size={26} />{c.name}</Link>
+                      )}</td>
                       <td className="num">{c.leads}</td>
                       <td className="num">{pct(c.contacted, c.leads)}</td>
                       <td className="num text-zinc-500">{c.rejected}</td>

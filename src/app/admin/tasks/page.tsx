@@ -22,7 +22,7 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
   await requireRole(...STAFF);
   const sp = await searchParams;
   const agentFilter = typeof sp.agent === "string" ? sp.agent : "";
-  const statusFilter = typeof sp.status === "string" && sp.status in TASK_STATUS_LABELS ? sp.status : "";
+  const statusFilter = typeof sp.status === "string" && Object.hasOwn(TASK_STATUS_LABELS, sp.status) ? sp.status : "";
   const supabase = await createClient();
 
   let q = supabase
