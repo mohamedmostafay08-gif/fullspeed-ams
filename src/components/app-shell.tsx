@@ -1,4 +1,3 @@
-import { ViewTransition } from "react";
 import { LogOut } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -38,7 +37,7 @@ export async function AppShell({
   const [t, theme] = await Promise.all([getT(), getTheme()]);
   return (
     <div className="min-h-screen md:flex">
-      <aside style={{ viewTransitionName: "app-side" }} className="hidden border-e border-(--glass-line) bg-(--side-bg) backdrop-blur-2xl backdrop-saturate-150 md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
+      <aside className="hidden border-e border-(--glass-line) bg-(--side-bg) backdrop-blur-2xl backdrop-saturate-150 md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
         <div className="flex items-center gap-3 px-5 pt-6 pb-8">
           <BrandMark />
           <div className="leading-tight">
@@ -64,7 +63,7 @@ export async function AppShell({
       </aside>
 
       <div className="min-w-0 flex-1 overflow-x-clip pb-28 md:pb-0">
-        <header style={{ viewTransitionName: "app-header" }} className="sticky top-0 z-30 flex items-center gap-2 border-b border-(--glass-line) bg-(--side-bg) px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-2.5 backdrop-blur-2xl backdrop-saturate-150 md:gap-3 md:px-8 md:py-3">
+        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-(--glass-line) bg-(--side-bg) px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-2.5 backdrop-blur-2xl backdrop-saturate-150 md:gap-3 md:px-8 md:py-3">
           <div className="flex min-w-0 items-center gap-2.5 md:hidden">
             <BrandMark small />
             <div className="min-w-0 leading-tight">
@@ -80,11 +79,7 @@ export async function AppShell({
             <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
           </div>
         </header>
-        <main className="w-full animate-rise px-4 py-5 md:px-8 md:py-8 2xl:px-10">
-          <ViewTransition default="page">
-            <div>{children}</div>
-          </ViewTransition>
-        </main>
+        <main className="w-full px-4 py-5 md:px-8 md:py-8 2xl:px-10">{children}</main>
       </div>
 
       <CallReturnWatcher />

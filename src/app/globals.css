@@ -78,7 +78,7 @@
   --font-app: var(--font-cairo);
   --surface: #ffffff;
   --fg: var(--color-ink);
-  --glass: rgba(255, 255, 255, 0.6);
+  --glass: rgba(255, 255, 255, 0.68);
   --glass-strong: rgba(255, 255, 255, 0.78);
   --glass-edge: rgba(255, 255, 255, 0.9);
   --glass-line: rgba(60, 40, 20, 0.08);
@@ -105,7 +105,7 @@
   --surface: #161a2c;
   --fg: #eeedf8;
   --color-canvas: #0b0d17;
-  --glass: rgba(255, 255, 255, 0.055);
+  --glass: rgba(255, 255, 255, 0.06);
   --glass-strong: rgba(255, 255, 255, 0.085);
   --glass-edge: rgba(255, 255, 255, 0.12);
   --glass-line: rgba(255, 255, 255, 0.07);
@@ -319,12 +319,13 @@ body::before {
   background: var(--color-brand-200);
 }
 
+/* Cards don't blur what's behind them: the background is a still, soft gradient, so a blur there
+   looked the same but made the browser repaint every card while scrolling. Only the bars that float
+   over moving content (sidebar, header, bottom bar) keep a real blur. */
 @utility glass {
   background: var(--glass);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.5);
 }
 
 @utility btn {
@@ -345,7 +346,7 @@ body::before {
     @apply btn bg-ink text-white hover:bg-ink-3 focus-visible:ring-zinc-300;
   }
   .btn-ghost {
-    @apply btn border border-(--glass-edge) bg-(--glass-strong) text-zinc-700 backdrop-blur-md hover:-translate-y-0.5 hover:border-brand-200 focus-visible:ring-zinc-200;
+    @apply btn border border-(--glass-edge) bg-(--glass-strong) text-zinc-700 hover:-translate-y-0.5 hover:border-brand-200 focus-visible:ring-zinc-200;
   }
   .btn-danger {
     @apply btn bg-rose-50 text-rose-700 hover:bg-rose-100 focus-visible:ring-rose-200;
@@ -500,52 +501,15 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ── Page transitions ──────────────────────────────────────────────
-   Navigation crossfades the content area only; the sidebar, header and
-   bottom bar stay put. Old page leaves fast, new one settles in gently. */
-::view-transition {
-  pointer-events: none;
+/* ── Page enter ──────────────────────────────────────────────────────
+   Each new page fades in softly. Only the content animates (opacity and a tiny lift, both cheap
+   for the GPU); the sidebar, header and bottom bar are never touched. */
+.page-enter {
+  animation: page-in 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-}
-::view-transition-group(app-side),
-::view-transition-group(app-header),
-::view-transition-group(app-bottom) {
-  animation: none;
-  z-index: 50;
-}
-::view-transition-old(app-side),
-::view-transition-old(app-header),
-::view-transition-old(app-bottom) {
-  display: none;
-}
-::view-transition-new(app-side),
-::view-transition-new(app-header),
-::view-transition-new(app-bottom) {
-  animation: none;
-}
-::view-transition-group(.page) {
-  animation: none;
-}
-::view-transition-old(.page) {
-  animation: 110ms ease-out both vt-out;
-}
-::view-transition-new(.page) {
-  animation: 240ms cubic-bezier(0.2, 0.7, 0.2, 1) 70ms both vt-in;
-}
-@keyframes vt-out {
-  to { opacity: 0; }
-}
-@keyframes vt-in {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*),
-  ::view-transition-new(*),
-  ::view-transition-group(*) {
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-  }
+  .page-enter { animation: none; }
 }
