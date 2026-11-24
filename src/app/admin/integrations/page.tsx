@@ -232,7 +232,7 @@ export default async function IntegrationsPage() {
               <div>
                 <p className="mb-2 text-sm font-semibold">{t("آخر ليدز جت من فيسبوك")}</p>
                 <p className="mb-2 text-xs text-zinc-500">
-                  {t("ليدز الفورمز اللي مش مربوطة بشركة بتستنى في")} <a href="/admin/facebook-leads" className="font-semibold text-brand-700 underline">{t("ليدز فيسبوك")}</a>
+                  {t("ليدز الفورمز اللي مش مربوطة بشركة بتستنى في")} <a href="/admin/facebook-leads" className="font-semibold text-brand-700 underline">{t("ليدز للتوزيع")}</a>
                 </p>
                 {(eventsRes.data ?? []).length === 0 ? (
                   <p className="text-sm text-zinc-500">{t("لسه مفيش")}</p>
