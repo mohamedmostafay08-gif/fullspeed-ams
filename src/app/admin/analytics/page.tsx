@@ -72,10 +72,11 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
 
   const supabase = await createClient();
   const db = viewer ? createAdminClient() : supabase;
-  const [filteredRes, { data: teams }, { data: reasonsData }, { data: companyList }, { data: agentList }, { data: govs }, locale] = await Promise.all([
+  const [filteredRes, { data: teams }, { data: reasonsData }, { data: retentionData }, { data: companyList }, { data: agentList }, { data: govs }, locale] = await Promise.all([
     db.rpc("analytics_filtered", { p_from: from, p_to: to, ...afArgs(af) }),
     supabase.from("teams").select("id, name").order("name"),
     supabase.rpc("rejection_reasons", { p_from: from, p_to: to }),
+    supabase.rpc("hire_retention", { p_from: from, p_to: to }),
     supabase.from("companies").select("id, name").order("name"),
     supabase.from("profiles").select("id, full_name").eq("role", "agent").eq("is_active", true).order("full_name"),
     supabase.from("governorates").select("id, name_ar, name_en").order("id"),
@@ -97,6 +98,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
     if (tab === "compare" && ids.length && !("ids" in extra)) p.set("ids", ids.join(","));
     return p;
   };
+  const retention = (retentionData ?? []) as { company_id: string; company: string; hired: number; first_order: number; active7: number; active30: number; left_job: number; due7: number; due30: number }[];
   const reasons = (reasonsData ?? []) as { company_id: string; company: string; reason: string; n: number }[];
   const reasonLabel = (r: string) => (Object.hasOwn(REJECT_REASONS, r) ? t(REJECT_REASONS[r as RejectReason]) : t("من غير سبب"));
   const byReason = [...reasons.reduce((m, r) => m.set(r.reason, (m.get(r.reason) ?? 0) + r.n), new Map<string, number>())].sort((x, y) => y[1] - x[1]);
@@ -356,6 +358,32 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
           )}
         </section>
       </div>
+
+      <section className="card mt-6">
+        <h2 className="card-title">🛵 {t("بقاء الكباتن بعد التعيين")}</h2>
+        <p className="mb-3 text-xs text-zinc-500">{t("للكباتن اللي اتعينوا في الفترة دي. نسبة الـ 7 أيام والـ 30 يوم محسوبة من اللي عدّى عليهم الوقت ده بس.")}</p>
+        {retention.length === 0 ? (
+          <Empty>{t("مفيش تعيينات في الفترة دي")}</Empty>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead><tr><th>{t("الشركة")}</th><th>{t("اتعينوا")}</th><th>{t("نزلوا أول أوردر")}</th><th>{t("كمّلوا 7 أيام")}</th><th>{t("كمّلوا 30 يوم")}</th><th>{t("سابوا")}</th></tr></thead>
+              <tbody>
+                {retention.map((r) => (
+                  <tr key={r.company_id}>
+                    <td className="font-semibold">{r.company}</td>
+                    <td className="num">{r.hired}</td>
+                    <td className="num">{r.first_order} <span className="text-zinc-500">({pct(r.first_order, r.hired)})</span></td>
+                    <td className="num">{r.active7} <span className="text-zinc-500">({r.due7 ? pct(r.active7, r.due7) : "—"})</span></td>
+                    <td className="num">{r.active30} <span className="text-zinc-500">({r.due30 ? pct(r.active30, r.due30) : "—"})</span></td>
+                    <td className="num text-rose-700">{r.left_job}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {a.by_team.length > 0 && (
         <section className="mt-6">

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Ban, CalendarClock, Clock, PhoneCall, ShieldAlert, X } from "lucide-react";
-import { clearSchedule, scheduleLead, updateLead } from "@/app/actions/leads";
+import { clearSchedule, scheduleLead, setHireStage, updateLead } from "@/app/actions/leads";
 import { addToBlacklist } from "@/app/admin/actions";
 import { CallPanel } from "@/components/call-panel";
 import { CallScript } from "@/components/call-script";
@@ -27,7 +27,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const { data: lead } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, agent_id, company_id, attempts, last_contact_at, callback_at, interview_at, interview_place, companies(name, logo_path, form_schema, call_script, salary, order_price, working_hours, terms), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
+      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, first_order_at, active7_at, active30_at, left_at, left_reason, agent_id, company_id, attempts, last_contact_at, callback_at, interview_at, interview_place, companies(name, logo_path, form_schema, call_script, salary, order_price, working_hours, terms), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -110,6 +110,55 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
             ))}
           </dl>
         </section>
+
+        {lead.status === "hired" && (
+          <section className="card">
+            <h2 className="card-title">🛵 {t("بعد التعيين")}</h2>
+            <p className="mb-3 text-sm text-zinc-500">{t("الكابتن اللي اتعين لازم ينزل الشغل ويكمّل — علّم كل مرحلة لما تتأكد منها. السيستم هيفكّرك.")}</p>
+            <ol className="mb-4 grid gap-2 text-sm sm:grid-cols-4">
+              {[
+                [t("اتعين"), lead.hired_at],
+                [t("نزل أول أوردر"), lead.first_order_at],
+                [t("كمّل 7 أيام"), lead.active7_at],
+                [t("كمّل 30 يوم"), lead.active30_at],
+              ].map(([label, at]) => (
+                <li key={label as string} className={`rounded-xl p-2 ${at ? "bg-emerald-50 text-emerald-800" : "bg-zinc-50 text-zinc-500"}`}>
+                  <p className="font-semibold">{at ? "✅" : "⏳"} {label}</p>
+                  <p className="num text-xs">{at ? formatDate(at as string) : "—"}</p>
+                </li>
+              ))}
+            </ol>
+            {lead.left_at ? (
+              <p className="mb-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">🚪 {t("ساب الشغل")} · {formatDate(lead.left_at)}{lead.left_reason ? ` — ${lead.left_reason}` : ""}</p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {!lead.first_order_at && (
+                <StateForm action={setHireStage} submitLabel={t("🛵 نزل أول أوردر")}>
+                  <input type="hidden" name="id" value={lead.id} /><input type="hidden" name="stage" value="first_order" />
+                </StateForm>
+              )}
+              {lead.first_order_at && !lead.active7_at && (
+                <StateForm action={setHireStage} submitLabel={t("✅ كمّل 7 أيام")}>
+                  <input type="hidden" name="id" value={lead.id} /><input type="hidden" name="stage" value="active7" />
+                </StateForm>
+              )}
+              {lead.active7_at && !lead.active30_at && (
+                <StateForm action={setHireStage} submitLabel={t("🏆 كمّل 30 يوم")}>
+                  <input type="hidden" name="id" value={lead.id} /><input type="hidden" name="stage" value="active30" />
+                </StateForm>
+              )}
+            </div>
+            {!lead.left_at && (
+              <details className="mt-3 text-sm">
+                <summary className="cursor-pointer text-zinc-500">🚪 {t("ساب الشغل؟")}</summary>
+                <StateForm action={setHireStage} submitLabel={t("سجّل إنه ساب")} className="mt-2 flex flex-wrap items-center gap-2">
+                  <input type="hidden" name="id" value={lead.id} /><input type="hidden" name="stage" value="left" />
+                  <input name="reason" className="input min-w-48 flex-1" placeholder={t("السبب (اختياري)")} maxLength={200} />
+                </StateForm>
+              </details>
+            )}
+          </section>
+        )}
 
         {!closed && (
           <section className="card">

@@ -246,3 +246,24 @@ export async function logCall(leadId: string, startedAt: string, durationS: numb
     await supabase.rpc("log_lead_note", { p_lead: leadId, p_note: `⏱️ مدة المكالمة ${mmss}` });
   }
 }
+
+// ───────── After the hire ─────────
+const HIRE_STAGES = ["first_order", "active7", "active30", "left", "undo"] as const;
+
+/** Marks a hired captain's next step (first order / 7 days / 30 days / left). */
+export async function setHireStage(_prev: { error?: string; ok?: string } | undefined, form: FormData): Promise<{ error?: string; ok?: string }> {
+  const t = await getT();
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
+  const stage = String(form.get("stage") ?? "") as (typeof HIRE_STAGES)[number];
+  if (!HIRE_STAGES.includes(stage)) return { error: t("اختيار غير صحيح") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_hire_stage", {
+    p_lead: String(form.get("id") ?? ""),
+    p_stage: stage,
+    p_reason: String(form.get("reason") ?? "").trim() || null,
+  });
+  if (error || data !== "ok") return { error: data === "not_hired" ? t("الليد لازم يكون «اشتغل» الأول") : t("مقدرتش أحفظ — جرّب تاني") };
+  revalidatePath("/", "layout");
+  return { ok: t("تم الحفظ") };
+}
