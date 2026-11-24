@@ -159,3 +159,32 @@ export async function dismissFacebookLead(form: FormData) {
   await supabase.rpc("meta_dismiss_lead", { p_leadgen: String(form.get("leadgen_id") ?? "") });
   revalidatePath("/admin/facebook-leads");
 }
+
+/** «ليدز للتوزيع»: one waiting LineCRM lead (WhatsApp ads) → the company picked for it. */
+export async function assignLineCrmLead(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin", "manager");
+  const event = String(form.get("event_id") ?? "");
+  const company = String(form.get("company_id") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(company)) return { error: t("اختار الشركة") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("linecrm_assign_lead", { p_event: event, p_company: company });
+  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  revalidatePath("/admin/facebook-leads");
+  const RESULT: Record<string, ActionState> = {
+    created: { ok: t("✅ دخل على الشركة واتوزع") },
+    duplicate: { error: t("♻️ الرقم ده موجود قبل كده في الشركة دي") },
+    invalid: { error: t("❌ الاسم أو الرقم ناقص أو غلط") },
+    blacklisted: { error: t("⛔ الرقم ده في البلاك ليست") },
+    gone: { error: t("الليد ده اتوزع قبل كده") },
+    no_company: { error: t("اختار الشركة") },
+  };
+  return RESULT[String(data)] ?? { error: t("⚠️ مشكلة") };
+}
+
+export async function dismissLineCrmLead(form: FormData) {
+  await requireRole("admin", "manager");
+  const supabase = await createClient();
+  await supabase.rpc("linecrm_dismiss_lead", { p_event: String(form.get("event_id") ?? "") });
+  revalidatePath("/admin/facebook-leads");
+}

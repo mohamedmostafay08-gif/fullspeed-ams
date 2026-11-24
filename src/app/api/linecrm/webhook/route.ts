@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     const { data: row } = await db.from("linecrm_events").select("details").eq("id", eventId).maybeSingle();
     if (row && row.details == null) {
       const { details, error: detailError } = await fetchLead(String(data.id), cfg.linecrm_api_key);
-      await db.from("linecrm_events").update({ details, detail_error: detailError }).eq("id", eventId);
+      await db.rpc("linecrm_store_details", { p_event: eventId, p_details: details, p_error: detailError });
     }
   }
   return Response.json({ ok: true });
