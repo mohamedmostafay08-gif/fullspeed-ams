@@ -1,5 +1,5 @@
-import { CloudUpload, DatabaseBackup, Download, Gauge, Megaphone, MessageCircle, Trash2 } from "lucide-react";
-import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
+import { CloudUpload, DatabaseBackup, Download, Gauge, Megaphone, MessageCircle, PlugZap, Trash2 } from "lucide-react";
+import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveLineCrm, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
 import { headers } from "next/headers";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
@@ -63,8 +63,11 @@ export default async function IntegrationsPage() {
     userDb.from("meta_lead_events").select("leadgen_id, form_id, status, created_at").order("created_at", { ascending: false }).limit(10),
     userDb.from("companies").select("id, name").eq("is_active", true).order("name"),
   ]);
+  const { data: lineEvents } = await userDb.from("linecrm_events").select("id, type, payload, raw, signature, verified, scheme, status, created_at").order("created_at", { ascending: false }).limit(10);
   const host = (await headers()).get("host") ?? "ams.fullspeedlogistics.com";
   const webhookUrl = `https://${host}/api/meta/webhook`;
+  const lineUrl = `https://${host}/api/linecrm/webhook`;
+  const LINE: Record<string, string> = { received: "✅ متوقّع ومتحفظ", unverified: "⏳ اتحفظ من غير تحقق (لسه مفيش secret)", bad_signature: "🔒 التوقيع مش مطابق" };
   const EVENT: Record<string, string> = { created: "✅ اتعمل ليد", duplicate: "♻️ مكرر", invalid: "❌ بيانات ناقصة", unmapped: "⏳ مستني توزيع", dismissed: "🚫 اتجاهل", no_access: "🔒 مقدرناش نقرا البيانات", blacklisted: "⛔ بلاك ليست", error: "⚠️ مشكلة", pending: "…" };
   const fileBytes = Object.values(usage?.files ?? {}).reduce((s, f) => s + Number(f.bytes), 0);
   const MB = 1024 * 1024;
@@ -245,6 +248,47 @@ export default async function IntegrationsPage() {
                   </ul>
                 )}
               </div>
+            </div>
+          </div>
+        </section>
+        <section className="card lg:col-span-2">
+          <h2 className="card-title"><PlugZap size={18} className="text-violet-600" /> {t("ربط LineCRM: إشعارات الأحداث")}</h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-3 text-sm leading-7">
+              <p className="font-semibold">{t("1) في LineCRM ← الإعدادات ← المطورون والواجهة البرمجية ← إشعارات الأحداث ← عنوان جديد، حط العنوان ده:")}</p>
+              <label className="block"><span className="label">{t("عنوان الاستقبال")}</span><input readOnly value={lineUrl} dir="ltr" className="input text-left font-mono text-xs" /></label>
+              <p className="text-zinc-500">{t("2) اختار: إنشاء عميل محتمل (lead.created). 3) LineCRM هيوريك الـ secret مرة واحدة — انسخه وحطه هنا.")}</p>
+              <StateForm action={saveLineCrm} className="space-y-3">
+                <label className="block">
+                  <span className="label">{t("الـ secret بتاع LineCRM")}</span>
+                  <input name="secret" type="password" dir="ltr" autoComplete="off" placeholder={cfg.linecrm_webhook_secret ? "•••••••• (" + t("محفوظ") + ")" : ""} className="input text-left" required />
+                </label>
+              </StateForm>
+              <p className={`badge ${cfg.linecrm_webhook_secret ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                {cfg.linecrm_webhook_secret ? t("✅ الـ secret متحفظ") : t("⏳ لسه محتاج الـ secret")}
+              </p>
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold">{t("آخر إشعارات جت من LineCRM")}</p>
+              {(lineEvents ?? []).length === 0 ? (
+                <p className="text-sm text-zinc-500">{t("لسه مفيش")}</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {(lineEvents ?? []).map((e) => (
+                    <li key={e.id}>
+                      <details>
+                        <summary className="flex cursor-pointer items-center gap-2">
+                          <span className="num text-xs text-zinc-400">{formatDate(e.created_at)}</span>
+                          <span className="num text-xs text-zinc-500" dir="ltr">{e.type ?? "—"}</span>
+                          <span className="ms-auto">{t(LINE[e.status] ?? e.status)}</span>
+                        </summary>
+                        <p className="mt-1 text-xs text-zinc-500" dir="ltr">scheme: {e.scheme ?? "—"} · signature: {e.signature ? `${String(e.signature).slice(0, 12)}… (${String(e.signature).length})` : "—"}</p>
+                        <pre className="mt-1 max-h-72 overflow-auto rounded-lg bg-zinc-50 p-2 text-left text-xs" dir="ltr">{e.payload ? JSON.stringify(e.payload, null, 2) : e.raw}</pre>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </section>
