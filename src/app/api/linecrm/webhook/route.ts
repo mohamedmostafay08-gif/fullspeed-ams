@@ -10,6 +10,25 @@ import { createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
  */
 
 const MAX_BYTES = 200_000;
+const LINECRM_API = "https://linecrm.app/api/v1";
+
+/** lead.created carries no phone: read the full lead from LineCRM with the read-only key. */
+async function fetchLead(leadId: string, key: string): Promise<{ details: unknown; error: string | null }> {
+  const get = (path: string) =>
+    fetch(`${LINECRM_API}${path}`, { headers: { Authorization: `Bearer ${key}`, Accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+  try {
+    let res = await get(`/leads/${encodeURIComponent(leadId)}`);
+    if (res.status === 404 || res.status === 405) res = await get(`/leads?q=${encodeURIComponent(leadId)}`);
+    const text = await res.text();
+    let body: unknown = text.slice(0, 50_000);
+    try {
+      body = JSON.parse(text);
+    } catch {}
+    return res.ok ? { details: body, error: null } : { details: body, error: `HTTP ${res.status}` };
+  } catch (e) {
+    return { details: null, error: e instanceof Error ? e.message.slice(0, 200) : "fetch failed" };
+  }
+}
 
 function same(a: string, b: string) {
   const x = Buffer.from(a);
@@ -43,7 +62,8 @@ export async function POST(request: Request) {
   const raw = await request.text();
   if (raw.length > MAX_BYTES) return Response.json({ error: "too large" }, { status: 413 });
 
-  const secret = (await getConfig()).linecrm_webhook_secret ?? "";
+  const cfg = await getConfig();
+  const secret = cfg.linecrm_webhook_secret ?? "";
   const signature = request.headers.get("x-linecrm-signature") ?? "";
   const scheme = verify(raw, signature, secret);
   const db = createAdminClient();
@@ -81,5 +101,14 @@ export async function POST(request: Request) {
     { onConflict: "id", ignoreDuplicates: true },
   );
   if (error) return Response.json({ error: "store failed" }, { status: 500 });
+
+  const data = payload?.data as { id?: unknown } | undefined;
+  if (scheme && type === "lead.created" && eventId && cfg.linecrm_api_key && (typeof data?.id === "string" || typeof data?.id === "number")) {
+    const { data: row } = await db.from("linecrm_events").select("details").eq("id", eventId).maybeSingle();
+    if (row && row.details == null) {
+      const { details, error: detailError } = await fetchLead(String(data.id), cfg.linecrm_api_key);
+      await db.from("linecrm_events").update({ details, detail_error: detailError }).eq("id", eventId);
+    }
+  }
   return Response.json({ ok: true });
 }

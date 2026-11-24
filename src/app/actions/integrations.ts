@@ -80,6 +80,16 @@ export async function saveLineCrm(_prev: ActionState, form: FormData): Promise<A
   return { ok: t("تم الحفظ") };
 }
 
+export async function saveLineCrmKey(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin");
+  const key = String(form.get("api_key") ?? "").trim();
+  if (key.length < 16 || key.length > 300 || /\s/.test(key)) return { error: t("المفتاح شكله مش مظبوط — انسخه تاني من LineCRM") };
+  await setConfig("linecrm_api_key", key);
+  revalidatePath("/admin/integrations");
+  return { ok: t("تم الحفظ") };
+}
+
 // ───────── Meta: WhatsApp inbox + Facebook lead ads ─────────
 export async function saveMeta(_prev: ActionState, form: FormData): Promise<ActionState> {
   const t = await getT();
