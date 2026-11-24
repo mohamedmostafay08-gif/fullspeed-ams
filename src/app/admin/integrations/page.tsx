@@ -1,5 +1,5 @@
 import { CloudUpload, DatabaseBackup, Download, Gauge, Megaphone, MessageCircle, PlugZap, Trash2 } from "lucide-react";
-import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveLineCrm, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
+import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveLineCrm, saveLineCrmKey, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
 import { headers } from "next/headers";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
@@ -63,7 +63,7 @@ export default async function IntegrationsPage() {
     userDb.from("meta_lead_events").select("leadgen_id, form_id, status, created_at").order("created_at", { ascending: false }).limit(10),
     userDb.from("companies").select("id, name").eq("is_active", true).order("name"),
   ]);
-  const { data: lineEvents } = await userDb.from("linecrm_events").select("id, type, payload, raw, signature, verified, scheme, status, created_at").order("created_at", { ascending: false }).limit(10);
+  const { data: lineEvents } = await userDb.from("linecrm_events").select("id, type, payload, raw, signature, verified, scheme, status, details, detail_error, created_at").order("created_at", { ascending: false }).limit(10);
   const host = (await headers()).get("host") ?? "ams.fullspeedlogistics.com";
   const webhookUrl = `https://${host}/api/meta/webhook`;
   const lineUrl = `https://${host}/api/linecrm/webhook`;
@@ -267,6 +267,16 @@ export default async function IntegrationsPage() {
               <p className={`badge ${cfg.linecrm_webhook_secret ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
                 {cfg.linecrm_webhook_secret ? t("✅ الـ secret متحفظ") : t("⏳ لسه محتاج الـ secret")}
               </p>
+              <p className="pt-2 text-zinc-500">{t("4) إشعار الليد الجديد مفيهوش رقم التليفون: اعمل في LineCRM مفتاح API «قراية بس» للعملاء المحتملين وجهات الاتصال، وحطه هنا، والسيستم هيجيب باقي بيانات كل ليد.")}</p>
+              <StateForm action={saveLineCrmKey} className="space-y-3">
+                <label className="block">
+                  <span className="label">{t("مفتاح LineCRM API (قراية بس)")}</span>
+                  <input name="api_key" type="password" dir="ltr" autoComplete="off" placeholder={cfg.linecrm_api_key ? "•••••••• (" + t("محفوظ") + ")" : ""} className="input text-left" required />
+                </label>
+              </StateForm>
+              <p className={`badge ${cfg.linecrm_api_key ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                {cfg.linecrm_api_key ? t("✅ مفتاح الـ API متحفظ") : t("⏳ لسه محتاج مفتاح الـ API")}
+              </p>
             </div>
             <div>
               <p className="mb-2 text-sm font-semibold">{t("آخر إشعارات جت من LineCRM")}</p>
@@ -284,6 +294,12 @@ export default async function IntegrationsPage() {
                         </summary>
                         <p className="mt-1 text-xs text-zinc-500" dir="ltr">scheme: {e.scheme ?? "—"} · signature: {e.signature ? `${String(e.signature).slice(0, 12)}… (${String(e.signature).length})` : "—"}</p>
                         <pre className="mt-1 max-h-72 overflow-auto rounded-lg bg-zinc-50 p-2 text-left text-xs" dir="ltr">{e.payload ? JSON.stringify(e.payload, null, 2) : e.raw}</pre>
+                        {(e.details != null || e.detail_error) && (
+                          <>
+                            <p className="mt-2 text-xs font-semibold">{t("بيانات الليد من LineCRM")} {e.detail_error ? `(${e.detail_error})` : ""}</p>
+                            <pre className="mt-1 max-h-72 overflow-auto rounded-lg bg-zinc-50 p-2 text-left text-xs" dir="ltr">{JSON.stringify(e.details, null, 2)}</pre>
+                          </>
+                        )}
                       </details>
                     </li>
                   ))}
