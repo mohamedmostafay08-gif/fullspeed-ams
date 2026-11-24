@@ -69,6 +69,17 @@ export async function testWhatsApp(_prev: ActionState, form: FormData): Promise<
   return r.ok ? { ok: t("اتبعتت ✓ — شوف الواتساب على الرقم ده") } : { error: t("مااتبعتتش: {0}", r.error) };
 }
 
+// ───────── LineCRM event notifications ─────────
+export async function saveLineCrm(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin");
+  const secret = String(form.get("secret") ?? "").trim();
+  if (secret.length < 16 || secret.length > 300 || /\s/.test(secret)) return { error: t("الـ secret شكله مش مظبوط — انسخه تاني من LineCRM") };
+  await setConfig("linecrm_webhook_secret", secret);
+  revalidatePath("/admin/integrations");
+  return { ok: t("تم الحفظ") };
+}
+
 // ───────── Meta: WhatsApp inbox + Facebook lead ads ─────────
 export async function saveMeta(_prev: ActionState, form: FormData): Promise<ActionState> {
   const t = await getT();
