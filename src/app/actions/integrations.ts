@@ -188,3 +188,56 @@ export async function dismissLineCrmLead(form: FormData) {
   await supabase.rpc("linecrm_dismiss_lead", { p_event: String(form.get("event_id") ?? "") });
   revalidatePath("/admin/facebook-leads");
 }
+
+/** «ليدز للتوزيع»: every waiting LineCRM lead of one campaign → one company. */
+export async function assignLineCrmMany(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin", "manager");
+  const company = String(form.get("company_id") ?? "");
+  const events = String(form.get("event_ids") ?? "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 500);
+  if (!/^[0-9a-f-]{36}$/i.test(company)) return { error: t("اختار الشركة") };
+  if (events.length === 0) return { error: t("مفيش ليدز") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("linecrm_assign_many", { p_events: events, p_company: company });
+  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  revalidatePath("/admin/facebook-leads");
+  const c = (data ?? {}) as Record<string, number>;
+  const parts = [
+    c.created && t("✅ {0} دخلوا واتوزعوا", c.created),
+    c.duplicate && t("♻️ {0} مكررين", c.duplicate),
+    c.invalid && t("❌ {0} بياناتهم ناقصة", c.invalid),
+    c.blacklisted && t("⛔ {0} في البلاك ليست", c.blacklisted),
+    c.gone && t("{0} اتوزعوا قبل كده", c.gone),
+  ].filter(Boolean);
+  return c.created ? { ok: parts.join(" · ") } : { error: parts.join(" · ") || t("⚠️ مشكلة") };
+}
+
+/** Auto-assign switch: a lead whose campaign or ad names exactly one company goes straight to it. */
+export async function saveAutoAssign(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin");
+  await setConfig("auto_assign_by_campaign", form.get("enabled") === "on" ? "1" : "0");
+  revalidatePath("/admin/facebook-leads");
+  return { ok: t("تم الحفظ") };
+}
+
+export async function addCompanyKeyword(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin", "manager");
+  const company = String(form.get("company_id") ?? "");
+  const keyword = String(form.get("keyword") ?? "").trim().slice(0, 60);
+  if (!/^[0-9a-f-]{36}$/i.test(company)) return { error: t("اختار الشركة") };
+  if (keyword.length < 2) return { error: t("الكلمة لازم تبقى حرفين على الأقل") };
+  const supabase = await createClient();
+  const { error } = await supabase.from("company_keywords").insert({ company_id: company, keyword });
+  if (error) return { error: error.code === "23505" ? t("الكلمة دي موجودة للشركة دي") : t("مقدرتش أحفظ — جرّب تاني") };
+  revalidatePath("/admin/facebook-leads");
+  return { ok: t("اتضافت ✓") };
+}
+
+export async function deleteCompanyKeyword(form: FormData) {
+  await requireRole("admin", "manager");
+  const supabase = await createClient();
+  await supabase.from("company_keywords").delete().eq("id", String(form.get("id") ?? ""));
+  revalidatePath("/admin/facebook-leads");
+}
