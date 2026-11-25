@@ -110,5 +110,15 @@ export async function POST(request: Request) {
       await db.rpc("linecrm_store_details", { p_event: eventId, p_details: details, p_error: detailError });
     }
   }
+
+  // Each signed delivery also re-reads a few earlier leads that had no usable phone yet:
+  // LineCRM's screening automation fills «رقم الموبايل» after the lead is created.
+  if (scheme && cfg.linecrm_api_key) {
+    const { data: due } = await db.rpc("linecrm_recheck_list", { p_limit: 3 });
+    for (const r of (due ?? []) as { id: string; lead_id: string }[]) {
+      const { details, error: detailError } = await fetchLead(r.lead_id, cfg.linecrm_api_key);
+      await db.rpc("linecrm_store_details", { p_event: r.id, p_details: detailError ? null : details, p_error: detailError });
+    }
+  }
   return Response.json({ ok: true });
 }
