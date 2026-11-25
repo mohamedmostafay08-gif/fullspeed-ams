@@ -37,7 +37,8 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const agent = lead.agent as unknown as { full_name: string } | null;
   const formData = (lead.form_data ?? {}) as Record<string, unknown>;
   const schemaKeys = new Set(company.form_schema.map((f) => f.key));
-  const extraKeys = Object.keys(formData).filter((k) => !schemaKeys.has(k));
+  // Keys starting with "_" are internal (e.g. the person who owns the lead in LineCRM): admins only.
+  const extraKeys = Object.keys(formData).filter((k) => !schemaKeys.has(k) && (!k.startsWith("_") || me.role === "admin"));
   const closed = lead.status === "hired" || lead.status === "rejected";
 
   const [{ data: activity }, agentsRes, { data: banned }, tplRes] = await Promise.all([
@@ -106,7 +107,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
               <Row key={f.key} label={f.label}>{formatFieldValue(f, formData[f.key])}</Row>
             ))}
             {extraKeys.map((k) => (
-              <Row key={k} label={k}>{formatFieldValue(undefined, formData[k])}</Row>
+              <Row key={k} label={k.startsWith("_") ? `🔒 ${k.slice(1)}` : k}>{formatFieldValue(undefined, formData[k])}</Row>
             ))}
           </dl>
         </section>
