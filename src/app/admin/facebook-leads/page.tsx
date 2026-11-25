@@ -161,7 +161,7 @@ export default async function FacebookLeadsPage() {
                   {[
                     [t("الإعلان"), lead.ad_name],
                     [t("الحملة"), lead.campaign_name],
-                    [t("المسؤول في LineCRM"), lead.owner_name],
+                    [t("المسؤول في LineCRM"), me.role === "admin" ? lead.owner_name : undefined],
                     [t("أول رسالة"), lead.notes?.replace(/^whatsapp:\s*/, "")],
                   ].filter(([, v]) => v).map(([q, a]) => (
                     <div key={q} className="flex gap-2">
