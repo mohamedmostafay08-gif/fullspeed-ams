@@ -5,6 +5,8 @@ import type { ActionState } from "@/app/admin/actions";
 import { MANAGERS, STAFF, requireRole } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+import { RULE_FIELDS } from "@/lib/status-rules";
+import { LEAD_STATUS_LABELS } from "@/lib/types";
 
 const str = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const int = (form: FormData, key: string) => {
@@ -53,6 +55,23 @@ export async function saveAgentReceiving(_prev: ActionState, form: FormData): Pr
   if (max !== null && (!Number.isInteger(max) || max < 0 || max > 10000)) return { error: t("الحد الأقصى لازم يكون رقم من 0 لـ 10000") };
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_agent_receiving", { p_agent: agent, p_on: form.get("receives") === "on", p_max: max });
+  if (error) return { error: /FORBIDDEN/.test(error.message) ? t("مش مسموحلك تعمل ده") : t("مقدرتش أحفظ: {0}", error.message) };
+  revalidatePath(PAGE);
+  return { ok: t("تم الحفظ") };
+}
+
+/** One status rule: fields required before a lead enters it, and how many hours it may stay (empty = no limit). */
+export async function saveStatusRule(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole(...MANAGERS);
+  const status = str(form, "status");
+  if (!Object.hasOwn(LEAD_STATUS_LABELS, status)) return { error: t("حصلت مشكلة، جرّب تاني") };
+  const required = form.getAll("required").map(String).filter((f) => Object.hasOwn(RULE_FIELDS, f));
+  const hoursRaw = str(form, "max_hours");
+  const hours = hoursRaw === "" || hoursRaw === "0" ? null : Number(hoursRaw);
+  if (hours !== null && (!Number.isInteger(hours) || hours < 1 || hours > 2160)) return { error: t("المدة من 1 لـ 2160 ساعة") };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_status_rule", { p_status: status, p_required: required, p_max_hours: hours });
   if (error) return { error: /FORBIDDEN/.test(error.message) ? t("مش مسموحلك تعمل ده") : t("مقدرتش أحفظ: {0}", error.message) };
   revalidatePath(PAGE);
   return { ok: t("تم الحفظ") };

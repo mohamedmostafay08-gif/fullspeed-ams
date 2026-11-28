@@ -10,6 +10,8 @@ export const FLAGS = {
   interview_today: "عنده مقابلة النهارده",
   interview_upcoming: "عنده مقابلة جاية",
   stale: "مفيش تواصل من 3 أيام",
+  no_next: "مفتوح ومالوش خطوة جاية",
+  stuck: "فات المدة في حالته",
 } as const;
 export const DATE_FIELDS = { created: "تاريخ التسجيل", hired: "تاريخ التعيين", contact: "آخر تواصل" } as const;
 export const SORTS = { new: "الأحدث", old: "الأقدم", attempts: "أكتر محاولات", contact: "آخر تواصل" } as const;
@@ -18,7 +20,7 @@ export type LeadFilters = {
   company?: string; agent?: string; status?: string; from?: string; to?: string; q?: string; page: number;
   team?: string; gov?: string; source?: string; reason?: string;
   attempts?: keyof typeof ATTEMPTS; flag?: keyof typeof FLAGS; datefield?: keyof typeof DATE_FIELDS;
-  fkey?: string; fval?: string; sort?: keyof typeof SORTS;
+  fkey?: string; fval?: string; sort?: keyof typeof SORTS; campaign?: string;
 };
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -28,7 +30,7 @@ const NO_MATCH = "00000000-0000-0000-0000-000000000000";
 const pick = <T extends Record<string, unknown>>(v: string | undefined, map: T) => (v && Object.hasOwn(map, v) ? (v as keyof T & string) : undefined);
 
 /** The filters that go beyond the basic row; the advanced panel opens when any is set. */
-export const ADVANCED_KEYS = ["team", "gov", "source", "reason", "attempts", "flag", "datefield", "fkey", "sort"] as const;
+export const ADVANCED_KEYS = ["team", "gov", "source", "reason", "attempts", "flag", "datefield", "fkey", "sort", "campaign"] as const;
 
 export function readFilters(sp: Record<string, string | string[] | undefined>): LeadFilters {
   const s = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string).trim() : undefined) || undefined;
@@ -51,6 +53,7 @@ export function readFilters(sp: Record<string, string | string[] | undefined>): 
     fkey,
     fval: fkey ? s("fval")?.slice(0, 80) : undefined,
     sort: pick(s("sort"), SORTS),
+    campaign: s("campaign")?.slice(0, 200),
   };
 }
 
@@ -97,6 +100,9 @@ export async function queryLeads(f: LeadFilters, opts: { limit: number; offset: 
   if (f.flag === "stale") {
     q = q.in("status", ["contacted", "interview", "documents"]).lt("last_contact_at", new Date(Date.now() - 3 * 86_400_000).toISOString());
   }
+  if (f.flag === "no_next") q = q.in("status", ["no_answer", "contacted", "interview", "documents"]).lt("next_step_at", now);
+  if (f.flag === "stuck") q = q.lt("status_due_at", now).not("status", "in", "(hired,rejected)");
+  if (f.campaign) q = q.eq("campaign_name", f.campaign);
   if (f.from || f.to) {
     const [start, end] = cairoRange(f.from ?? "2000-01-01", f.to ?? f.from ?? "2100-01-01");
     q = q.gte(dateCol, start).lt(dateCol, end);

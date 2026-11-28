@@ -40,6 +40,7 @@ export async function LeadFilterForm({
     q: f.q && `«${f.q}»`,
     fkey: f.fkey && f.fval ? `${field?.label ?? f.fkey}: ${f.fval}` : undefined,
     sort: f.sort && t(SORTS[f.sort]),
+    campaign: f.campaign && `${t("الحملة")}: ${f.campaign}`,
   };
   const without = (k: keyof LeadFilters) => {
     const rest = { ...f, [k]: undefined, ...(k === "fkey" ? { fval: undefined } : {}), ...(k === "company" ? { fkey: undefined, fval: undefined } : {}) };
@@ -130,6 +131,9 @@ export async function LeadFilterForm({
                 <option value="hired">{t(DATE_FIELDS.hired)}</option>
                 <option value="contact">{t(DATE_FIELDS.contact)}</option>
               </select>
+            </label>
+            <label className="block"><span className="label">{t("الحملة")}</span>
+              <input name="campaign" defaultValue={f.campaign} className="input" placeholder={t("اسم الحملة بالظبط")} />
             </label>
             <label className="block"><span className="label">{t("الترتيب")}</span>
               <select name="sort" defaultValue={f.sort ?? ""} className="input">

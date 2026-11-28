@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { SignOutForm } from "@/components/sign-out-form";
 import { PrefsControls } from "@/components/prefs";
-import { Activity, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, DatabaseBackup, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Activity, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, DatabaseBackup, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, Target, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -41,6 +41,7 @@ const ICONS: Record<string, LucideIcon> = {
   approvals: Inbox,
   templates: MessageSquareText,
   distribution: Shuffle,
+  campaigns: Target,
   settings: Settings,
 };
 
