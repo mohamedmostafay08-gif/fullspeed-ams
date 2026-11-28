@@ -1,5 +1,7 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Redesign phase 3.
+  "مكانك": "You are here",
   // Redesign phase 2: quick search and settings page.
   "دوّر على ليد أو صفحة": "Find a lead or page",
   "رقم موبايل، اسم ليد، أو اسم صفحة": "Phone number, lead name, or page",

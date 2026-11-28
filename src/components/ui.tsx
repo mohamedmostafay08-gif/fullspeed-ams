@@ -44,18 +44,21 @@ export function StatCard({
   progress?: { value: number; target: number };
 }) {
   const t = TONE[tone];
+  // One shape for every number tile: label and icon on top, the number, then the target or a hint.
   return (
-    <div className="group card lift flex flex-col items-center gap-2 text-center">
-      {emoji ? (
-        <span aria-hidden className={`grid size-11 place-items-center rounded-2xl text-xl transition-transform duration-300 group-hover:scale-110 ${t.icon}`}>{emoji}</span>
-      ) : Icon && (
-        <span className={`grid size-11 place-items-center rounded-2xl transition-transform duration-300 group-hover:scale-110 ${t.icon}`}>
-          <Icon size={20} />
-        </span>
-      )}
-      <p className="text-sm font-semibold text-zinc-500">{label}</p>
-      <p className={`num text-3xl font-semibold tracking-tight ${t.value}`}>{typeof value === "number" ? <CountUp value={value} /> : value}</p>
-      {progress ? <div className="w-full"><Progress value={progress.value} target={progress.target} /></div> : hint && <p className="text-xs text-zinc-400">{hint}</p>}
+    <div className="card flex flex-col gap-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[13px] font-semibold text-zinc-500">{label}</p>
+        {emoji ? (
+          <span aria-hidden className={`grid size-8 shrink-0 place-items-center rounded-xl text-base ${t.icon}`}>{emoji}</span>
+        ) : Icon && (
+          <span className={`grid size-8 shrink-0 place-items-center rounded-xl ${t.icon}`}>
+            <Icon size={16} />
+          </span>
+        )}
+      </div>
+      <p className={`num text-[28px] leading-tight font-bold tracking-tight ${t.value}`}>{typeof value === "number" ? <CountUp value={value} /> : value}</p>
+      {progress ? <Progress value={progress.value} target={progress.target} /> : hint && <p className="text-xs text-zinc-400">{hint}</p>}
     </div>
   );
 }
