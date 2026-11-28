@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { SignOutForm } from "@/components/sign-out-form";
 import { PrefsControls } from "@/components/prefs";
-import { Activity, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, Coffee, DatabaseBackup, FileText, Gift, History, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, Network, Palmtree, PhoneCall, PlugZap, PlusCircle, ShieldCheck, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Activity, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, DatabaseBackup, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -36,7 +36,10 @@ const ICONS: Record<string, LucideIcon> = {
   logins: KeyRound,
   teams: Network,
   leave: Palmtree,
-  today: ListTodo,
+  today: Sun,
+  queue: ListTodo,
+  approvals: Inbox,
+  templates: MessageSquareText,
 };
 
 export interface NavItem {
@@ -49,7 +52,36 @@ export interface NavItem {
   /** Phone bottom bar: a tab (max 3) or the raised centre button; everything else lives under "More". */
   mobile?: "tab" | "fab";
   desktop?: false;
+  /** Menu section this item sits under (items of one group are listed together, in order). */
+  group?: string;
+  /** Count shown next to the item, e.g. pending approvals. */
+  badge?: number;
 }
+
+/** Sections that start folded unless the current page is inside them. */
+const FOLDED_GROUPS = new Set(["الإعدادات"]);
+
+function groupsOf(items: NavItem[]) {
+  const out: { name: string; items: NavItem[] }[] = [];
+  for (const item of items) {
+    const name = item.group ?? "";
+    const last = out[out.length - 1];
+    if (last && last.name === name) last.items.push(item);
+    else out.push({ name, items: [item] });
+  }
+  return out;
+}
+
+function Count({ n, className = "" }: { n?: number; className?: string }) {
+  if (!n) return null;
+  return (
+    <span className={`num grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1.5 text-[11px] font-extrabold text-white ${className}`}>
+      {n > 99 ? "99+" : n}
+    </span>
+  );
+}
+
+const RAIL_COOKIE = "nav";
 
 function isActive(pathname: string, item: NavItem) {
   if (item.exact) return pathname === item.href;
@@ -61,13 +93,16 @@ export function SideNav({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const [pill, setPill] = useState<{ top: number; height: number } | null>(null);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const groups = groupsOf(items.filter((item) => item.desktop !== false));
   // The highlight slides to the current page instead of jumping.
   useLayoutEffect(() => {
     const el = navRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
     setPill(el ? { top: el.offsetTop, height: el.offsetHeight } : null);
-  }, [pathname]);
+  }, [pathname, open]);
+
   return (
-    <nav ref={navRef} className="relative space-y-1 overflow-y-auto px-3">
+    <nav ref={navRef} className="relative min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-3">
       {pill && (
         <span
           aria-hidden
@@ -75,24 +110,72 @@ export function SideNav({ items }: { items: NavItem[] }) {
           style={{ transform: `translateY(${pill.top}px)`, height: pill.height }}
         />
       )}
-      {items.filter((item) => item.desktop !== false).map((item) => {
-        const Icon = ICONS[item.icon] ?? LayoutDashboard;
-        const active = isActive(pathname, item);
+      {groups.map((g) => {
+        const foldable = FOLDED_GROUPS.has(g.name);
+        const hasActive = g.items.some((i) => isActive(pathname, i));
+        const expanded = !foldable || (open[g.name] ?? hasActive);
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
-              active ? "text-brand-700 dark:text-brand-400" : "text-zinc-600 hover:bg-(--glass-strong) hover:text-(--fg)"
-            }`}
-          >
-            <Icon size={18} className={`transition-transform group-hover:scale-110 ${active ? "text-brand-600 dark:text-brand-400" : "text-zinc-400 group-hover:text-(--fg)"}`} />
-            {t(item.label)}
-          </Link>
+          <div key={g.name || "_"} className="space-y-0.5">
+            {g.name &&
+              (foldable ? (
+                <button
+                  type="button"
+                  onClick={() => setOpen((o) => ({ ...o, [g.name]: !expanded }))}
+                  aria-expanded={expanded}
+                  title={t(g.name)}
+                  className="nav-fold flex w-full items-center justify-between rounded-lg px-3 pt-1 pb-0.5 text-[11px] font-bold tracking-wide text-zinc-400 hover:text-zinc-600"
+                >
+                  <span className="nav-text">{t(g.name)}</span>
+                  <ChevronDown size={14} className={`transition-transform ${expanded ? "" : "ltr:-rotate-90 rtl:rotate-90"}`} />
+                </button>
+              ) : (
+                <p className="nav-text px-3 pt-1 pb-0.5 text-[11px] font-bold tracking-wide text-zinc-400">{t(g.name)}</p>
+              ))}
+            {expanded &&
+              g.items.map((item) => {
+                const Icon = ICONS[item.icon] ?? LayoutDashboard;
+                const active = isActive(pathname, item);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={t(item.label)}
+                    aria-current={active ? "page" : undefined}
+                    className={`nav-item group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                      active ? "text-brand-700 dark:text-brand-400" : "text-zinc-600 hover:bg-(--glass-strong) hover:text-(--fg)"
+                    }`}
+                  >
+                    <span className="relative shrink-0">
+                      <Icon size={18} className={`transition-transform group-hover:scale-110 ${active ? "text-brand-600 dark:text-brand-400" : "text-zinc-400 group-hover:text-(--fg)"}`} />
+                      {!!item.badge && <span className="nav-dot absolute -top-1 -end-1 hidden size-2 rounded-full bg-brand-500" />}
+                    </span>
+                    <span className="nav-text min-w-0 flex-1 truncate">{t(item.label)}</span>
+                    <Count n={item.badge} className="nav-text" />
+                  </Link>
+                );
+              })}
+          </div>
         );
       })}
     </nav>
+  );
+}
+
+/** Folds the desktop sidebar to icons only, and remembers the choice. */
+export function RailToggle({ initial }: { initial: boolean }) {
+  const t = useT();
+  const [rail, setRail] = useState(initial);
+  const toggle = () => {
+    const next = !rail;
+    setRail(next);
+    document.querySelector(".app-side")?.toggleAttribute("data-rail", next);
+    document.cookie = `${RAIL_COOKIE}=${next ? "rail" : "full"}; path=/; max-age=31536000; samesite=lax`;
+  };
+  const Icon = rail ? PanelRightOpen : PanelRightClose;
+  return (
+    <button type="button" onClick={toggle} className="rounded-lg p-2 text-zinc-400 transition hover:bg-(--glass-strong) hover:text-(--fg)" aria-label={t(rail ? "كبّر القايمة" : "صغّر القايمة")} title={t(rail ? "كبّر القايمة" : "صغّر القايمة")}>
+      <Icon size={17} className="ltr:-scale-x-100" />
+    </button>
   );
 }
 
@@ -132,8 +215,9 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
         aria-current={active ? "page" : undefined}
         className={`relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10.5px] font-bold transition active:scale-95 ${active ? "text-brand-600" : "text-zinc-500"}`}
       >
-        <span className={`grid h-7 w-12 place-items-center rounded-full transition ${active ? "bg-brand-50" : ""}`}>
+        <span className={`relative grid h-7 w-12 place-items-center rounded-full transition ${active ? "bg-brand-50" : ""}`}>
           <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+          <Count n={item.badge} className="absolute -top-1.5 end-0 h-4 min-w-4 px-1 text-[9.5px]" />
         </span>
         <span className="max-w-full truncate px-0.5">{t(item.label)}</span>
       </Link>
@@ -153,7 +237,10 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
             aria-label={t(fab.label)}
             className="-mt-7 grid size-14 shrink-0 place-items-center rounded-full bg-linear-to-br from-brand-400 to-brand-600 text-white shadow-lg shadow-brand-600/40 ring-4 ring-canvas transition active:scale-90"
           >
-            <PlusCircle size={26} />
+            {(() => {
+              const FabIcon = fab.icon === "add" ? PlusCircle : (ICONS[fab.icon] ?? PlusCircle);
+              return <FabIcon size={26} />;
+            })()}
           </Link>
         )}
         {tabs.slice(2).map(tab)}
@@ -163,8 +250,9 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
           aria-expanded={open}
           className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10.5px] font-bold transition active:scale-95 ${moreActive ? "text-brand-600" : "text-zinc-500"}`}
         >
-          <span className={`grid h-7 w-12 place-items-center rounded-full ${moreActive ? "bg-brand-50" : ""}`}>
+          <span className={`relative grid h-7 w-12 place-items-center rounded-full ${moreActive ? "bg-brand-50" : ""}`}>
             <LayoutGrid size={20} />
+            {rest.some((i) => i.badge) && <span className="absolute top-0 end-2 size-2 rounded-full bg-brand-500" />}
           </span>
           {t("المزيد")}
         </button>
@@ -189,27 +277,35 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
                 </button>
               </SignOutForm>
             </div>
-            <ul className="stagger grid grid-cols-3 gap-2.5">
-              {rest.map((item) => {
-                const Icon = ICONS[item.icon] ?? LayoutDashboard;
-                const active = isActive(pathname, item);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={`flex h-full flex-col items-center gap-2 rounded-2xl border p-3 text-center text-xs font-bold transition active:scale-95 ${
-                        active ? "border-brand-500 bg-brand-50 text-brand-700" : "glass text-zinc-700"
-                      }`}
-                    >
-                      <span className={`grid size-10 place-items-center rounded-xl ${active ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-600"}`}>
-                        <Icon size={20} />
-                      </span>
-                      <span className="leading-tight">{t(item.label)}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="space-y-4">
+              {groupsOf(rest).map((g) => (
+                <section key={g.name || "_"}>
+                  {g.name && <p className="mb-2 px-1 text-xs font-bold text-zinc-500">{t(g.name)}</p>}
+                  <ul className="stagger grid grid-cols-3 gap-2.5">
+                    {g.items.map((item) => {
+                      const Icon = ICONS[item.icon] ?? LayoutDashboard;
+                      const active = isActive(pathname, item);
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            className={`relative flex h-full flex-col items-center gap-2 rounded-2xl border p-3 text-center text-xs font-bold transition active:scale-95 ${
+                              active ? "border-brand-500 bg-brand-50 text-brand-700" : "glass text-zinc-700"
+                            }`}
+                          >
+                            <Count n={item.badge} className="absolute top-2 end-2" />
+                            <span className={`grid size-10 place-items-center rounded-xl ${active ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-600"}`}>
+                              <Icon size={20} />
+                            </span>
+                            <span className="leading-tight">{t(item.label)}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
             <div className="glass mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl p-2.5">
               <span className="px-1 text-xs font-bold text-zinc-500">{t("الإعدادات")}</span>
               <PrefsControls theme={theme} sound />

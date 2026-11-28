@@ -3,7 +3,8 @@ import { BrandMark } from "@/components/brand-mark";
 
 export { BrandMark };
 import { SignOutForm } from "@/components/sign-out-form";
-import { BottomNav, SideNav, type NavItem } from "@/components/nav-links";
+import { BottomNav, RailToggle, SideNav, type NavItem } from "@/components/nav-links";
+import { cookies } from "next/headers";
 import { NotificationBell } from "@/components/notification-bell";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
 import { PrefsControls } from "@/components/prefs";
@@ -34,27 +35,32 @@ export async function AppShell({
   notificationsHref: string;
   children: React.ReactNode;
 }) {
-  const [t, theme] = await Promise.all([getT(), getTheme()]);
+  const [t, theme, jar] = await Promise.all([getT(), getTheme(), cookies()]);
+  const rail = jar.get("nav")?.value === "rail";
   return (
     <div className="min-h-screen md:flex">
-      <aside className="hidden border-e border-(--glass-line) bg-(--side-bg) backdrop-blur-2xl backdrop-saturate-150 md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
-        <div className="flex items-center gap-3 px-5 pt-6 pb-8">
+      <aside
+        data-rail={rail || undefined}
+        className="app-side hidden border-e border-(--glass-line) bg-(--side-bg) backdrop-blur-2xl backdrop-saturate-150 md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col"
+      >
+        <div className="side-head flex items-center gap-3 px-5 pt-6 pb-6">
           <BrandMark />
-          <div className="leading-tight">
+          <div className="nav-text min-w-0 flex-1 leading-tight">
             <p className="font-extrabold tracking-tight">Full Speed</p>
             <p className="text-[11px] font-medium text-zinc-500">Acquisition</p>
           </div>
+          <RailToggle initial={rail} />
         </div>
         <SideNav items={nav} />
         <div className="mt-auto p-3">
-          <div className="glass flex items-center gap-3 rounded-2xl p-3">
+          <div className="side-me glass flex items-center gap-3 rounded-2xl p-3">
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-linear-to-br from-brand-400 to-brand-600 text-sm font-bold text-white shadow-[0_6px_16px_-6px_rgba(249,115,22,0.8)]">{initials(profile.full_name)}</span>
-            <div className="min-w-0 flex-1">
+            <div className="nav-text min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{profile.full_name}</p>
               <p className="text-[11px] text-zinc-500">{t(ROLE_LABELS[profile.role])}</p>
             </div>
             <SignOutForm>
-              <button className="rounded-lg p-2 text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600" aria-label={t("خروج")} title={t("خروج")}>
+              <button className="nav-text rounded-lg p-2 text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600" aria-label={t("خروج")} title={t("خروج")}>
                 <LogOut size={16} />
               </button>
             </SignOutForm>

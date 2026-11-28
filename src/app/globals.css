@@ -513,3 +513,14 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .page-enter { animation: none; }
 }
+
+/* Desktop sidebar folded to icons (the choice is kept in the "nav" cookie). */
+@media (min-width: 768px) {
+  .app-side[data-rail] { width: 4.75rem; }
+  .app-side[data-rail] .nav-text { display: none; }
+  .app-side[data-rail] .side-head { flex-direction: column; padding-inline: 0.75rem; gap: 0.5rem; }
+  .app-side[data-rail] .nav-item { justify-content: center; padding-inline: 0; }
+  .app-side[data-rail] .nav-dot { display: block; }
+  .app-side[data-rail] .nav-fold { justify-content: center; }
+  .app-side[data-rail] .side-me { justify-content: center; padding: 0.5rem; }
+}
