@@ -20,7 +20,7 @@ export async function backupNow(): Promise<ActionState> {
   try {
     const r = await runBackup({ withDrive: true });
     revalidatePath("/admin/integrations");
-    const drive = r.drive === "ok" ? t(" · وبتتبعت لـ Google Drive (النتيجة بتظهر تحت بعد دقيقة)") : r.drive === "error" ? t(" · Google Drive: {0}", r.driveError ?? "") : "";
+    const drive = r.drive === "ok" ? t(" · واتبعتت لـ Google Drive ✓") : r.drive === "error" ? t(" · Google Drive: {0}", r.driveError ?? "") : "";
     return { ok: t("اتعملت نسخة: {0}", kb(r.bytes)) + drive };
   } catch (e) {
     return { error: t("النسخة فشلت: {0}", e instanceof Error ? e.message : "") };
