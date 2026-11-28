@@ -18,7 +18,7 @@ export default async function ViewAsPage({ searchParams }: PageProps<"/admin/vie
   const supabase = await createClient();
   const { data, error: loadError } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, is_active, team:teams(name)")
+    .select("id, full_name, phone, is_active, team:teams!profiles_team_id_fkey(name)")
     .eq("role", "agent")
     .order("is_active", { ascending: false })
     .order("full_name");
