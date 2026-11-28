@@ -2,6 +2,7 @@ import { CloudUpload, DatabaseBackup, Download, Gauge, Megaphone, MessageCircle,
 import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveLineCrm, saveLineCrmKey, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
 import { headers } from "next/headers";
 import { PageHeader } from "@/components/app-shell";
+import { CONNECT_TABS, SubTabs } from "@/components/sub-tabs";
 import { StateForm } from "@/components/state-form";
 import { Empty, formatDate } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -75,6 +76,7 @@ export default async function IntegrationsPage() {
   return (
     <>
       <PageHeader title={t("النسخ والتكاملات")} subtitle={t("نسخة احتياطية كل يوم الساعة 3 الفجر، وربط Google Drive وواتساب")} />
+      <SubTabs tabs={CONNECT_TABS} current="/admin/integrations" />
       {usage && (
         <section className="card mb-6">
           <h2 className="card-title"><Gauge size={18} className="text-teal-600" /> {t("الاستهلاك من الباقة المجانية")}</h2>

@@ -24,10 +24,7 @@ const NAV: Item[] = [
   { group: "الفريق", href: "/admin/teams", label: "التيمات", icon: "teams", perf: true },
   { group: "الفريق", href: "/admin/attendance", label: "الحضور والإجازات", icon: "attendance", also: ["/admin/breaks", "/admin/leaves"] },
   { group: "الفريق", href: "/admin/tasks", label: "التاسكات والرسايل", icon: "tasks", also: ["/admin/memos", "/admin/announcements"] },
-  { group: "الفريق", href: "/admin/scorecard", label: "التقييم", icon: "scorecard", perf: true },
-  { group: "التقارير", href: "/admin/analytics", label: "التحليلات", icon: "analytics", perf: true },
-  { group: "التقارير", href: "/admin/report", label: "التقرير اليومي", icon: "report", perf: true },
-  { group: "التقارير", href: "/admin/campaigns", label: "مسار الحملات", icon: "campaigns", perf: true },
+  { group: "التقارير", href: "/admin/analytics", label: "التقارير", icon: "analytics", perf: true, also: ["/admin/report", "/admin/scorecard", "/admin/campaigns"] },
   { group: "الإعدادات", href: "/admin/companies", label: "الشركات", icon: "companies" },
   { group: "الإعدادات", href: "/admin/settings", label: "كل الإعدادات", icon: "settings", perf: true, also: SETTINGS_PAGES.map((p) => p.href) },
 ];

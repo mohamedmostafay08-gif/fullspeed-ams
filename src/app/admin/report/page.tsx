@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, FileSpreadsheet, ChevronLeft, ChevronRight, PhoneCall, TrendingUp, UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { REPORT_TABS, SubTabs } from "@/components/sub-tabs";
 import { TrendChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
@@ -118,6 +119,7 @@ export default async function DailyReportPage({ searchParams }: PageProps<"/admi
         <a href={`/admin/report/export?from=${from}&to=${to}${fq ? `&${fq}` : ""}`} className="no-print btn-ghost"><FileSpreadsheet size={16} /> {t("تصدير Excel")}</a>
         <PrintButton />
       </PageHeader>
+      <SubTabs tabs={REPORT_TABS} current="/admin/report" />
       <AnalyticsFilterBar
         path="/admin/report"
         f={af}

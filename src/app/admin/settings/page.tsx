@@ -14,7 +14,7 @@ const ICONS: Record<string, LucideIcon> = {
 export default async function SettingsPage() {
   const t = await getT();
   const me = await requireRole(...VIEWERS);
-  const pages = settingsFor(me.role);
+  const pages = settingsFor(me.role).filter((p) => !p.tabOf); // the second page of a pair opens as a tab
   return (
     <>
       <PageHeader title={t("كل الإعدادات")} subtitle={t("الحاجات اللي بتتظبط مرة وتتساب")} />

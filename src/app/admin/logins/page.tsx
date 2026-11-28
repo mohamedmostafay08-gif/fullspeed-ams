@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fingerprint, KeyRound, LogOut, MonitorSmartphone } from "lucide-react";
 import { forceSignOutUser } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
+import { LOG_TABS, SubTabs } from "@/components/sub-tabs";
 import { Empty, formatDate } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -47,6 +48,7 @@ export default async function LoginsPage({ searchParams }: PageProps<"/admin/log
           <button className="btn-ghost">{t("عرض")}</button>
         </form>
       </PageHeader>
+      <SubTabs tabs={LOG_TABS} current="/admin/logins" role={me.role} />
 
       <section className="card">
         <h2 className="card-title"><MonitorSmartphone size={18} className="text-brand-600" /> {t("داخلين دلوقتي ({0})", active.length)}</h2>

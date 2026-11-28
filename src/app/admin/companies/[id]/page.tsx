@@ -4,6 +4,7 @@ import { createAnnouncement, updateCompany, saveCallScript, saveCompanyTerms } f
 import { CompanyTerms } from "@/components/company-terms";
 import { hasTerms, type Terms } from "@/lib/terms";
 import { PageHeader } from "@/components/app-shell";
+import { PageTabs } from "@/components/sub-tabs";
 import { FormBuilder } from "@/components/form-builder";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
@@ -16,10 +17,12 @@ import { placeName } from "@/lib/types";
 
 const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
 
-export default async function CompanyPage({ params }: PageProps<"/admin/companies/[id]">) {
+export default async function CompanyPage({ params, searchParams }: PageProps<"/admin/companies/[id]">) {
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   const profile = await requireRole(...STAFF);
   const { id } = await params;
+  const sp = await searchParams;
+  const tab = sp.tab === "form" || sp.tab === "setup" ? sp.tab : "offer";
   const supabase = await createClient();
   const { data: company } = await supabase
     .from("companies")
@@ -46,19 +49,15 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
         <CompanyLogo name={company.name} src={company.logo_path} size={56} />
       </PageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <section className="card">
-            <h2 className="mb-3 font-semibold">{t("فورم التسجيل الخاص بالشركة")}</h2>
-            {canEditTerms ? (
-              <FormBuilder companyId={company.id} initial={company.form_schema as FormField[]} />
-            ) : (
-              <ul className="list-disc space-y-1 ps-5 text-sm">
-                {(company.form_schema as FormField[]).map((f) => <li key={f.key}>{f.label}</li>)}
-              </ul>
-            )}
-          </section>
+      <PageTabs path={`/admin/companies/${company.id}`} current={tab} tabs={[
+        { key: "offer", label: t("العرض والبونص") },
+        { key: "form", label: t("فورم التسجيل") },
+        { key: "setup", label: t("البيانات والأجنتس") },
+      ]} />
 
+      {tab === "offer" && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
           <section className="card">
             <h2 className="mb-1 font-semibold">{t("المرتب وشروط الشغل")}</h2>
             <p className="mb-3 text-xs text-zinc-500">{t("بتظهر للأجنت وهو بيكلم الكابتن، وعلى كارت الشركة في صفحته")}</p>
@@ -117,45 +116,8 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
               <p className="text-sm text-zinc-400">{t("لسه مفيش سكربت")}</p>
             )}
           </section>
-
-          {isAdmin && (
-            <section className="card">
-              <h2 className="mb-3 font-semibold">{t("بيانات الشركة ومناطق التعيين")}</h2>
-              <StateForm action={updateCompany} className="grid gap-3 sm:grid-cols-2">
-                <input type="hidden" name="id" value={company.id} />
-                <input type="hidden" name="slug" value={company.slug} />
-                <div>
-                  <label className="label" htmlFor="name">{t("الاسم")}</label>
-                  <input id="name" name="name" defaultValue={company.name} required className="input" />
-                </div>
-                <div>
-                  <label className="label" htmlFor="logo">{t("تغيير اللوجو")}</label>
-                  <input id="logo" name="logo" type="file" accept="image/*" className="input" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="label" htmlFor="description">{t("ملاحظات / شروط الشركة")}</label>
-                  <textarea id="description" name="description" defaultValue={company.description ?? ""} rows={3} className="input" />
-                </div>
-                <fieldset className="sm:col-span-2">
-                  <legend className="label">{t("المحافظات اللي الشركة بتعيّن فيها")}</legend>
-                  <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-                    {governorates.map((g) => (
-                      <label key={g.id} className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" name="governorate_id" value={g.id} defaultChecked={hiring.has(g.id)} className="accent-brand-600" />
-                        {placeName(g, locale)}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <input type="checkbox" name="is_active" defaultChecked={company.is_active} className="accent-brand-600" /> {t("الشركة شغالة")}
-                </label>
-              </StateForm>
-            </section>
-          )}
-        </div>
-
-        <div className="space-y-6">
+          </div>
+          <div className="space-y-6">
           <section className="card">
             <h2 className="mb-1 font-semibold">{t("نشر بونص / تعريفة")}</h2>
             <p className="mb-3 text-xs text-zinc-500">{t("بيوصل إشعار فوري لكل الأجنتس المتعينين على")} {company.name} ({agents.length})</p>
@@ -196,7 +158,65 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
               </ul>
             )}
           </section>
+          </div>
+        </div>
+      )}
 
+      {tab === "form" && (
+        <div className="max-w-4xl">
+          <section className="card">
+            <h2 className="mb-3 font-semibold">{t("فورم التسجيل الخاص بالشركة")}</h2>
+            {canEditTerms ? (
+              <FormBuilder companyId={company.id} initial={company.form_schema as FormField[]} />
+            ) : (
+              <ul className="list-disc space-y-1 ps-5 text-sm">
+                {(company.form_schema as FormField[]).map((f) => <li key={f.key}>{f.label}</li>)}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
+
+      {tab === "setup" && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {isAdmin && (
+            <div className="lg:col-span-2">
+            <section className="card">
+              <h2 className="mb-3 font-semibold">{t("بيانات الشركة ومناطق التعيين")}</h2>
+              <StateForm action={updateCompany} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="id" value={company.id} />
+                <input type="hidden" name="slug" value={company.slug} />
+                <div>
+                  <label className="label" htmlFor="name">{t("الاسم")}</label>
+                  <input id="name" name="name" defaultValue={company.name} required className="input" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="logo">{t("تغيير اللوجو")}</label>
+                  <input id="logo" name="logo" type="file" accept="image/*" className="input" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label" htmlFor="description">{t("ملاحظات / شروط الشركة")}</label>
+                  <textarea id="description" name="description" defaultValue={company.description ?? ""} rows={3} className="input" />
+                </div>
+                <fieldset className="sm:col-span-2">
+                  <legend className="label">{t("المحافظات اللي الشركة بتعيّن فيها")}</legend>
+                  <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+                    {governorates.map((g) => (
+                      <label key={g.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="governorate_id" value={g.id} defaultChecked={hiring.has(g.id)} className="accent-brand-600" />
+                        {placeName(g, locale)}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" name="is_active" defaultChecked={company.is_active} className="accent-brand-600" /> {t("الشركة شغالة")}
+                </label>
+              </StateForm>
+            </section>
+            </div>
+          )}
+          <div>
           <section className="card">
             <h2 className="mb-3 font-semibold">{t("الأجنتس المتعينين")}</h2>
             {agents.length === 0 ? (
@@ -209,8 +229,9 @@ export default async function CompanyPage({ params }: PageProps<"/admin/companie
               </ul>
             )}
           </section>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

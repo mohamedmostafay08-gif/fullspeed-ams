@@ -1,5 +1,18 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Redesign batch 5: long pages as tabs.
+  "تقييم الأجنتس": "Agent scorecards",
+  "السجلات": "Logs",
+  "مين غيّر إيه وإمتى، ومين دخل من أي جهاز": "Who changed what and when, and who signed in from which device",
+  "التكاملات والـ CRM": "Integrations & CRM",
+  "النسخة الاحتياطية وواتساب وميتا وLineCRM، ومفاتيح الـ CRM": "Backups, WhatsApp, Meta, LineCRM and CRM keys",
+  "الشركات والرفض": "Companies & rejections",
+  "العرض والبونص": "Offer & bonuses",
+  "فورم التسجيل": "Sign-up form",
+  "البيانات والأجنتس": "Details & agents",
+  "الأداء والتاسكات": "Performance & tasks",
+  "الشركات والتارجت": "Companies & targets",
+  "الحساب": "Account",
   // Redesign batch 4: manager lead work.
   "مش متوزعة": "Unassigned",
   "محدش كلمهم": "Never called",

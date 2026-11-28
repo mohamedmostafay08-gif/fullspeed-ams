@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Building2, CheckCircle2, Clock, Coffee, Filter, MapPin, PhoneCall, ThumbsDown, Timer, UserPlus, Users } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { REPORT_TABS, SubTabs } from "@/components/sub-tabs";
 import { BarList, TrendChart } from "@/components/charts";
 import { LiveRefresh } from "@/components/live";
 import { CompanyLogo, Empty, StatCard } from "@/components/ui";
@@ -65,7 +66,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   const to = typeof sp.to === "string" && DATE_RE.test(sp.to) && sp.to >= from ? sp.to : today;
   const sortKey = typeof sp.sort === "string" && Object.hasOwn(SORTS, sp.sort) ? sp.sort : "hired";
   const af = readAnalyticsFilters(sp);
-  const tab = sp.tab === "compare" ? "compare" : "overview";
+  const tab = sp.tab === "compare" || sp.tab === "agents" || sp.tab === "companies" ? sp.tab : "overview";
   const dim: CompareDim = sp.cmp === "team" || sp.cmp === "company" || sp.cmp === "source" ? sp.cmp : "agent";
   const picked = [sp.pick].flat().filter((x): x is string => typeof x === "string");
   const ids = (picked.length ? picked : typeof sp.ids === "string" ? sp.ids.split(",") : []).filter((x) => /^[\w-]{1,40}$/.test(x)).slice(0, 4);
@@ -93,7 +94,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
   const govOpts = (govs ?? []).map((g) => ({ id: g.id, name: locale === "en" && g.name_en ? g.name_en : g.name_ar }));
   const filterQs = afQuery(af);
   const state = (extra: Record<string, string> = {}) => {
-    const p = new URLSearchParams({ from, to, sort: sortKey, ...(tab === "compare" ? { tab, cmp: dim } : {}), ...extra });
+    const p = new URLSearchParams({ from, to, sort: sortKey, ...(tab !== "overview" ? { tab } : {}), ...(tab === "compare" ? { cmp: dim } : {}), ...extra });
     for (const [k, v] of new URLSearchParams(filterQs)) p.set(k, v);
     if (tab === "compare" && ids.length && !("ids" in extra)) p.set("ids", ids.join(","));
     return p;
@@ -116,6 +117,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
     { label: t("آخر 90 يوم"), from: shift(-89), to: today },
   ];
   const header = (
+    <>
     <PageHeader title={t("تحليلات الأكوزيشن")} subtitle={t("من {0} إلى {1}", from, to)}>
       <div className="scroll-row -mx-4 w-[calc(100%+2rem)] px-4 sm:mx-0 sm:w-auto sm:flex-wrap sm:px-0">
         {presets.map((p) => (
@@ -131,13 +133,30 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         <button className="btn-dark btn-sm">{t("عرض")}</button>
       </form>
     </PageHeader>
+    <SubTabs tabs={REPORT_TABS} current="/admin/analytics" />
+    </>
   );
   const keepForBar = Object.fromEntries([...state().entries()].filter(([k]) => !["team", "company", "agent", "source", "gov"].includes(k)));
   const toolbar = (
     <>
-      <div className="mb-4 flex w-fit gap-1 rounded-xl bg-zinc-100 p-1">
-        <Link href={`/admin/analytics?${(() => { const p = state(); p.delete("tab"); p.delete("cmp"); p.delete("ids"); return p; })()}`} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === "overview" ? "bg-white shadow-sm" : "text-zinc-500"}`}>{t("نظرة عامة")}</Link>
-        <Link href={`/admin/analytics?${state({ tab: "compare", cmp: dim })}`} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === "compare" ? "bg-white shadow-sm" : "text-zinc-500"}`}>{t("مقارنات وترندات")}</Link>
+      {/* One long report split into four views; the period and filters carry across. */}
+      <div className="mb-4 flex w-fit max-w-full gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1">
+        {([
+          ["overview", "نظرة عامة"],
+          ["agents", "الأجنتس"],
+          ["companies", "الشركات والرفض"],
+          ["compare", "مقارنات وترندات"],
+        ] as const).map(([key, label]) => {
+          const p = state();
+          p.delete("cmp");
+          p.delete("ids");
+          if (key === "overview") p.delete("tab");
+          else p.set("tab", key);
+          if (key === "compare") p.set("cmp", dim);
+          return (
+            <Link key={key} href={`/admin/analytics?${p}`} className={`rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap ${tab === key ? "bg-white shadow-sm" : "text-zinc-500"}`}>{t(label)}</Link>
+          );
+        })}
       </div>
       <AnalyticsFilterBar path="/admin/analytics" f={af} keep={keepForBar} teams={opts.team} companies={opts.company} agents={opts.agent} governorates={govOpts} />
     </>
@@ -190,6 +209,8 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
       {header}
       {toolbar}
 
+      {tab === "overview" && (
+        <>
       <div className="stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 xl:gap-4">
         <StatCard emoji="📥" label={t("ليدز جديدة")} value={a.totals.leads} icon={UserPlus} hint={t("{0} مش متوزعين", a.totals.unassigned)} />
         <StatCard emoji="💬" label={t("اتكلّموا")} value={pct(a.totals.contacted, a.totals.leads)} icon={PhoneCall} tone="brand" hint={t("{0} ليد · {1} مردوش", a.totals.contacted, a.totals.no_answer)} />
@@ -234,13 +255,41 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         </section>
       </div>
 
-      <section className="card mt-6">
+      {a.by_team.length > 0 && (
+        <section className="mt-6">
+          <h2 className="card-title"><Users size={18} className="text-zinc-500" /> {t("مقارنة التيمز")}</h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {a.by_team.map((row) => (
+              <div key={row.id} className="card">
+                <p className="font-bold">{row.name}</p>
+                <p className="mt-1 text-xs text-zinc-500">{row.agents} {t("أجنت")}</p>
+                <div className="mt-3 flex items-end justify-between">
+                  <div>
+                    <p className="num text-2xl font-semibold">{row.leads}</p>
+                    <p className="text-xs text-zinc-500">{t("ليد")}</p>
+                  </div>
+                  <div className="text-end">
+                    <p className="num text-2xl font-semibold text-emerald-700">{row.hired}</p>
+                    <p className="text-xs text-zinc-500">{t("اشتغل ·")} {pct(row.hired, row.leads)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+        </>
+      )}
+
+      {tab === "agents" && (
+        <>
+      <section className="card">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="card-title mb-0"><Users size={18} className="text-zinc-500" /> {t("أداء كل أجنت")}</h2>
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-zinc-500">{t("رتّب حسب:")}</span>
             {Object.entries(SORTS).map(([k, v]) => (
-              <Link key={k} href={`/admin/analytics?${qs}&sort=${k}`} className={`chip ${k === sortKey ? "chip-active" : ""}`}>{t(v.label)}</Link>
+              <Link key={k} href={`/admin/analytics?${qs}&tab=agents&sort=${k}`} className={`chip ${k === sortKey ? "chip-active" : ""}`}>{t(v.label)}</Link>
             ))}
           </div>
         </div>
@@ -277,7 +326,12 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         )}
       </section>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+        </>
+      )}
+
+      {tab === "companies" && (
+        <>
+      <div className="grid gap-6 xl:grid-cols-3">
         <section className="card xl:col-span-2">
           <h2 className="card-title"><Building2 size={18} className="text-zinc-500" /> {t("الشركات")}</h2>
           {a.by_company.length === 0 ? (
@@ -385,28 +439,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/admin/
         )}
       </section>
 
-      {a.by_team.length > 0 && (
-        <section className="mt-6">
-          <h2 className="card-title"><Users size={18} className="text-zinc-500" /> {t("مقارنة التيمز")}</h2>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {a.by_team.map((row) => (
-              <div key={row.id} className="card">
-                <p className="font-bold">{row.name}</p>
-                <p className="mt-1 text-xs text-zinc-500">{row.agents} {t("أجنت")}</p>
-                <div className="mt-3 flex items-end justify-between">
-                  <div>
-                    <p className="num text-2xl font-semibold">{row.leads}</p>
-                    <p className="text-xs text-zinc-500">{t("ليد")}</p>
-                  </div>
-                  <div className="text-end">
-                    <p className="num text-2xl font-semibold text-emerald-700">{row.hired}</p>
-                    <p className="text-xs text-zinc-500">{t("اشتغل ·")} {pct(row.hired, row.leads)}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        </>
       )}
     </>
   );
