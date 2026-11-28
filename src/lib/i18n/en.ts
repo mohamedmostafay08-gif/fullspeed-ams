@@ -1,6 +1,5 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
-<<<<<<< HEAD
   // Admin user control (0056)
   "لازم migration 0056 تتطبق في Supabase الأول": "Migration 0056 must be applied in Supabase first",
   "ده للأدمن بس": "Admin only",
