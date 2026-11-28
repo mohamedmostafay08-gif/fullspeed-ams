@@ -24,7 +24,7 @@ export default async function BlacklistPage({ searchParams }: PageProps<"/admin/
     <>
       <PageHeader title={t("البلاك ليست")} subtitle={t("{0} رقم محظور — مش هيتسجلوا تاني من أي مكان (فورم، ملف، CRM)", count ?? 0)} />
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="card h-fit">
+        <section id="new" className="card h-fit scroll-mt-24">
           <h2 className="card-title"><Ban size={18} className="text-rose-600" /> {t("حظر رقم")}</h2>
           <StateForm action={addToBlacklist} className="space-y-3" submitLabel={t("احظر الرقم")} resetOnSuccess>
             <input name="phone" required inputMode="tel" dir="ltr" placeholder="01xxxxxxxxx" className="input text-left rtl:text-right" aria-label={t("رقم الموبايل")} />

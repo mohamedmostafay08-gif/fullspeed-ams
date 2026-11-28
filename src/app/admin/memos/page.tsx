@@ -32,7 +32,7 @@ export default async function MemosPage() {
       <PageHeader title={t("التعميمات")} subtitle={t("رسالة توصل للفريق كله أو لتيم معين، بإشعار على الموبايل، وتعرف مين قراها")} />
       <SubTabs tabs={ADMIN_WORK_TABS} current="/admin/memos" />
 
-      <section className="card">
+      <section id="new" className="card scroll-mt-24">
         <h2 className="card-title"><Send size={18} className="text-brand-600" /> {t("تعميم جديد")}</h2>
         {me.role === "team_leader" && !me.team_id ? (
           <p className="text-sm text-zinc-500">{t("إنت مش متعين على تيم")}</p>

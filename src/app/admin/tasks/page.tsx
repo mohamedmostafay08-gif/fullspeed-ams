@@ -44,7 +44,7 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
       <PageHeader title={t("التاسكات")} />
       <SubTabs tabs={ADMIN_WORK_TABS} current="/admin/tasks" />
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="card h-fit">
+        <section id="new" className="card h-fit scroll-mt-24">
           <h2 className="mb-3 font-semibold">{t("تاسك جديد")}</h2>
           <StateForm action={createTask} className="space-y-3" submitLabel={t("إرسال")} resetOnSuccess>
             <input name="title" required placeholder={t("المطلوب (مثلاً: كلم ليدز امبارح اللي ماردوش)")} className="input" />

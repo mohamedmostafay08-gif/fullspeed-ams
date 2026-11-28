@@ -30,7 +30,7 @@ export default async function AnnouncementsPage() {
       <SubTabs tabs={ADMIN_WORK_TABS} current="/admin/announcements" />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6">
-          <section className="card">
+          <section id="new" className="card scroll-mt-24">
             <h2 className="mb-3 font-semibold">{t("بونص / تعريفة لشركة")}</h2>
             <StateForm action={createAnnouncement} className="space-y-3" submitLabel={t("نشر")} resetOnSuccess>
               <select name="company_id" required className="input">

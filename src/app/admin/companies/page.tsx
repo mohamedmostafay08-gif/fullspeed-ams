@@ -41,7 +41,7 @@ export default async function CompaniesPage() {
       </div>
 
       {profile.role === "admin" && (
-        <section className="card mt-6 max-w-2xl">
+        <section id="new" className="card mt-6 max-w-2xl scroll-mt-24">
           <h2 className="mb-3 font-semibold">{t("إضافة شركة جديدة")}</h2>
           <StateForm action={createCompany} className="grid gap-3 sm:grid-cols-2" submitLabel={t("إضافة")}>
             <div>

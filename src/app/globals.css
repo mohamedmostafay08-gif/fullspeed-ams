@@ -542,3 +542,24 @@ html {
   body:has([data-focus]) .app-side { display: none; }
   main:has([data-focus]) { max-width: 72rem; margin-inline: auto; }
 }
+
+/* Phones: every data table becomes a stack of cards; the first cell is the card title,
+   the rest are "column: value" lines (labels come from TableLabels). Add data-scroll to opt out. */
+@media (max-width: 767px) {
+  .data-table:not([data-scroll]) { display: block; min-width: 0 !important; }
+  .data-table:not([data-scroll]) thead { display: none; }
+  .data-table:not([data-scroll]) tbody,
+  .data-table:not([data-scroll]) tfoot { display: grid; gap: 0.5rem; }
+  .data-table:not([data-scroll]) tfoot { margin-top: 0.5rem; }
+  .data-table:not([data-scroll]) tr { display: block; border: 1px solid var(--card-edge); border-radius: 14px; padding: 0.35rem 0.85rem; background: var(--card); }
+  .data-table:not([data-scroll]) td { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 0; padding: 0.35rem 0; text-align: end; }
+  .data-table:not([data-scroll]) td:first-child { font-weight: 700; text-align: start; border-bottom: 1px solid var(--card-edge); padding-bottom: 0.5rem; margin-bottom: 0.15rem; }
+  .data-table:not([data-scroll]) td:only-child { border-bottom: 0; margin: 0; justify-content: center; font-weight: 400; }
+  .data-table:not([data-scroll]) td:not(:first-child)[data-label]::before { content: attr(data-label); font-family: var(--font-sans); letter-spacing: 0; font-size: 12px; font-weight: 600; color: var(--color-zinc-500); text-align: start; }
+  .data-table:not([data-scroll]) td:not(:first-child):not([data-label]) { justify-content: flex-end; }
+  .data-table:not([data-scroll]) td:empty { display: none; }
+}
+
+/* Landing on a form from "+ إضافة" (#new) gives it a brief outline. */
+#new:target { animation: target-ring 1.6s ease-out; }
+@keyframes target-ring { from { box-shadow: 0 0 0 3px var(--color-brand-400); } to { box-shadow: 0 0 0 3px transparent; } }
