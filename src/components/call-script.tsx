@@ -27,7 +27,7 @@ export function CallScript({ script, defaultOpen = true }: { script: string | nu
         <ChevronDown size={18} className={`text-sky-700 transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <ul className="space-y-1.5 px-4 pb-4 text-sm leading-6 text-sky-950">
+        <ul className="space-y-1.5 px-4 pb-4 text-sm leading-6 text-sky-900">
           {lines.map((line, i) => {
             if (line.startsWith("#")) return <li key={i} className="pt-2 text-xs font-extrabold tracking-wide text-sky-700 uppercase">{line.replace(/^#+\s*/, "")}</li>;
             if (/^[?؟]/.test(line)) {

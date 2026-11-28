@@ -16,7 +16,7 @@ export function CompanyTerms({ terms, compact = false }: { terms: Partial<Terms>
   return (
     <dl className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
       {rows.map((r, i) => (
-        <div key={i} className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-950/40">
+        <div key={i} className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm">
           <r.icon size={16} className="mt-0.5 shrink-0 text-emerald-600" />
           <div>
             <dt className="text-xs text-zinc-500">{r.label}</dt>

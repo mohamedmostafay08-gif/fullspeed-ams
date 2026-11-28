@@ -12,5 +12,5 @@ export async function setLocale(locale: "ar" | "en") {
 
 export async function setTheme(theme: "system" | "light" | "dark") {
   (await cookies()).set("theme", ["light", "dark"].includes(theme) ? theme : "system", { maxAge: YEAR, path: "/", sameSite: "lax" });
-  revalidatePath("/", "layout");
+  // The page already switched on the client; nothing on the server renders differently.
 }

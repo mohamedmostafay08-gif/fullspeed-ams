@@ -98,6 +98,9 @@
   --chart-hover: #f4f4f5;
   --chart-leads: #3b6fd8;
   --chart-hired: #ea580c;
+  /* Secondary hints (text-zinc-400) were 2.6:1 on white; one step darker reads clearly and still sits
+     below zinc-500. */
+  --color-zinc-400: oklch(62% 0.016 286);
 }
 
 /* Dark theme: surfaces go deep navy, neutral and tint scales are inverted so the
@@ -122,8 +125,10 @@
   --mesh-1: rgba(249, 115, 22, 0.12);
   --mesh-2: rgba(109, 74, 255, 0.14);
   --mesh-3: rgba(31, 181, 168, 0.06);
-  --color-ink: #070b16;
-  --color-ink-3: #232d4d;
+  /* Ink stays a dark fill at night (avatars, tooltips, toasts, dark buttons) but sits a step above
+     the canvas and cards so those shapes don't vanish into the background. */
+  --color-ink: #262f4d;
+  --color-ink-3: #323c5e;
   --chart-grid: #283049;
   --chart-axis: #3a4360;
   --chart-label: #8d97b3;
@@ -315,11 +320,26 @@ body::before {
 .dark .bg-white\/95 { background-color: color-mix(in oklab, var(--surface) 95%, transparent); }
 .dark .bg-white\/90 { background-color: color-mix(in oklab, var(--surface) 90%, transparent); }
 .dark .bg-white\/85 { background-color: color-mix(in oklab, var(--surface) 85%, transparent); }
+.dark .bg-white\/80 { background-color: color-mix(in oklab, var(--surface) 80%, transparent); }
+.dark .bg-white\/70 { background-color: color-mix(in oklab, var(--surface) 70%, transparent); }
+.dark .bg-white\/60 { background-color: color-mix(in oklab, var(--surface) 60%, transparent); }
+.dark .bg-white\/50 { background-color: color-mix(in oklab, var(--surface) 50%, transparent); }
 .dark .ring-white { --tw-ring-color: var(--surface); }
+/* Solid colour fills that carry white text (WhatsApp button, counters, "mark rejected" chip) keep
+   their day tones at night: the inverted 600/700 tints are too light for white text. */
+.dark .bg-emerald-600 { background-color: oklch(59.6% 0.145 163.225); }
+.dark .hover\:bg-emerald-700:hover { background-color: oklch(50.8% 0.118 165.612); }
+.dark .bg-rose-600 { background-color: oklch(58.6% 0.253 17.585); }
+.dark .border-rose-600 { border-color: oklch(58.6% 0.253 17.585); }
+.dark .bg-violet-600 { background-color: oklch(54.1% 0.281 293.009); }
+.dark .ring-violet-600 { --tw-ring-color: oklch(54.1% 0.281 293.009); }
+.dark .to-emerald-600 { --tw-gradient-to: oklch(59.6% 0.145 163.225); }
+.dark .to-emerald-700 { --tw-gradient-to: oklch(50.8% 0.118 165.612); }
 .dark .text-ink,
 .dark .hover\:text-ink:hover { color: var(--fg); }
 .dark .btn-primary:hover { background-color: #c2410c; }
 .dark .chip-active { background-color: var(--fg); border-color: var(--fg); color: #0c1222; }
+.dark .chip-active:hover { border-color: var(--fg); }
 .dark .btn-primary { box-shadow: 0 10px 28px -12px rgba(249, 115, 22, 0.7); }
 
 ::selection {

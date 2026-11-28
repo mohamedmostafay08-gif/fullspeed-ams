@@ -47,7 +47,7 @@ export function QuickAdd({ role }: { role: Role }) {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="inline-flex items-center gap-1.5 rounded-full bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600"
+        className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1.5 text-sm font-bold text-white shadow-sm transition hover:brightness-95"
       >
         <Plus size={16} /> <span className="hidden sm:inline">{t("إضافة")}</span>
       </button>

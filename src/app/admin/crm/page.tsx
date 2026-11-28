@@ -49,11 +49,11 @@ export default async function CrmPage() {
           <p>
             {t("الـ CRM يبعت كل ليد جديد على الرابط ده. السيستم بيتأكد إن الرقم مش مكرر على نفس الشركة، وبعدين بيوزّعه أوتوماتيك على الأجنت المتعين على الشركة اللي عنده أقل عدد ليدز النهارده، والأجنت بيوصله إشعار فوري.")}
           </p>
-          <pre dir="ltr" className="overflow-x-auto rounded-lg bg-ink p-3 text-left text-xs text-zinc-100">{SAMPLE}</pre>
+          <pre dir="ltr" className="overflow-x-auto rounded-lg bg-ink p-3 text-left text-xs text-bone">{SAMPLE}</pre>
           <p className="text-zinc-500">{t("ممكن تبعت لحد 500 ليد في الطلب الواحد، والرد فيه نتيجة كل ليد: created أو duplicate أو rejected أو blacklisted.")}</p>
           <h2 className="text-base font-semibold">{t("2) رجوع الحالات (السيستم ← CRM)")}</h2>
           <p>{t("الـ CRM يسحب كل الليدز اللي حالتها اتغيرت من وقت معين (مثلاً كل 10 دقايق) عشان يعرف مين اشتغل ومين اترفض.")}</p>
-          <pre dir="ltr" className="overflow-x-auto rounded-lg bg-ink p-3 text-left text-xs text-zinc-100">{PULL}</pre>
+          <pre dir="ltr" className="overflow-x-auto rounded-lg bg-ink p-3 text-left text-xs text-bone">{PULL}</pre>
           <p className="text-zinc-500">{t("كل طلب بيرجّع لحد 1000 ليد. لو has_more بـ true، اطلب تاني بقيم next عشان ميفوتكش ولا ليد.")}</p>
           <p className="text-zinc-500">
             {t("لو الـ CRM مفيهوش Webhooks أو API: صدّر الليدز Excel → احفظها CSV → ارفعها من صفحة الليدز وهتتوزع بنفس الطريقة.")}

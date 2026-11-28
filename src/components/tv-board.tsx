@@ -79,10 +79,10 @@ export function TvBoard({ data }: { data: TvData }) {
         </div>
         <div className="ms-auto grid grid-cols-4 gap-3">
           {([
-            ["ليدز", data.totals.leads, "text-sky-300"],
-            ["مكالمات", data.totals.calls, "text-violet-300"],
-            ["مقابلات", data.totals.interviews, "text-amber-300"],
-            ["اشتغلوا", data.totals.hired, "text-emerald-300"],
+            ["ليدز", data.totals.leads, "text-sky-400"],
+            ["مكالمات", data.totals.calls, "text-violet-400"],
+            ["مقابلات", data.totals.interviews, "text-amber-400"],
+            ["اشتغلوا", data.totals.hired, "text-emerald-400"],
           ] as const).map(([label, v, cls]) => (
             <div key={label} className="rounded-2xl bg-white/5 px-5 py-3 text-center ring-1 ring-white/10">
               <p className={`num text-4xl font-bold ${cls}`}><CountUp value={v} /></p>
@@ -123,7 +123,7 @@ export function TvBoard({ data }: { data: TvData }) {
                       <p className="truncate text-2xl font-bold">{r.full_name}</p>
                       <p className="text-sm text-slate-ink">{t("{0} ليد · {1} مكالمة · {2} اشتغلوا", r.leads, r.calls, r.hired)}</p>
                     </div>
-                    {r.streak > 1 && <span className="flex items-center gap-1 rounded-full bg-orange-500/20 px-3 py-1 text-lg font-bold text-orange-300"><Flame size={18} /> {r.streak}</span>}
+                    {r.streak > 1 && <span className="flex items-center gap-1 rounded-full bg-orange-500/20 px-3 py-1 text-lg font-bold text-orange-400"><Flame size={18} /> {r.streak}</span>}
                     <span className="num text-4xl font-bold">{r.points}</span>
                   </div>
                 </li>
@@ -147,9 +147,9 @@ export function TvBoard({ data }: { data: TvData }) {
                       <p className="text-sm text-slate-ink">{t("{0} أجنت", tm.agents)}</p>
                     </div>
                     <div className="text-end text-lg">
-                      <span className="num text-sky-300">{tm.leads}</span> <span className="text-slate-ink">{t("ليد")}</span> ·{" "}
-                      <span className="num text-emerald-300">{tm.hired}</span> <span className="text-slate-ink">{t("اشتغلوا")}</span> ·{" "}
-                      <span className="num text-amber-300">{tm.points}</span> <span className="text-slate-ink">{t("نقطة")}</span>
+                      <span className="num text-sky-400">{tm.leads}</span> <span className="text-slate-ink">{t("ليد")}</span> ·{" "}
+                      <span className="num text-emerald-400">{tm.hired}</span> <span className="text-slate-ink">{t("اشتغلوا")}</span> ·{" "}
+                      <span className="num text-amber-400">{tm.points}</span> <span className="text-slate-ink">{t("نقطة")}</span>
                     </div>
                   </li>
                 ))}
@@ -171,8 +171,8 @@ export function TvBoard({ data }: { data: TvData }) {
                     <div>
                       <p className="text-xl font-bold">{c.name}</p>
                       <p className="mt-1 text-lg">
-                        <span className="num text-sky-300">{c.leads}</span> <span className="text-slate-ink">{t("ليد")}</span> ·{" "}
-                        <span className="num text-emerald-300">{c.hired}</span> <span className="text-slate-ink">{t("اشتغلوا")}</span>
+                        <span className="num text-sky-400">{c.leads}</span> <span className="text-slate-ink">{t("ليد")}</span> ·{" "}
+                        <span className="num text-emerald-400">{c.hired}</span> <span className="text-slate-ink">{t("اشتغلوا")}</span>
                       </p>
                     </div>
                   </li>
@@ -196,7 +196,7 @@ export function TvBoard({ data }: { data: TvData }) {
                       <p className="truncate text-xl font-bold">{h.lead}</p>
                       <p className="text-sm text-slate-ink">{h.company} · {t("بواسطة")} {h.agent}</p>
                     </div>
-                    <span className="num text-lg text-emerald-300">{cairoTime(h.at, locale)}</span>
+                    <span className="num text-lg text-emerald-400">{cairoTime(h.at, locale)}</span>
                   </li>
                 ))}
               </ul>

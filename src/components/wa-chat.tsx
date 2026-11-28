@@ -40,7 +40,7 @@ export async function WaChat({ phone, compact = false, leadHref }: { phone: stri
           {msgs.map((m) => {
             const mine = m.direction === "out";
             return (
-              <li key={m.id} className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm ${mine ? "self-end rounded-ee-sm bg-emerald-100 text-emerald-950 dark:bg-emerald-900/50 dark:text-emerald-50" : "self-start rounded-es-sm bg-white dark:bg-zinc-800"}`}>
+              <li key={m.id} className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm ${mine ? "self-end rounded-ee-sm bg-emerald-100 text-emerald-900" : "self-start rounded-es-sm bg-white"}`}>
                 {m.media_id && m.kind === "image" ? (
                   <a href={`/api/wa/media/${m.media_id}`} target="_blank" rel="noreferrer">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

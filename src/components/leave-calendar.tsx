@@ -54,7 +54,7 @@ export async function LeaveCalendar({
             return (
               <div
                 key={d}
-                className={`min-h-20 rounded-lg border p-1.5 ${crowded ? "border-rose-300 bg-rose-50 dark:bg-rose-950/30" : holiday || weekly ? "border-transparent bg-zinc-100 dark:bg-zinc-800/60" : "border-zinc-200 dark:border-zinc-700"} ${d === today ? "ring-2 ring-brand-500" : ""}`}
+                className={`min-h-20 rounded-lg border p-1.5 ${crowded ? "border-rose-300 bg-rose-50" : holiday || weekly ? "border-transparent bg-zinc-100" : "border-zinc-200"} ${d === today ? "ring-2 ring-brand-500" : ""}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="num font-semibold">{Number(d.slice(8))}</span>
@@ -65,7 +65,7 @@ export async function LeaveCalendar({
                   {off.slice(0, 4).map((l) => (
                     <li
                       key={l.user_id + l.start_date}
-                      className={`truncate rounded px-1 ${l.status === "approved" ? "bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-100" : "border border-dashed border-amber-400 text-amber-800 dark:text-amber-200"}`}
+                      className={`truncate rounded px-1 ${l.status === "approved" ? "bg-sky-100 text-sky-900" : "border border-dashed border-amber-400 text-amber-800"}`}
                       title={l.name}
                     >
                       {l.name.split(" ")[0]}
