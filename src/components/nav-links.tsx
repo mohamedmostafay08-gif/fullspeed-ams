@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { SignOutForm } from "@/components/sign-out-form";
 import { PrefsControls } from "@/components/prefs";
-import { Activity, ArrowLeft, ArrowRight, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, DatabaseBackup, Eye, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, Target, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Ban, BarChart3, Bell, Building2, CalendarCheck, CalendarClock, CheckSquare, ChevronDown, Coffee, DatabaseBackup, Eye, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Package, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, Target, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -44,6 +44,8 @@ const ICONS: Record<string, LucideIcon> = {
   campaigns: Target,
   settings: Settings,
   eye: Eye,
+  interviews: CalendarClock,
+  demand: Package,
 };
 
 export interface NavItem {

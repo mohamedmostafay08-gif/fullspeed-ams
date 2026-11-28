@@ -12,13 +12,16 @@ import { NextStepBar } from "@/components/next-step-bar";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, StatusBadge, formatDate } from "@/components/ui";
 import { WaChat } from "@/components/wa-chat";
+import { InterviewResult } from "@/components/interview-result";
+import { QualifyCard } from "@/components/qualify-card";
+import { getGeo } from "@/lib/data";
 import Link from "next/link";
 import { getProfile } from "@/lib/auth";
 import { formatFieldValue } from "@/lib/forms";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { cairoDateTime, toCairoLocal } from "@/lib/time";
-import { DOC_KINDS, LEAD_STATUS_LABELS, placeName, type FormField, type LeadStatus } from "@/lib/types";
+import { DOC_KINDS, INTERVIEW_RESULTS, LEAD_STATUS_LABELS, placeName, type FormField, type InterviewResult as InterviewResultKey, type LeadFit, type LeadStatus } from "@/lib/types";
 import type { T } from "@/lib/i18n/translate";
 import { templatesFor, type Template } from "@/lib/whatsapp";
 
@@ -42,7 +45,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const extraKeys = Object.keys(formData).filter((k) => !schemaKeys.has(k) && (!k.startsWith("_") || me.role === "admin"));
   const closed = lead.status === "hired" || lead.status === "rejected";
 
-  const [{ data: activity }, agentsRes, { data: banned }, tplRes, waRes, docsRes] = await Promise.all([
+  const [{ data: activity }, agentsRes, { data: banned }, tplRes, waRes, docsRes, extraRes, fitRes, geo] = await Promise.all([
     supabase
       .from("lead_activities")
       .select("id, from_status, to_status, note, created_at, actor:profiles(full_name)")
@@ -55,7 +58,14 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
     supabase.from("whatsapp_templates").select("id, title, body, company_id").order("sort").order("created_at"),
     supabase.from("wa_messages").select("id, direction, kind, body, created_at").eq("phone", lead.phone).order("created_at", { ascending: false }).limit(40),
     supabase.from("lead_documents").select("id, kind, created_at, uploader:profiles(full_name)").eq("lead_id", id).order("created_at", { ascending: false }),
+    // Qualification and interview columns (migrations 0060 and 0062): read apart, so the page still works before they're applied.
+    supabase.from("leads").select("governorate_id, region_id, has_license, age, interview_result, no_show_count").eq("id", id).maybeSingle(),
+    closed ? Promise.resolve({ data: null, error: null }) : supabase.rpc("lead_fit", { p_lead: id }),
+    closed ? Promise.resolve(null) : getGeo(),
   ]);
+  const extra = extraRes.error ? null : (extraRes.data as { governorate_id: number | null; region_id: number | null; has_license: boolean | null; age: number | null; interview_result: InterviewResultKey | null; no_show_count: number } | null);
+  const fit = fitRes.error ? null : ((fitRes.data ?? []) as LeadFit[]);
+  const interviewPast = Boolean(lead.interview_at && new Date(lead.interview_at) <= new Date());
   const agents = ((agentsRes.data ?? []) as unknown as { profiles: { id: string; full_name: string; is_active: boolean } | null }[])
     .map((r) => r.profiles)
     .filter((p): p is { id: string; full_name: string; is_active: boolean } => Boolean(p?.is_active));
@@ -174,6 +184,21 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
           </section>
         )}
 
+        {!closed && geo && (
+          <QualifyCard
+            leadId={lead.id}
+            governorateId={extra?.governorate_id ?? null}
+            regionId={extra?.region_id ?? null}
+            vehicle={typeof formData.vehicle === "string" && formData.vehicle ? formData.vehicle : null}
+            hasLicense={extra?.has_license ?? (typeof formData.has_license === "boolean" ? formData.has_license : null)}
+            age={extra?.age ?? (typeof formData.age === "number" || (typeof formData.age === "string" && /^\d{2}$/.test(formData.age)) ? Number(formData.age) : null)}
+            governorates={geo.governorates}
+            regions={geo.regions}
+            fit={extra ? fit : null}
+            readOnly={me.role === "performance"}
+          />
+        )}
+
         {!closed && (
           <section id="outcome" className="card scroll-mt-24">
             <div className="mb-4 space-y-3"><CompanyTerms terms={company} /><CallScript script={company.call_script} defaultOpen={false} /></div>
@@ -213,6 +238,15 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
                   <input type="hidden" name="kind" value="clear_interview" />
                   <button className="rounded-lg p-1 text-violet-700 hover:bg-white" aria-label={t("إلغاء")} title={t("إلغاء")}><X size={15} /></button>
                 </form>
+              </div>
+            )}
+            {extra?.interview_result && extra.interview_result !== "rescheduled" && (
+              <p className="mb-2 text-xs font-semibold text-zinc-600">{t("آخر نتيجة: {0}", t(INTERVIEW_RESULTS[extra.interview_result]))}{extra.no_show_count > 0 && ` · ${t("مجاش {0} مرة", extra.no_show_count)}`}</p>
+            )}
+            {extra && lead.status === "interview" && lead.interview_at && (!extra.interview_result || extra.interview_result === "rescheduled") && (
+              <div className="mb-3">
+                <p className="mb-1.5 text-sm font-semibold">{interviewPast ? t("حضر المقابلة؟") : t("سجّل نتيجة المقابلة")}</p>
+                <InterviewResult leadId={lead.id} />
               </div>
             )}
             {closed ? (

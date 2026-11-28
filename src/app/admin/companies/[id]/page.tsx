@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createAnnouncement, updateCompany, saveCallScript, saveCompanyTerms, saveCompanyAgents } from "@/app/admin/actions";
 import { distributeUnassigned } from "@/app/actions/assignment";
+import { saveCompanyRequirements } from "@/app/actions/acquisition";
 import { CompanyTerms } from "@/components/company-terms";
 import { hasTerms, type Terms } from "@/lib/terms";
 import { PageHeader } from "@/components/app-shell";
@@ -14,7 +15,7 @@ import { getGeo } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField } from "@/lib/types";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { placeName } from "@/lib/types";
+import { placeName, VEHICLES } from "@/lib/types";
 
 const ANN_LABEL: Record<string, string> = { bonus: "بونص", rate: "تعريفة", info: "معلومة" };
 
@@ -32,7 +33,7 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
     .maybeSingle();
   if (!company) notFound();
 
-  const [{ governorates }, hiringRes, annRes, agentsRes, allAgentsRes, waitingRes] = await Promise.all([
+  const [{ governorates }, hiringRes, annRes, agentsRes, allAgentsRes, waitingRes, reqRes] = await Promise.all([
     getGeo(),
     supabase.from("company_governorates").select("governorate_id").eq("company_id", id),
     supabase.from("company_announcements").select("id, type, title, body, amount, valid_to, created_at").eq("company_id", id).order("created_at", { ascending: false }).limit(20),
@@ -41,7 +42,10 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
     tab === "setup"
       ? supabase.from("leads").select("id", { count: "exact", head: true }).eq("company_id", id).is("agent_id", null).not("status", "in", "(hired,rejected)")
       : Promise.resolve({ count: 0 }),
+    // What the company accepts (migration 0060); read apart so the page works before it's applied.
+    tab === "setup" ? supabase.from("companies").select("vehicles, needs_license, min_age, max_age").eq("id", id).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
+  const req = reqRes.error ? null : (reqRes.data as { vehicles: string[]; needs_license: boolean; min_age: number | null; max_age: number | null } | null);
   const allAgents = (allAgentsRes.data ?? []) as { id: string; full_name: string }[];
   const waiting = waitingRes.count ?? 0;
   const canDistribute = MANAGERS.includes(profile.role);
@@ -193,7 +197,7 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
           {isAdmin && (
             <div className="lg:col-span-2">
             <section className="card">
-              <h2 className="mb-3 font-semibold">{t("بيانات الشركة ومناطق التعيين")}</h2>
+              <h2 className="mb-3 font-semibold">{t("بيانات الشركة")}</h2>
               <StateForm action={updateCompany} className="grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="id" value={company.id} />
                 <input type="hidden" name="slug" value={company.slug} />
@@ -209,21 +213,59 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
                   <label className="label" htmlFor="description">{t("ملاحظات / شروط الشركة")}</label>
                   <textarea id="description" name="description" defaultValue={company.description ?? ""} rows={3} className="input" />
                 </div>
-                <fieldset className="sm:col-span-2">
-                  <legend className="label">{t("المحافظات اللي الشركة بتعيّن فيها")}</legend>
-                  <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-                    {governorates.map((g) => (
-                      <label key={g.id} className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" name="governorate_id" value={g.id} defaultChecked={hiring.has(g.id)} className="accent-brand-600" />
-                        {placeName(g, locale)}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
                 <label className="flex items-center gap-2 text-sm font-medium">
                   <input type="checkbox" name="is_active" defaultChecked={company.is_active} className="accent-brand-600" /> {t("الشركة شغالة")}
                 </label>
               </StateForm>
+            </section>
+            </div>
+          )}
+          {canDistribute && (
+            <div className="lg:col-span-2">
+            <section className="card">
+              <h2 className="mb-1 font-semibold">🎯 {t("شروط التأهيل")}</h2>
+              <p className="mb-3 text-xs text-zinc-500">{t("الأجنت بيشوف على كل ليد هو مناسب للشركة دي ولا لأ، وأنهي شركات تانية تناسبه. سيب الحاجة فاضية لو مش فارقة.")}</p>
+              {reqRes.error ? (
+                <p className="text-sm text-zinc-500">{t("الجزء ده محتاج migration 0060 — اتأكد إنه اتطبق في Supabase")}</p>
+              ) : (
+                <StateForm action={saveCompanyRequirements} submitLabel={t("احفظ الشروط")} className="grid gap-4 sm:grid-cols-2">
+                  <input type="hidden" name="id" value={company.id} />
+                  <fieldset className="sm:col-span-2">
+                    <legend className="label">{t("المركبات المقبولة (فاضي = أي مركبة)")}</legend>
+                    <div className="flex flex-wrap gap-1.5">
+                      {VEHICLES.map((v) => (
+                        <label key={v} className="chip cursor-pointer has-checked:border-(--fg) has-checked:bg-(--fg) has-checked:text-(--surface)">
+                          <input type="checkbox" name="vehicles" value={v} defaultChecked={req?.vehicles.includes(v)} className="sr-only" /> {t(v)}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="label" htmlFor="min_age">{t("أقل سن")}</label>
+                      <input id="min_age" name="min_age" type="number" min={16} max={70} defaultValue={req?.min_age ?? ""} className="input num" />
+                    </div>
+                    <div>
+                      <label className="label" htmlFor="max_age">{t("أكبر سن")}</label>
+                      <input id="max_age" name="max_age" type="number" min={16} max={70} defaultValue={req?.max_age ?? ""} className="input num" />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
+                    <input type="checkbox" name="needs_license" defaultChecked={req?.needs_license} className="accent-brand-600" /> {t("لازم رخصة سارية")}
+                  </label>
+                  <fieldset className="sm:col-span-2">
+                    <legend className="label">{t("المحافظات اللي بتعيّن فيها (فاضي = كل المحافظات)")}</legend>
+                    <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+                      {governorates.map((g) => (
+                        <label key={g.id} className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" name="governorate_id" value={g.id} defaultChecked={hiring.has(g.id)} className="accent-brand-600" />
+                          {placeName(g, locale)}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                </StateForm>
+              )}
             </section>
             </div>
           )}

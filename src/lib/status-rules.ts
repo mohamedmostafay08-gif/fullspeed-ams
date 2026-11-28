@@ -1,6 +1,6 @@
 import type { T } from "@/lib/i18n/translate";
 
-/** What a status rule may require before a lead enters that status (mirrors lead_rule_fields() in migration 0051). */
+/** What a status rule may require before a lead enters that status (mirrors lead_rule_fields() in migrations 0051 and 0060). */
 export const RULE_FIELDS = {
   interview_at: "معاد المقابلة",
   callback_at: "معاد مكالمة",
@@ -9,6 +9,8 @@ export const RULE_FIELDS = {
   notes: "ملاحظة",
   reject_reason: "سبب الرفض",
   vehicle: "نوع المركبة",
+  has_license: "الرخصة",
+  age: "السن",
 } as const;
 export type RuleField = keyof typeof RULE_FIELDS;
 

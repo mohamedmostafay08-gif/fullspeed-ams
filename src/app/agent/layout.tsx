@@ -14,6 +14,7 @@ const NAV: { href: string; label: string; icon: string; group: string; exact?: b
   { group: "شغلي", href: "/agent/next", label: "ابدأ المكالمات", icon: "phone", mobile: "fab" },
   { group: "شغلي", href: "/agent/leads", label: "الليدز بتاعتي", icon: "leads", mobile: "tab" },
   { group: "شغلي", href: "/agent/inbox", label: "واتساب", icon: "whatsapp", mobile: "tab", badge: "wa" },
+  { group: "شغلي", href: "/agent/interviews", label: "مقابلاتي", icon: "interviews" },
   { group: "شغلي", href: "/agent/companies", label: "شركاتي", icon: "companies" },
   { group: "أنا", href: "/agent/tasks", label: "المطلوب مني", icon: "tasks", also: ["/agent/memos", "/agent/notifications"], badge: "tasks" },
   { group: "أنا", href: "/agent/scorecard", label: "تقييمي", icon: "scorecard" },
