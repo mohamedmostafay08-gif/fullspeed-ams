@@ -5,9 +5,14 @@ import { getT } from "@/lib/i18n/server";
 export async function SubTabs({ tabs, current }: { tabs: { href: string; label: string }[]; current: string }) {
   const t = await getT();
   return (
-    <div className="mb-4 flex w-fit gap-1 rounded-xl bg-zinc-100 p-1">
+    <div className="mb-5 flex w-fit max-w-full gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1">
       {tabs.map((tab) => (
-        <Link key={tab.href} href={tab.href} className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab.href === current ? "bg-white shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>
+        <Link
+          key={tab.href}
+          href={tab.href}
+          aria-current={tab.href === current ? "page" : undefined}
+          className={`rounded-lg px-4 py-1.5 text-sm font-semibold whitespace-nowrap transition ${tab.href === current ? "bg-white text-(--fg) shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
+        >
           {t(tab.label)}
         </Link>
       ))}

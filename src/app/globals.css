@@ -84,6 +84,10 @@
   --glass-line: rgba(60, 40, 20, 0.08);
   --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 12px 32px -16px rgba(120, 60, 10, 0.22);
   --glass-blur: 18px;
+  /* Content surfaces (cards, tables): calm and solid. Glass is kept for the frame: sidebar, header, phone bar. */
+  --card: rgba(255, 255, 255, 0.9);
+  --card-edge: rgba(60, 40, 20, 0.08);
+  --card-shadow: 0 1px 2px rgba(60, 40, 20, 0.04), 0 10px 28px -20px rgba(120, 60, 10, 0.28);
   --side-bg: rgba(255, 255, 255, 0.5);
   --mesh-1: rgba(255, 170, 110, 0.55);
   --mesh-2: rgba(150, 205, 255, 0.5);
@@ -111,6 +115,9 @@
   --glass-line: rgba(255, 255, 255, 0.07);
   --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 50px -24px rgba(0, 0, 0, 0.8);
   --glass-blur: 22px;
+  --card: #12162a;
+  --card-edge: rgba(255, 255, 255, 0.07);
+  --card-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 44px -30px rgba(0, 0, 0, 0.85);
   --side-bg: rgba(10, 12, 24, 0.5);
   --mesh-1: rgba(249, 115, 22, 0.36);
   --mesh-2: rgba(109, 74, 255, 0.4);
@@ -334,10 +341,10 @@ body::before {
 
 @layer components {
   .card {
-    @apply glass rounded-[22px] p-4 md:p-5;
+    @apply rounded-[18px] border border-(--card-edge) bg-(--card) p-4 shadow-(--card-shadow) md:p-5;
   }
   .card-title {
-    @apply mb-4 flex items-center gap-2 text-base font-bold text-(--fg);
+    @apply mb-4 flex items-center gap-2 text-[15px] font-bold text-(--fg);
   }
   .btn-primary {
     @apply btn bg-linear-to-l from-brand-500 to-brand-600 text-white shadow-[0_10px_24px_-12px_rgba(234,88,12,0.75)] hover:-translate-y-0.5 hover:shadow-[0_16px_30px_-12px_rgba(234,88,12,0.8)] focus-visible:ring-brand-200;
@@ -382,10 +389,15 @@ body::before {
     text-align: start;
   }
   .data-table th {
-    @apply whitespace-nowrap border-b border-(--glass-line) px-3 py-2.5 text-xs font-semibold tracking-wide text-zinc-500;
+    @apply whitespace-nowrap border-b border-(--card-edge) bg-zinc-50/70 px-3 py-2 text-xs font-bold text-zinc-500;
   }
+  .data-table th:first-child { border-start-start-radius: 10px; }
+  .data-table th:last-child { border-start-end-radius: 10px; }
   .data-table td {
-    @apply border-b border-(--glass-line) px-3 py-3 align-middle;
+    @apply border-b border-(--card-edge) px-3 py-2.5 align-middle tabular-nums;
+  }
+  .data-table tbody tr:last-child td {
+    @apply border-b-0;
   }
   .data-table tbody tr {
     @apply transition-colors hover:bg-(--glass-strong);
