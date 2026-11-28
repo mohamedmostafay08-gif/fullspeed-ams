@@ -266,6 +266,7 @@
 ### مفاتيح `private.app_config` (بتتظبط من جوه السيستم)
 - **عام:** `app_url` · `dispatch_secret` · مفاتيح VAPID (بتتعمل لوحدها).
 - **النسخ:** `drive_script_url` · `drive_secret` · `last_backup_at`.
+- **ربط ليدز LineCRM من رسايلهم (0069):** `linecrm_match_message` بيدي حدث lead.created رقمه من أول رسالة واتساب (نفس الاسم، وأول رسالة لو الاسم متكرر) من غير ما يستهلك API. وتريجر `leads_link_wa` بيربط رسايل الرقم بالليد لما يتعمل.
 - **الشات من رقم LineCRM (0068):** `wa_provider` = `linecrm` · `linecrm_send_key` (messages:write) · `linecrm_wa_account` (اختياري) · `linecrm_wa_purpose` (قالب فتح المحادثة، اختياري). كل رسالة خارجة = طلب من رصيد LineCRM الشهري؛ الويبهوك مجاني.
 - **واتساب:** `wa_phone_id` · `wa_token` · `wa_template` · `wa_reminder_template` · `wa_lang` · `wa_enabled` · `wa_inbox_company` · `wa_auto_lead` · `wa_api_base` (اختياري، للتجربة).
 - **Meta:** `meta_app_secret` · `meta_verify_token` (بيتعمل لوحده) · `meta_page_token`.
