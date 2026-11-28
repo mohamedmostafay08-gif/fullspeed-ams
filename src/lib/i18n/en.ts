@@ -5,7 +5,6 @@ export const EN: Record<string, string> = {
   "أحسن حملة (10 ليدز أو أكتر)": "Best campaign (10+ leads)",
   "أقصى {0} ساعة": "Max {0} hours",
   "أقصى مدة (ساعة)": "Max time (hours)",
-  "أوراق": "Documents",
   "اتكلمنا معاه": "Reached",
   "اسم الحملة بالظبط": "Exact campaign name",
   "الحالة دي محتاجة الأول: {0}": "This status needs first: {0}",
