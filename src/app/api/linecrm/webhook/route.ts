@@ -83,11 +83,11 @@ export async function POST(request: Request) {
   );
   if (error) return Response.json({ error: "store failed" }, { status: 500 });
 
-  // Read the new lead once, right away, unless LineCRM is rate-limiting us (HTTP 429).
-  // Everything else (failed reads, leads still waiting for a phone) is re-read by the scheduler
-  // at a steady pace: /api/linecrm/recheck. Re-reading here on every delivery is what caused the 429s.
+  // The phone comes from the bulk pull (/api/linecrm/pull, every 15 minutes): LineCRM's API quota
+  // (10,000 a month) can't pay for one read per lead. Reading each lead here is kept only as an
+  // opt-in setting (linecrm_per_lead_read = "1"), e.g. for a plan with a bigger quota.
   const data = payload?.data as { id?: unknown } | undefined;
-  if (scheme && type === "lead.created" && eventId && cfg.linecrm_api_key && !linecrmBackoffActive(cfg) && (typeof data?.id === "string" || typeof data?.id === "number")) {
+  if (cfg.linecrm_per_lead_read === "1" && scheme && type === "lead.created" && eventId && cfg.linecrm_api_key && !linecrmBackoffActive(cfg) && (typeof data?.id === "string" || typeof data?.id === "number")) {
     const { data: row } = await db.from("linecrm_events").select("details").eq("id", eventId).maybeSingle();
     if (row && row.details == null) {
       const { details, error: detailError } = await fetchLinecrmLead(String(data.id), cfg.linecrm_api_key);

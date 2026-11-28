@@ -1,6 +1,6 @@
 import "server-only";
 
-const LINECRM_API = "https://linecrm.app/api/v1";
+export const LINECRM_API = "https://linecrm.app/api/v1";
 
 /** lead.created carries no phone: read the full lead from LineCRM with the read-only key. */
 export async function fetchLinecrmLead(leadId: string, key: string): Promise<{ details: unknown; error: string | null }> {
