@@ -3,7 +3,8 @@ import { Gift, Plus } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { CompanyTerms } from "@/components/company-terms";
 import { CompanyLogo, Empty, Progress } from "@/components/ui";
-import { cairoToday, requireRole } from "@/lib/auth";
+import { cairoToday } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 import { getAssignedCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
@@ -13,7 +14,7 @@ type PerfRow = { company_id: string; leads_count: number; hired_count: number; t
 /** «شركاتي»: each assigned company with today's progress, live bonuses and the offer terms. Moved off the agent home. */
 export default async function AgentCompaniesPage() {
   const t = await getT();
-  const profile = await requireRole("agent");
+  const profile = await requireAgent();
   const today = cairoToday();
   const supabase = await createClient();
   const [companies, perfRes, annRes] = await Promise.all([

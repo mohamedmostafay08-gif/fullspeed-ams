@@ -4,14 +4,15 @@ import { BadgesCard, Leaderboard } from "@/components/leaderboard";
 import { RangePicker, readRange } from "@/components/range-picker";
 import { Scorecard } from "@/components/scorecard";
 import { badgesFor, type AgentStats, type BoardRow } from "@/lib/badges";
-import { cairoToday, requireRole } from "@/lib/auth";
+import { cairoToday } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 
 /** «تقييمي»: the scorecard, plus today's leaderboard, badges and the month forecast that used to crowd the agent home. */
 export default async function AgentScorecardPage({ searchParams }: PageProps<"/agent/scorecard">) {
   const t = await getT();
-  const me = await requireRole("agent");
+  const me = await requireAgent();
   const [from, to] = readRange(await searchParams);
   const today = cairoToday();
   const supabase = await createClient();

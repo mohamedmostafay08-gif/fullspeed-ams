@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { SignOutForm } from "@/components/sign-out-form";
 import { PrefsControls } from "@/components/prefs";
-import { Activity, ArrowLeft, ArrowRight, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, DatabaseBackup, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, Target, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, DatabaseBackup, Eye, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, Target, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -43,6 +43,7 @@ const ICONS: Record<string, LucideIcon> = {
   distribution: Shuffle,
   campaigns: Target,
   settings: Settings,
+  eye: Eye,
 };
 
 export interface NavItem {
@@ -186,7 +187,7 @@ export function RailToggle({ initial }: { initial: boolean }) {
   );
 }
 
-export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile: { name: string; role: string }; theme: "system" | "light" | "dark" }) {
+export function BottomNav({ items, profile, theme, readOnly = false }: { items: NavItem[]; profile: { name: string; role: string }; theme: "system" | "light" | "dark"; readOnly?: boolean }) {
   const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -278,11 +279,13 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
                 <p className="truncate font-bold">{profile.name}</p>
                 <p className="text-xs text-zinc-500">{t(profile.role)}</p>
               </div>
-              <SignOutForm>
-                <button className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-rose-600 active:scale-95">
-                  <LogOut size={15} /> {t("خروج")}
-                </button>
-              </SignOutForm>
+              {!readOnly && (
+                <SignOutForm>
+                  <button className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-rose-600 active:scale-95">
+                    <LogOut size={15} /> {t("خروج")}
+                  </button>
+                </SignOutForm>
+              )}
             </div>
             <div className="space-y-4">
               {groupsOf(rest).map((g) => (

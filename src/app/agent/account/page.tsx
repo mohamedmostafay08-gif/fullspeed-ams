@@ -1,6 +1,6 @@
 import { AccountPage } from "@/components/account-page";
-import { requireRole } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 
 export default async function AgentAccount() {
-  return <AccountPage profile={await requireRole("agent")} />;
+  return <AccountPage profile={await requireAgent()} />;
 }

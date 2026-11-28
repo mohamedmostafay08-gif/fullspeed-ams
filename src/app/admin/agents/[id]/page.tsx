@@ -12,6 +12,7 @@ import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, ROLE_LABELS, TASK_STATUS_LABELS, assignableRoles, canManageRole, type Role, type TaskPriority, type TaskStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
+import { VIEW_AS_ROLES } from "@/lib/view-as";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -69,6 +70,12 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
       <PageHeader title={agent.full_name} subtitle={t("{0}{1}", t(ROLE_LABELS[agent.role as keyof typeof ROLE_LABELS]), agent.is_active ? "" : ` · ${t("موقوف")}`)}>
         <Link href={`/admin/leads?agent=${agent.id}`} className="btn-ghost">{t("ليدز الأجنت")}</Link>
         {agent.role === "agent" && <Link href={`/admin/scorecard?agent=${agent.id}`} className="btn-ghost">{t("التقييم الأسبوعي")}</Link>}
+        {agent.role === "agent" && VIEW_AS_ROLES.includes(me.role) && (
+          <form action="/api/view-as" method="post">
+            <input type="hidden" name="agent" value={agent.id} />
+            <button className="btn-primary">👀 {t("شوف السيستم بعينه")}</button>
+          </form>
+        )}
       </PageHeader>
       <PageTabs path={`/admin/agents/${agent.id}`} current={tab} tabs={[
         { key: "perf", label: t("الأداء والتاسكات") },

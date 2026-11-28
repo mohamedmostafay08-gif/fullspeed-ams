@@ -1,12 +1,13 @@
 import { PageHeader } from "@/components/app-shell";
 import { Holidays, LEAVE_SELECT, LeaveRequestForm, MyLeaves, MyPermits, PERMIT_SELECT, PermitRequestForm, type Holiday, type Leave, type Permit } from "@/components/leaves";
-import { cairoToday, requireRole } from "@/lib/auth";
+import { cairoToday } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 
 export default async function AgentLeavesPage() {
   const t = await getT();
-  const me = await requireRole("agent");
+  const me = await requireAgent();
   const supabase = await createClient();
   const [leaves, permits, holidays] = await Promise.all([
     supabase.from("leave_requests").select(LEAVE_SELECT).eq("user_id", me.id).order("start_date", { ascending: false }).limit(50),

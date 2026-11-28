@@ -1,9 +1,11 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 import { recordFailedLogin, recordLogin } from "@/lib/login-log";
+import { VIEW_AS_COOKIE } from "@/lib/view-as-cookie";
 
 export type SignInState = { error?: string; email?: string } | undefined;
 
@@ -35,5 +37,6 @@ export async function signOut(form?: FormData) {
   const endpoint = String(form?.get("endpoint") ?? "");
   if (endpoint) await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
   await supabase.auth.signOut();
+  (await cookies()).delete(VIEW_AS_COOKIE);
   redirect("/login");
 }

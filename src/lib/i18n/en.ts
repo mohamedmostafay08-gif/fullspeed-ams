@@ -1,5 +1,20 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // View the system as an agent (read-only).
+  "شوف كأجنت": "View as agent",
+  "شوف السيستم بعينه": "See the system as them",
+  "شوف بعينه": "View as them",
+  "إنت شايف السيستم بعين": "You're seeing the system as",
+  "عرض بس": "View only",
+  "بدّل الأجنت": "Switch agent",
+  "رجوع للإدارة": "Back to admin",
+  "وضع العرض بس: مينفعش تحفظ أو تعدّل حاجة وإنت شايف السيستم كأجنت": "View-only mode: nothing can be saved while you're viewing as an agent",
+  "افتح السيستم زي ما الأجنت شايفه بالظبط، من غير ما تعمل خروج ودخول. عرض بس، ومفيش أي تعديل بيتحفظ.": "Open the system exactly as an agent sees it, without signing out and back in. View only: no change is saved.",
+  "اختار أجنت الأول": "Pick an agent first",
+  "الحساب ده مش أجنت": "This account isn't an agent",
+  "لازم تشغّل migration 0053_view_as_agent في Supabase الأول": "Run migration 0053_view_as_agent in Supabase first",
+  "👀 بدأ يشوف كأجنت": "👀 Started viewing as agent",
+  "↩️ خرج من وضع العرض": "↩️ Left view-as mode",
   // Back / forward in the header.
   "تقدّم": "Forward",
   // Redesign batch 5: long pages as tabs.
