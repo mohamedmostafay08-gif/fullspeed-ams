@@ -2,11 +2,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { SignOutForm } from "@/components/sign-out-form";
 import { PrefsControls } from "@/components/prefs";
-import { Activity, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, Eye, DatabaseBackup, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, Target, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Ban, BarChart3, Bell, Building2, CalendarCheck, CheckSquare, ChevronDown, Coffee, DatabaseBackup, Eye, FileText, Gift, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, ListTodo, LogOut, MapPin, Megaphone, MessageCircle, MessageSquareText, Network, Palmtree, PanelRightClose, PanelRightOpen, PhoneCall, PlugZap, PlusCircle, Settings, Shuffle, Target, ShieldCheck, Sun, TrendingUp, UserCog, UserRound, Users, type LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -64,6 +64,10 @@ export interface NavItem {
 
 /** Sections that start folded unless the current page is inside them. */
 const FOLDED_GROUPS = new Set<string>();
+
+/** A small emoji in front of each menu section, so the sections read at a glance. */
+const GROUP_EMOJI: Record<string, string> = { "الرئيسية": "🏠", "الليدز": "📋", "الفريق": "👥", "التقارير": "📊", "الإعدادات": "⚙️", "شغلي": "💼", "أنا": "🙋" };
+const groupEmoji = (name: string) => GROUP_EMOJI[name] ?? "";
 
 function groupsOf(items: NavItem[]) {
   const out: { name: string; items: NavItem[] }[] = [];
@@ -129,11 +133,11 @@ export function SideNav({ items }: { items: NavItem[] }) {
                   title={t(g.name)}
                   className="nav-fold flex w-full items-center justify-between rounded-lg px-3 pt-1 pb-0.5 text-[11px] font-bold tracking-wide text-zinc-400 hover:text-zinc-600"
                 >
-                  <span className="nav-text">{t(g.name)}</span>
+                  <span className="nav-text">{groupEmoji(g.name)} {t(g.name)}</span>
                   <ChevronDown size={14} className={`transition-transform ${expanded ? "" : "ltr:-rotate-90 rtl:rotate-90"}`} />
                 </button>
               ) : (
-                <p className="nav-text px-3 pt-1 pb-0.5 text-[11px] font-bold tracking-wide text-zinc-400">{t(g.name)}</p>
+                <p className="nav-text px-3 pt-1 pb-0.5 text-[11px] font-bold tracking-wide text-zinc-400">{groupEmoji(g.name)} {t(g.name)}</p>
               ))}
             {expanded &&
               g.items.map((item) => {
@@ -286,7 +290,7 @@ export function BottomNav({ items, profile, theme, readOnly = false }: { items: 
             <div className="space-y-4">
               {groupsOf(rest).map((g) => (
                 <section key={g.name || "_"}>
-                  {g.name && <p className="mb-2 px-1 text-xs font-bold text-zinc-500">{t(g.name)}</p>}
+                  {g.name && <p className="mb-2 px-1 text-xs font-bold text-zinc-500">{groupEmoji(g.name)} {t(g.name)}</p>}
                   <ul className="stagger grid grid-cols-3 gap-2.5">
                     {g.items.map((item) => {
                       const Icon = ICONS[item.icon] ?? LayoutDashboard;
@@ -334,7 +338,7 @@ export function Breadcrumb({ items }: { items: NavItem[] }) {
   const deeper = pathname !== match.href && !(match.also ?? []).includes(pathname) && pathname.startsWith(match.href + "/");
   return (
     <nav aria-label={t("مكانك")} className="hidden min-w-0 items-center gap-1.5 text-sm md:flex">
-      {match.group && <span className="truncate text-zinc-400">{t(match.group)}</span>}
+      {match.group && <span className="truncate text-zinc-400">{groupEmoji(match.group)} {t(match.group)}</span>}
       {match.group && <ChevronDown size={14} className="shrink-0 text-zinc-300 ltr:-rotate-90 rtl:rotate-90" />}
       {deeper ? (
         <>
@@ -346,5 +350,22 @@ export function Breadcrumb({ items }: { items: NavItem[] }) {
         <span className="truncate font-semibold">{t(match.label)}</span>
       )}
     </nav>
+  );
+}
+
+/** Back and forward, like the browser's, for the installed app where there is no browser bar. */
+export function HistoryNav() {
+  const t = useT();
+  const router = useRouter();
+  const cls = "grid size-8 place-items-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-(--fg)";
+  return (
+    <div className="flex shrink-0 items-center">
+      <button type="button" onClick={() => router.back()} className={cls} aria-label={t("رجوع")} title={t("رجوع")}>
+        <ArrowRight size={18} className="ltr:rotate-180" />
+      </button>
+      <button type="button" onClick={() => router.forward()} className={cls} aria-label={t("تقدّم")} title={t("تقدّم")}>
+        <ArrowLeft size={18} className="ltr:rotate-180" />
+      </button>
+    </div>
   );
 }

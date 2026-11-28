@@ -1,5 +1,5 @@
+import { FilterBar } from "@/components/filter-bar";
 import Link from "next/link";
-import { Filter, X } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { AssignMatrix } from "@/components/assign-matrix";
 import { Empty } from "@/components/ui";
@@ -53,7 +53,7 @@ export default async function AssignCompaniesPage({ searchParams }: PageProps<"/
         <Link href="/admin/agents" className="btn-ghost">{t("الفريق")}</Link>
       </PageHeader>
 
-      <form className="card mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <FilterBar clearHref={"/admin/agents/assign"} active={Boolean(fQ || (isManager && fTeam) || showInactive)}>
         <input name="q" defaultValue={fQ} placeholder={t("اسم الأجنت")} className="input" aria-label={t("بحث")} />
         {isManager ? (
           <select name="team" defaultValue={fTeam} className="input" aria-label={t("التيم")}>
@@ -67,11 +67,7 @@ export default async function AssignCompaniesPage({ searchParams }: PageProps<"/
         <label className="flex items-center gap-2 text-sm font-medium">
           <input type="checkbox" name="inactive" value="1" defaultChecked={showInactive} className="accent-brand-600" /> {t("اعرض الموقوفين كمان")}
         </label>
-        <div className="flex gap-2">
-          <button className="btn-primary flex-1"><Filter size={16} /> {t("فلتر")}</button>
-          {(fQ || (isManager && fTeam) || showInactive) && <Link href="/admin/agents/assign" className="btn-ghost" aria-label={t("امسح كل الفلاتر")}><X size={16} /></Link>}
-        </div>
-      </form>
+      </FilterBar>
 
       {!isManager && !me.team_id ? (
         <Empty>{t("إنت مش متعين على تيم")}</Empty>

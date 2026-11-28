@@ -3,7 +3,7 @@ import { BrandMark } from "@/components/brand-mark";
 
 export { BrandMark };
 import { SignOutForm } from "@/components/sign-out-form";
-import { BottomNav, Breadcrumb, RailToggle, SideNav, type NavItem } from "@/components/nav-links";
+import { BottomNav, Breadcrumb, HistoryNav, RailToggle, SideNav, type NavItem } from "@/components/nav-links";
 import { cookies } from "next/headers";
 import { NotificationBell } from "@/components/notification-bell";
 import { CommandPalette } from "@/components/command-palette";
@@ -90,6 +90,7 @@ export async function AppShell({
               <p className="truncate text-[11px] text-zinc-500">{t(ROLE_LABELS[profile.role])}</p>
             </div>
           </div>
+          <HistoryNav />
           <Breadcrumb items={nav} />
           <div className="ms-auto flex items-center gap-1">
             <QuickAdd role={profile.role} />
@@ -104,7 +105,7 @@ export async function AppShell({
             <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
           </div>
         </header>
-        <main className="w-full px-4 py-5 md:px-8 md:py-8 2xl:px-10">{children}</main>
+        <main className="mx-auto w-full max-w-[1440px] px-4 py-5 md:px-8 md:py-8 2xl:px-10">{children}</main>
       </div>
 
       <CallReturnWatcher />

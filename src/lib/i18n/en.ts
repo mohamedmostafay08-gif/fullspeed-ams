@@ -15,6 +15,8 @@ export const EN: Record<string, string> = {
   "لازم تشغّل migration 0053_view_as_agent في Supabase الأول": "Run migration 0053_view_as_agent in Supabase first",
   "👀 بدأ يشوف كأجنت": "👀 Started viewing as agent",
   "↩️ خرج من وضع العرض": "↩️ Left view-as mode",
+  // Back / forward in the header.
+  "تقدّم": "Forward",
   // Redesign batch 5: long pages as tabs.
   "تقييم الأجنتس": "Agent scorecards",
   "السجلات": "Logs",
