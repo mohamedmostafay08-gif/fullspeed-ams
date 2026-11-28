@@ -1,6 +1,7 @@
 import { createAnnouncement, sendMessage } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
+import { ADMIN_WORK_TABS, SubTabs } from "@/components/sub-tabs";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
 import { requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
@@ -26,6 +27,7 @@ export default async function AnnouncementsPage() {
   return (
     <>
       <PageHeader title={t("البونص والإشعارات")} subtitle={t("أي بونص أو تعريفة بتتنشر لشركة بتوصل فوراً لكل الأجنتس المتعينين عليها")} />
+      <SubTabs tabs={ADMIN_WORK_TABS} current="/admin/announcements" />
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6">
           <section className="card">

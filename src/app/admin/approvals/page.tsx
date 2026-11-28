@@ -22,7 +22,8 @@ type RequestRow = {
   requester: { full_name: string } | null;
 };
 
-/** Everything waiting for a yes or no, in one place: breaks, leaves, hour permits and account requests. */
+/** The one place to say yes or no: breaks, leaves, hour permits and account requests.
+ *  The breaks, leaves and requests pages only point here for anything still pending. */
 export default async function ApprovalsPage() {
   const t = await getT();
   const me = await requireRole(...STAFF);
@@ -61,6 +62,7 @@ export default async function ApprovalsPage() {
         subtitle={total ? t("{0} طلب مستني ردك", total) : t("مفيش حاجة مستنية ردك دلوقتي")}
       >
         <Link href="/admin/leaves" className="btn-ghost">{t("تقويم الإجازات")}</Link>
+        <Link href="/admin/requests" className="btn-ghost">{t("طلبات الحسابات اللي اتقفلت")}</Link>
       </PageHeader>
 
       {total === 0 ? (

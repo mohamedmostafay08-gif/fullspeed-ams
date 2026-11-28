@@ -3,15 +3,15 @@ import { Filter, X } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { LeaveCalendar } from "@/components/leave-calendar";
 import {
-  Holidays, LEAVE_SELECT, LeaveRequestForm, LeavesTable, LeavesToDecide, MyLeaves, MyPermits, PERMIT_SELECT,
-  LEAVE_KINDS, PermitRequestForm, PermitsToDecide, type Holiday, type Leave, type Permit,
+  Holidays, LEAVE_SELECT, LeaveRequestForm, LeavesTable, MyLeaves, MyPermits, PERMIT_SELECT,
+  LEAVE_KINDS, PermitRequestForm, type Holiday, type Leave, type Permit,
 } from "@/components/leaves";
 import { ATTENDANCE_TABS, SubTabs } from "@/components/sub-tabs";
+import { PendingInApprovals } from "@/components/pending-note";
 import { MANAGERS, STAFF, cairoToday, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 
-type Load = { team: number; peak: number; peak_day: string | null };
 
 export default async function AdminLeavesPage({ searchParams }: PageProps<"/admin/leaves">) {
   const t = await getT();
@@ -64,11 +64,7 @@ export default async function AdminLeavesPage({ searchParams }: PageProps<"/admi
   const pendingPermits = permits.filter((p) => p.user_id !== me.id && p.status === "pending");
   const myPermits = permits.filter((p) => p.user_id === me.id);
 
-  // How full each requester's team already is on their busiest day.
-  const loads = await Promise.all(
-    // One call per request; the nearest 15 are enough and keep the page under the Workers call limit.
-    pending.slice(0, 15).map(async (l) => [l.id, (await supabase.rpc("team_leave_load", { p_user: l.user_id, p_from: l.start_date, p_to: l.end_date })).data as Load] as const),
-  );
+
 
   return (
     <>
@@ -79,9 +75,8 @@ export default async function AdminLeavesPage({ searchParams }: PageProps<"/admi
           🌴 {t("في إجازة النهارده:")} <b>{outToday.map((l) => l.person?.full_name).join("، ")}</b>
         </p>
       )}
+      <PendingInApprovals count={pending.length + pendingPermits.length} label={t("{0} طلب إجازة أو إذن مستني ردك", pending.length + pendingPermits.length)} />
       <div className="space-y-6">
-        <LeavesToDecide rows={pending} load={Object.fromEntries(loads.filter(([, v]) => v))} />
-        <PermitsToDecide rows={pendingPermits} />
         <LeaveCalendar
           month={month}
           today={today}

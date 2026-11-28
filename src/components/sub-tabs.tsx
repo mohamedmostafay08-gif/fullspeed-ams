@@ -28,6 +28,7 @@ export const ATTENDANCE_TABS = [
 export const ADMIN_WORK_TABS = [
   { href: "/admin/tasks", label: "التاسكات" },
   { href: "/admin/memos", label: "التعميمات" },
+  { href: "/admin/announcements", label: "البونص والإشعارات" },
 ];
 export const AGENT_WORK_TABS = [
   { href: "/agent/tasks", label: "التاسكات" },
