@@ -1,5 +1,6 @@
+import { FilterBar } from "@/components/filter-bar";
 import Link from "next/link";
-import { CalendarCheck, ChevronLeft, ChevronRight, Clock, Filter, Settings2, X } from "lucide-react";
+import { CalendarCheck, ChevronLeft, ChevronRight, Clock, Settings2 } from "lucide-react";
 import { saveWorkSettings } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
 import { ATTENDANCE_TABS, SubTabs } from "@/components/sub-tabs";
@@ -106,7 +107,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
       />
       <SubTabs tabs={ATTENDANCE_TABS} current="/admin/attendance" />
 
-      <form className="card mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <FilterBar clearHref={`/admin/attendance?month=${month}`} active={Boolean(anyF)}>
         <input type="hidden" name="month" value={month} />
         <input name="q" defaultValue={fQ} placeholder={t("اسم الموظف")} className="input" aria-label={t("اسم الموظف")} />
         <select name="team" defaultValue={fTeam} className="input" aria-label={t("التيم")}>
@@ -124,11 +125,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/admin
           <option value="leave">{t("خد إجازات")}</option>
           <option value="clean">{t("ملتزم (من غير غياب ولا تأخير)")}</option>
         </select>
-        <div className="flex gap-2">
-          <button className="btn-primary flex-1"><Filter size={16} /> {t("فلتر")}</button>
-          {anyF && <Link href={`/admin/attendance?month=${month}`} className="btn-ghost" aria-label={t("امسح كل الفلاتر")}><X size={16} /></Link>}
-        </div>
-      </form>
+      </FilterBar>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard emoji="✅" label={t("حاضرين في المعاد")} value={count("on_time")} tone="good" icon={CalendarCheck} />

@@ -1,6 +1,7 @@
+import { FilterBar } from "@/components/filter-bar";
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
-import { Building2, Filter, X } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { createTeam, createUser, updateTeam } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
@@ -59,7 +60,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
         <Link href="/admin/agents/assign" className="btn-primary"><Building2 size={16} /> {t("توزيع الشركات على الأجنتس")}</Link>
       </PageHeader>
 
-      <form className="card mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+      <FilterBar clearHref={"/admin/agents"} active={Boolean(anyF)}>
         <input name="q" defaultValue={fQ} placeholder={t("الاسم أو الموبايل")} className="input" aria-label={t("بحث")} />
         <select name="role" defaultValue={fRole} className="input" aria-label={t("الصلاحية")}>
           <option value="">{t("كل الصلاحيات")}</option>
@@ -84,11 +85,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
           <option value="active">{t("نشط")}</option>
           <option value="inactive">{t("موقوف")}</option>
         </select>
-        <div className="flex gap-2">
-          <button className="btn-primary flex-1"><Filter size={16} /> {t("فلتر")}</button>
-          {anyF && <Link href="/admin/agents" className="btn-ghost" aria-label={t("امسح كل الفلاتر")}><X size={16} /></Link>}
-        </div>
-      </form>
+      </FilterBar>
       {anyF && <p className="mb-2 text-sm text-zinc-500">{t("{0} نتيجة", list.length)}</p>}
 
       <section className="card md:overflow-x-auto">

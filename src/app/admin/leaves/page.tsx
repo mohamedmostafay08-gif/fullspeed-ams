@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { Filter, X } from "lucide-react";
+import { FilterBar } from "@/components/filter-bar";
 import { PageHeader } from "@/components/app-shell";
 import { LeaveCalendar } from "@/components/leave-calendar";
 import {
@@ -102,7 +101,7 @@ export default async function AdminLeavesPage({ searchParams }: PageProps<"/admi
         )}
         {me.role !== "admin" && <MyLeaves rows={mine} />}
         {me.role !== "admin" && <MyPermits rows={myPermits} />}
-        <form className="card grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        <FilterBar clearHref={`/admin/leaves?month=${month}`} active={Boolean(anyF)}>
           <input type="hidden" name="month" value={month} />
           <input name="q" defaultValue={fQ} placeholder={t("اسم الموظف")} className="input" aria-label={t("اسم الموظف")} />
           <select name="team" defaultValue={fTeam} className="input" aria-label={t("التيم")}>
@@ -121,11 +120,7 @@ export default async function AdminLeavesPage({ searchParams }: PageProps<"/admi
           </select>
           <input type="date" name="from" defaultValue={fFrom} className="input" aria-label={t("من")} />
           <input type="date" name="to" defaultValue={fTo} className="input" aria-label={t("إلى")} />
-          <div className="flex gap-2">
-            <button className="btn-primary flex-1"><Filter size={16} /> {t("فلتر")}</button>
-            {anyF && <Link href={`/admin/leaves?month=${month}`} className="btn-ghost" aria-label={t("امسح كل الفلاتر")}><X size={16} /></Link>}
-          </div>
-        </form>
+        </FilterBar>
         <LeavesTable rows={closed} title={anyF ? t("الإجازات ({0})", closed.length) : t("كل الإجازات")} />
       </div>
     </>

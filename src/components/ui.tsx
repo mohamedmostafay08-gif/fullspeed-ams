@@ -1,8 +1,8 @@
 import Image from "next/image";
-import { Inbox, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { CountUp } from "@/components/count-up";
 import { Tr, When } from "@/components/tr";
-import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
+import { LEAD_STATUS_COLORS, LEAD_STATUS_EMOJI, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
 export function CompanyLogo({ name, src, size = 36 }: { name: string; src: string | null; size?: number }) {
   if (!src) {
@@ -81,16 +81,17 @@ export function Progress({ value, target }: { value: number; target: number }) {
 export function StatusBadge({ status }: { status: LeadStatus }) {
   return (
     <span className={`badge ${LEAD_STATUS_COLORS[status]}`}>
+      <span aria-hidden>{LEAD_STATUS_EMOJI[status]}</span>
       <Tr text={LEAD_STATUS_LABELS[status]} />
     </span>
   );
 }
 
-export function Empty({ children, icon: Icon = Inbox }: { children: React.ReactNode; icon?: LucideIcon }) {
+export function Empty({ children, icon: Icon, emoji = "📭" }: { children: React.ReactNode; icon?: LucideIcon; emoji?: string }) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-10 text-center text-sm text-zinc-500">
-      <span className="grid size-10 place-items-center rounded-full bg-white text-zinc-400 ring-1 ring-zinc-200">
-        <Icon size={18} />
+      <span className="grid size-11 place-items-center rounded-full bg-white text-xl text-zinc-400 ring-1 ring-zinc-200">
+        {Icon ? <Icon size={18} /> : <span aria-hidden>{emoji}</span>}
       </span>
       <div>{children}</div>
     </div>

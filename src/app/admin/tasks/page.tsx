@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/filter-bar";
 import { createTask, deleteTask } from "@/app/admin/actions";
 import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
@@ -74,7 +75,7 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
         </section>
 
         <section className="card lg:col-span-2">
-          <form className="mb-4 flex flex-wrap gap-2">
+          <FilterBar clearHref={"/admin/tasks"} active={Boolean(agentFilter || statusFilter)}>
             <select name="agent" defaultValue={agentFilter} className="input w-auto">
               <option value="">{t("كل الأجنتس")}</option>
               {(agents ?? []).map((a) => <option key={a.id} value={a.id}>{a.full_name}</option>)}
@@ -83,8 +84,7 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
               <option value="">{t("كل الحالات")}</option>
               {Object.entries(TASK_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
             </select>
-            <button className="btn-ghost">{t("فلتر")}</button>
-          </form>
+          </FilterBar>
           {(tasks ?? []).length === 0 ? (
             <Empty>{t("مفيش تاسكات")}</Empty>
           ) : (

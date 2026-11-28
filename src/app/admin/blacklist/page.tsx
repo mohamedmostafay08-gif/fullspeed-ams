@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/filter-bar";
 import { Ban, Trash2 } from "lucide-react";
 import { addToBlacklist, removeFromBlacklist } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
@@ -33,10 +34,9 @@ export default async function BlacklistPage({ searchParams }: PageProps<"/admin/
           </StateForm>
         </section>
         <section className="card lg:col-span-2">
-          <form className="mb-4 flex gap-2">
+          <FilterBar clearHref={"/admin/blacklist"} active={Boolean(q)}>
             <input name="q" defaultValue={q} placeholder={t("اسم أو موبايل")} className="input" />
-            <button className="btn-ghost">{t("فلتر")}</button>
-          </form>
+          </FilterBar>
           {(data ?? []).length === 0 ? (
             <Empty icon={Ban}>{t("مفيش أرقام محظورة")}</Empty>
           ) : (
