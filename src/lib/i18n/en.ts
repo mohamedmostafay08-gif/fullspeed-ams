@@ -1,5 +1,9 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Work-first agent home.
+  "مكالمتك الجاية": "Your next call",
+  "وضع المكالمات ←": "Calling mode →",
+  "حصل إيه في المكالمة؟": "How did the call go?",
   // Redesign phase 3.
   "مكانك": "You are here",
   // Redesign phase 2: quick search and settings page.
