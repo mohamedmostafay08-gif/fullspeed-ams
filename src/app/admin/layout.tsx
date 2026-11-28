@@ -28,6 +28,7 @@ const NAV: Item[] = [
   { group: "الفريق", href: "/admin/announcements", label: "البونص والإشعارات", icon: "bonus" },
   { group: "التقارير", href: "/admin/analytics", label: "التحليلات", icon: "analytics", perf: true },
   { group: "التقارير", href: "/admin/report", label: "التقرير اليومي", icon: "report", perf: true },
+  { group: "التقارير", href: "/admin/campaigns", label: "مسار الحملات", icon: "campaigns", perf: true },
   { group: "الإعدادات", href: "/admin/companies", label: "الشركات", icon: "companies" },
   { group: "الإعدادات", href: "/admin/settings", label: "كل الإعدادات", icon: "settings", perf: true, also: SETTINGS_PAGES.map((p) => p.href) },
 ];

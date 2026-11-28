@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { Clock, Shuffle, Timer, UserX, Zap } from "lucide-react";
-import { saveAgentReceiving, saveAssignmentSettings } from "@/app/actions/assignment";
+import { saveAgentReceiving, saveAssignmentSettings, saveStatusRule } from "@/app/actions/assignment";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
 import { Empty, StatCard, formatDate } from "@/components/ui";
 import { MANAGERS, VIEWERS, requireRole } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+import { RULE_FIELDS, type RuleField } from "@/lib/status-rules";
+import { LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
 type Settings = { skip_unavailable: boolean; online_minutes: number; max_open_default: number; reassign_minutes: number; max_reassigns: number };
 type Kpi = { handed: number; contacted: number; within15: number; median_first_min: number | null; timeout_moves: number; manual_moves: number; overdue_now: number; unassigned_now: number | null };
@@ -17,6 +19,11 @@ type Agent = {
 };
 type Move = { lead_id: string; lead_name: string | null; reason: "manual" | "timeout" | "auto"; created_at: string; from_name: string | null; to_name: string | null };
 type Overview = { settings: Settings; kpi: Kpi; agents: Agent[]; recent: Move[] };
+
+type Rule = { status: LeadStatus; required: RuleField[]; max_hours: number | null };
+// «جديد» is handled by the follow-up timeout above; the closed statuses never go stale.
+const RULE_STATUSES: LeadStatus[] = ["no_answer", "contacted", "interview", "documents", "hired", "rejected"];
+const CLOSED: LeadStatus[] = ["hired", "rejected"];
 
 const PERIODS = [1, 7, 30] as const;
 const STATE: Record<Agent["state"], { label: string; cls: string }> = {
@@ -47,6 +54,12 @@ export default async function DistributionPage({ searchParams }: PageProps<"/adm
     );
   }
   const o = data as Overview;
+  const [{ data: ruleRows }, { count: stuckN }, { count: noNextN }] = await Promise.all([
+    supabase.from("lead_status_rules").select("status, required, max_hours"),
+    supabase.from("leads").select("id", { count: "exact", head: true }).lt("status_due_at", new Date().toISOString()).not("status", "in", "(hired,rejected)"),
+    supabase.from("leads").select("id", { count: "exact", head: true }).in("status", ["no_answer", "contacted", "interview", "documents"]).lt("next_step_at", new Date().toISOString()),
+  ]);
+  const rules = new Map(((ruleRows ?? []) as Rule[]).map((r) => [r.status, r]));
   const s = o.settings;
   const k = o.kpi;
   const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
@@ -123,6 +136,53 @@ export default async function DistributionPage({ searchParams }: PageProps<"/adm
           </ul>
         )}
       </section>
+
+      {rules.size > 0 && (
+        <section className="card mb-6">
+          <h2 className="mb-1 text-lg font-semibold">{t("قواعد الحالات")}</h2>
+          <p className="mb-3 text-sm text-zinc-500">
+            {t("لكل حالة: إيه اللي لازم يتملى قبل ما الليد يدخلها، وأقصى مدة يفضل فيها. اللي يعدّي المدة يظهر في فلتر «فات المدة في حالته» والأجنت ياخد تنبيه واحد في اليوم.")}
+          </p>
+          {me.role !== "performance" && <div className="mb-4 flex flex-wrap gap-2 text-sm">
+            <Link href="/admin/leads?flag=stuck" className="badge bg-rose-50 text-rose-700 hover:underline">{t("فاتوا المدة: {0}", stuckN ?? 0)}</Link>
+            <Link href="/admin/leads?flag=no_next" className="badge bg-amber-50 text-amber-800 hover:underline">{t("مفتوحين ومالهمش خطوة جاية: {0}", noNextN ?? 0)}</Link>
+          </div>}
+          <div className="grid gap-3 lg:grid-cols-2">
+            {RULE_STATUSES.map((st) => {
+              const r = rules.get(st);
+              if (!r) return null;
+              return canEditRules ? (
+                <StateForm key={st} action={saveStatusRule} className="rounded-xl border border-zinc-200 p-3" submitLabel={t("حفظ")}>
+                  <input type="hidden" name="status" value={st} />
+                  <p className="mb-2 font-semibold">{t(LEAD_STATUS_LABELS[st])}</p>
+                  <p className="mb-1 text-xs text-zinc-500">{t("لازم يتملى قبل الدخول")}</p>
+                  <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1">
+                    {(Object.keys(RULE_FIELDS) as RuleField[]).map((f) => (
+                      <label key={f} className="flex items-center gap-1 text-xs">
+                        <input type="checkbox" name="required" value={f} defaultChecked={r.required.includes(f)} className="accent-brand-600" /> {t(RULE_FIELDS[f])}
+                      </label>
+                    ))}
+                  </div>
+                  {!CLOSED.includes(st) && (
+                    <label className="flex items-center gap-2 text-xs">
+                      {t("أقصى مدة (ساعة)")}
+                      <input name="max_hours" type="number" min={0} max={2160} defaultValue={r.max_hours ?? ""} placeholder={t("من غير")} className="input w-24 py-1" />
+                    </label>
+                  )}
+                </StateForm>
+              ) : (
+                <div key={st} className="rounded-xl border border-zinc-200 p-3 text-sm">
+                  <p className="font-semibold">{t(LEAD_STATUS_LABELS[st])}</p>
+                  <p className="text-xs text-zinc-500">
+                    {r.required.length ? r.required.map((f) => t(RULE_FIELDS[f] ?? f)).join("، ") : t("مفيش حقول لازمة")}
+                    {!CLOSED.includes(st) && ` · ${r.max_hours ? t("أقصى {0} ساعة", r.max_hours) : t("من غير مدة")}`}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="card mb-6 overflow-x-auto">
         <h2 className="mb-3 text-lg font-semibold">{t("الأجنتس دلوقتي")}</h2>
