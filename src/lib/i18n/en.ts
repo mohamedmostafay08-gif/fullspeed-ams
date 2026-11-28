@@ -1,5 +1,19 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Work-first manager home.
+  "ليدز مستنية أول مكالمة": "Leads waiting for a first call",
+  "أقدمهم مستني من {0}": "Oldest has waited {0}",
+  "محدش مستني": "Nobody is waiting",
+  "مكالمات متأخرة": "Overdue calls",
+  "معاد المكالمة عدّى ولسه محدش كلّمهم": "Call-back time passed and nobody has called",
+  "اتعيّنوا النهارده": "Hired today",
+  "اتعيّنوا في الفترة دي": "Hired in this period",
+  "من {0} تارجت · {1} ليد · تحويل {2}%": "of {0} target · {1} leads · {2}% conversion",
+  "{0} ليد · تحويل {1}%": "{0} leads · {1}% conversion",
+  "محتاج انتباهك": "Needs your attention",
+  "طلبات مستنية موافقتك": "Requests waiting for you",
+  "ليدز مش متوزعة على حد": "Leads not assigned to anyone",
+  "ليدز مستنية شركة": "Leads waiting for a company",
   // Campaign funnel and status rules (migration 0051).
   "{0} حملة باسمها": "{0} named campaigns",
   "أحسن حملة (10 ليدز أو أكتر)": "Best campaign (10+ leads)",

@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Cairo, Readex_Pro } from "next/font/google";
+import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import { ServiceWorkerRegistrar } from "@/components/pwa";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale, getTheme } from "@/lib/i18n/server";
 import { dirOf } from "@/lib/i18n/translate";
 import "./globals.css";
 
-const cairo = Cairo({ variable: "--font-cairo", subsets: ["arabic", "latin"] });
-const readex = Readex_Pro({ variable: "--font-readex", subsets: ["arabic", "latin"] });
+// One calm, readable face for Arabic and Latin in both themes (Work-First redesign).
+const plex = IBM_Plex_Sans_Arabic({ variable: "--font-plex", subsets: ["arabic", "latin"], weight: ["400", "500", "600", "700"], display: "swap" });
 
 export const metadata: Metadata = {
   title: "Full Speed — Acquisition",
@@ -35,7 +35,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={locale}
       dir={dirOf(locale)}
       data-theme={theme}
-      className={`${cairo.variable} ${readex.variable} h-full antialiased ${theme === "dark" ? "dark" : ""}`}
+      className={`${plex.variable} h-full antialiased ${theme === "dark" ? "dark" : ""}`}
       suppressHydrationWarning
     >
       <head>{theme === "system" && <script dangerouslySetInnerHTML={{ __html: SYSTEM_THEME }} />}</head>

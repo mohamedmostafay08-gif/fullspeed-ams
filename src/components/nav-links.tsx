@@ -78,7 +78,7 @@ function groupsOf(items: NavItem[]) {
 function Count({ n, className = "" }: { n?: number; className?: string }) {
   if (!n) return null;
   return (
-    <span className={`num grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1.5 text-[11px] font-extrabold text-white ${className}`}>
+    <span className={`num grid h-5 min-w-5 place-items-center rounded-full bg-(--fg) px-1.5 text-[11px] font-extrabold text-(--surface) ${className}`}>
       {n > 99 ? "99+" : n}
     </span>
   );
@@ -109,7 +109,7 @@ export function SideNav({ items }: { items: NavItem[] }) {
       {pill && (
         <span
           aria-hidden
-          className="absolute inset-x-3 top-0 rounded-xl bg-brand-500/12 ring-1 ring-brand-500/20 transition-transform duration-500 ease-[cubic-bezier(.34,1.4,.5,1)] motion-reduce:transition-none dark:bg-brand-500/18"
+          className="absolute inset-x-3 top-0 rounded-xl bg-zinc-100 ring-1 ring-zinc-200/70 transition-transform duration-500 ease-[cubic-bezier(.34,1.4,.5,1)] motion-reduce:transition-none"
           style={{ transform: `translateY(${pill.top}px)`, height: pill.height }}
         />
       )}
@@ -145,12 +145,12 @@ export function SideNav({ items }: { items: NavItem[] }) {
                     title={t(item.label)}
                     aria-current={active ? "page" : undefined}
                     className={`nav-item group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                      active ? "text-brand-700 dark:text-brand-400" : "text-zinc-600 hover:bg-(--glass-strong) hover:text-(--fg)"
+                      active ? "text-(--fg)" : "text-zinc-600 hover:bg-(--glass-strong) hover:text-(--fg)"
                     }`}
                   >
                     <span className="relative shrink-0">
-                      <Icon size={18} className={`transition-transform group-hover:scale-110 ${active ? "text-brand-600 dark:text-brand-400" : "text-zinc-400 group-hover:text-(--fg)"}`} />
-                      {!!item.badge && <span className="nav-dot absolute -top-1 -end-1 hidden size-2 rounded-full bg-brand-500" />}
+                      <Icon size={18} className={`transition-transform group-hover:scale-110 ${active ? "text-(--fg)" : "text-zinc-400 group-hover:text-(--fg)"}`} />
+                      {!!item.badge && <span className="nav-dot absolute -top-1 -end-1 hidden size-2 rounded-full bg-(--fg)" />}
                     </span>
                     <span className="nav-text min-w-0 flex-1 truncate">{t(item.label)}</span>
                     <Count n={item.badge} className="nav-text" />
@@ -216,9 +216,9 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
         key={item.href}
         href={item.href}
         aria-current={active ? "page" : undefined}
-        className={`relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10.5px] font-bold transition active:scale-95 ${active ? "text-brand-600" : "text-zinc-500"}`}
+        className={`relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10.5px] font-bold transition active:scale-95 ${active ? "text-(--fg)" : "text-zinc-500"}`}
       >
-        <span className={`relative grid h-7 w-12 place-items-center rounded-full transition ${active ? "bg-brand-50" : ""}`}>
+        <span className={`relative grid h-7 w-12 place-items-center rounded-full transition ${active ? "bg-zinc-100" : ""}`}>
           <Icon size={20} strokeWidth={active ? 2.4 : 2} />
           <Count n={item.badge} className="absolute -top-1.5 end-0 h-4 min-w-4 px-1 text-[9.5px]" />
         </span>
@@ -251,11 +251,11 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
           type="button"
           onClick={() => setOpen(true)}
           aria-expanded={open}
-          className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10.5px] font-bold transition active:scale-95 ${moreActive ? "text-brand-600" : "text-zinc-500"}`}
+          className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10.5px] font-bold transition active:scale-95 ${moreActive ? "text-(--fg)" : "text-zinc-500"}`}
         >
-          <span className={`relative grid h-7 w-12 place-items-center rounded-full ${moreActive ? "bg-brand-50" : ""}`}>
+          <span className={`relative grid h-7 w-12 place-items-center rounded-full ${moreActive ? "bg-zinc-100" : ""}`}>
             <LayoutGrid size={20} />
-            {rest.some((i) => i.badge) && <span className="absolute top-0 end-2 size-2 rounded-full bg-brand-500" />}
+            {rest.some((i) => i.badge) && <span className="absolute top-0 end-2 size-2 rounded-full bg-(--fg)" />}
           </span>
           {t("المزيد")}
         </button>
@@ -266,16 +266,16 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
           <button className="absolute inset-0 animate-fade-in bg-ink/50 backdrop-blur-[2px]" aria-label={t("إغلاق")} onClick={() => setOpen(false)} />
           <div className="absolute inset-x-0 bottom-0 max-h-[85vh] animate-sheet-up overflow-y-auto rounded-t-[28px] bg-canvas/95 px-4 backdrop-blur-2xl pt-2 pb-[calc(env(safe-area-inset-bottom)+20px)] shadow-2xl">
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-zinc-300" />
-            <div className="mb-4 flex items-center gap-3 rounded-2xl bg-linear-to-l from-brand-500 to-brand-600 p-3.5 text-white">
-              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white/20 font-bold">
+            <div className="mb-4 flex items-center gap-3 rounded-2xl bg-zinc-100 p-3.5">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--fg) font-bold text-(--surface)">
                 {profile.name.split(/\s+/).slice(0, 2).map((x) => x[0]).join("")}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{profile.name}</p>
-                <p className="text-xs text-white/75">{t(profile.role)}</p>
+                <p className="text-xs text-zinc-500">{t(profile.role)}</p>
               </div>
               <SignOutForm>
-                <button className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold active:scale-95">
+                <button className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-rose-600 active:scale-95">
                   <LogOut size={15} /> {t("خروج")}
                 </button>
               </SignOutForm>
@@ -293,11 +293,11 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
                           <Link
                             href={item.href}
                             className={`relative flex h-full flex-col items-center gap-2 rounded-2xl border p-3 text-center text-xs font-bold transition active:scale-95 ${
-                              active ? "border-brand-500 bg-brand-50 text-brand-700" : "glass text-zinc-700"
+                              active ? "border-(--fg) bg-zinc-100 text-(--fg)" : "glass text-zinc-700"
                             }`}
                           >
                             <Count n={item.badge} className="absolute top-2 end-2" />
-                            <span className={`grid size-10 place-items-center rounded-xl ${active ? "bg-brand-600 text-white" : "bg-zinc-100 text-zinc-600"}`}>
+                            <span className={`grid size-10 place-items-center rounded-xl ${active ? "bg-(--fg) text-(--surface)" : "bg-zinc-100 text-zinc-600"}`}>
                               <Icon size={20} />
                             </span>
                             <span className="leading-tight">{t(item.label)}</span>
