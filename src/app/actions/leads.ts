@@ -290,5 +290,6 @@ export async function bulkAssignLeads(_prev: { error?: string; ok?: string } | u
     .select("id");
   if (error) return { error: requiredFieldsError(t, error.message) ?? error.message };
   revalidatePath("/admin/leads");
+  revalidatePath("/admin/companies/[id]", "page");
   return { ok: t("اتنقل {0} ليد", data?.length ?? 0) };
 }

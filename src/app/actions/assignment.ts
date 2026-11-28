@@ -93,3 +93,22 @@ export async function distributeUnassigned(_prev: ActionState, form: FormData): 
   const n = Number(data ?? 0);
   return n > 0 ? { ok: t("اتوزّع {0} ليد ✓", n) } : { error: t("مفيش ليدز اتوزعت — اربط أجنتس بالشركة الأول") };
 }
+
+/** Evens out one company's untouched leads across its linked agents — all of them, or only one agent's surplus. */
+export async function rebalanceCompanyLeads(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole(...MANAGERS);
+  const company = str(form, "company_id");
+  const from = str(form, "from_agent");
+  const uuid = /^[0-9a-f-]{36}$/i;
+  if (!uuid.test(company) || (from && !uuid.test(from))) return { error: t("بيانات غلط — اعمل refresh وجرّب تاني") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("rebalance_company_leads", { p_company: company, p_from: from || null });
+  if (error) {
+    if (error.code === "PGRST202" || error.message.includes("rebalance_company_leads")) return { error: t("لازم migration 0057 تتطبق في Supabase الأول") };
+    return { error: /FORBIDDEN/.test(error.message) ? t("مش مسموحلك تعمل ده") : error.message };
+  }
+  revalidatePath("/admin", "layout");
+  const n = Number(data ?? 0);
+  return n > 0 ? { ok: t("اتنقل {0} ليد والتوزيع بقى متساوي ✓", n) } : { ok: t("التوزيع متساوي أصلاً — مفيش حاجة اتنقلت") };
+}

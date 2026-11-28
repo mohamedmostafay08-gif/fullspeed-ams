@@ -1,5 +1,25 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Company page · leads tab (0057)
+  "الليدز والتوزيع": "Leads & distribution",
+  "مين ماسك ليدز الشركة": "Who holds this company's leads",
+  "مفيش أجنتس متعينين على الشركة دي — علّمهم الأول من تاب «البيانات والأجنتس».": "No agents are assigned to this company — tick them first in the «Details & agents» tab.",
+  "أجنتس ماسكين ليدز للشركة دي ومش متعينين عليها. «وزّع بالتساوي» بينقل ليدزهم اللي محدش كلمها لأجنتس الشركة.": "Some agents hold this company's leads without being assigned to it. «Distribute evenly» moves their uncalled leads to the company's agents.",
+  "{0} ماسك {1} ليد محدش كلمها، والمفروض كل أجنت ياخد حوالي {2}.": "{0} holds {1} uncalled leads; each agent should have about {2}.",
+  "الليدز اللي محدش كلمها ({0}) متوزعة على {1} أجنت.": "The uncalled leads ({0}) are spread across {1} agents.",
+  "وزّع بالتساوي على {0} أجنت": "Distribute evenly across {0} agents",
+  "خُد الليدز من": "Take leads from",
+  "كل الأجنتس (ساوي الكل)": "All agents (even everyone out)",
+  "{0} ({1} ليد محدش كلمها)": "{0} ({1} uncalled leads)",
+  "بيتنقل بس الليدز اللي محدش كلمها والمش متوزعة. أي ليد اتشغل عليه بيفضل مع صاحبه.": "Only uncalled and unassigned leads move. Any lead someone worked on stays with them.",
+  "ليدز الشركة": "Company leads",
+  "علّم الليدز اللي عايز تنقلها، واختار الأجنت من الشريط اللي تحت.": "Tick the leads you want to move, then pick the agent in the bar below.",
+  "مفيش ليدز هنا": "No leads here",
+  "التاب ده محتاج migration 0057 — اتأكد إنه اتطبق في Supabase": "This tab needs migration 0057 — make sure it is applied in Supabase",
+  "لازم migration 0057 تتطبق في Supabase الأول": "Migration 0057 must be applied in Supabase first",
+  "اتنقل {0} ليد والتوزيع بقى متساوي ✓": "{0} leads moved, distribution is even now ✓",
+  "التوزيع متساوي أصلاً — مفيش حاجة اتنقلت": "Already even — nothing moved",
+  "ليدز الشركة ومين ماسكها ←": "Company leads and who holds them →",
   // Distribution page (0054)
   "التوزيع": "Distribution",
   "وزّع الليدز": "Distribute leads",
