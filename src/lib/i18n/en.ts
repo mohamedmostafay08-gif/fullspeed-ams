@@ -1,5 +1,21 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Redesign phase 1: grouped menu, approvals inbox, today queue.
+  "الموافقات": "Approvals",
+  "طلبات الحسابات": "Account requests",
+  "شغلي": "My work",
+  "أنا": "Me",
+  "التقارير": "Reports",
+  "كبّر القايمة": "Expand menu",
+  "صغّر القايمة": "Collapse menu",
+  "طابور النهارده": "Today's queue",
+  "ابدأ من الأول": "Start from the top",
+  "{0} طلب مستني ردك": "{0} requests waiting for you",
+  "مفيش حاجة مستنية ردك دلوقتي": "Nothing is waiting for you right now",
+  "كله متقفل 👏": "All clear 👏",
+  "بريكات ({0})": "Breaks ({0})",
+  "طلب بريك": "Break request",
+  "طلبات الحسابات ({0})": "Account requests ({0})",
   "🤖 رسالة ترحيب واتساب اتبعتت أوتوماتيك": "🤖 WhatsApp welcome sent automatically",
   " · واتبعتت لـ Google Drive ✓": " · sent to Google Drive ✓",
   "اتعملت نسخة: {0} سجل · {1}": "Backup done: {0} records · {1}",
