@@ -10,7 +10,8 @@ import { PageHeader } from "@/components/app-shell";
 import { BreakChip, type BreakRow } from "@/components/breaks";
 import { LiveRefresh } from "@/components/live";
 import { StatCard } from "@/components/ui";
-import { cairoRange, cairoToday, requireRole } from "@/lib/auth";
+import { cairoRange, cairoToday } from "@/lib/auth";
+import { getViewAs, requireAgent } from "@/lib/view-as";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
 
@@ -22,7 +23,7 @@ type PerfRow = { company_id: string; leads_count: number; hired_count: number; t
  */
 export default async function AgentHome() {
   const t = await getT();
-  const profile = await requireRole("agent");
+  const profile = await requireAgent();
   const today = cairoToday();
   const supabase = await createClient();
   const [dayStart, dayEnd] = cairoRange(today, today);
@@ -62,7 +63,7 @@ export default async function AgentHome() {
         hired={sum("hired_count")}
         hiredTarget={sum("target_hired")}
       />
-      <DeviceSetupBanner publicKey={pushKey} hasPasskey={(passkeysRes.count ?? 0) > 0} />
+      {!(await getViewAs()) && <DeviceSetupBanner publicKey={pushKey} hasPasskey={(passkeysRes.count ?? 0) > 0} />}
       <PageHeader title={t("صباح الفل يا {0}", profile.full_name.split(" ")[0])} subtitle={today}>
         {streak > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-2 text-sm font-bold text-orange-700" title={t("{0} يوم ورا بعض محقق هدفه", streak)}>

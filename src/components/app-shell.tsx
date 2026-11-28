@@ -31,6 +31,8 @@ export async function AppShell({
   unread,
   notificationsHref,
   extraSearch = [],
+  banner,
+  readOnly = false,
   children,
 }: {
   profile: Profile;
@@ -39,6 +41,10 @@ export async function AppShell({
   notificationsHref: string;
   /** Pages that aren't in the menu but should still come up in quick search. */
   extraSearch?: { href: string; label: string; group?: string }[];
+  /** Strip above the header, e.g. «شوف كأجنت». */
+  banner?: React.ReactNode;
+  /** «شوف كأجنت»: no sign-out button (the banner has the way out). */
+  readOnly?: boolean;
   children: React.ReactNode;
 }) {
   const [t, theme, jar] = await Promise.all([getT(), getTheme(), cookies()]);
@@ -65,16 +71,17 @@ export async function AppShell({
               <p className="truncate text-sm font-semibold">{profile.full_name}</p>
               <p className="text-[11px] text-zinc-500">{t(ROLE_LABELS[profile.role])}</p>
             </div>
-            <SignOutForm>
+            {!readOnly && <SignOutForm>
               <button className="nav-text rounded-lg p-2 text-zinc-500 transition hover:bg-rose-50 hover:text-rose-600" aria-label={t("خروج")} title={t("خروج")}>
                 <LogOut size={16} />
               </button>
-            </SignOutForm>
+            </SignOutForm>}
           </div>
         </div>
       </aside>
 
       <div className="min-w-0 flex-1 overflow-x-clip pb-28 md:pb-0">
+        {banner}
         <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-(--glass-line) bg-(--side-bg) px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-2.5 backdrop-blur-2xl backdrop-saturate-150 md:gap-3 md:px-8 md:py-3">
           <div className="flex min-w-0 items-center gap-2.5 md:hidden">
             <BrandMark small />
@@ -102,7 +109,7 @@ export async function AppShell({
 
       <CallReturnWatcher />
       <TableLabels />
-      <BottomNav items={nav} profile={{ name: profile.full_name, role: ROLE_LABELS[profile.role] }} theme={theme} />
+      <BottomNav items={nav} profile={{ name: profile.full_name, role: ROLE_LABELS[profile.role] }} theme={theme} readOnly={readOnly} />
     </div>
   );
 }

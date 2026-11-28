@@ -1,7 +1,8 @@
 import { WaInbox } from "@/components/wa-inbox";
-import { requireRole } from "@/lib/auth";
+import { getViewAs, requireAgent } from "@/lib/view-as";
 
 export default async function AgentInboxPage({ searchParams }: PageProps<"/agent/inbox">) {
-  await requireRole("agent");
-  return <WaInbox base="/agent/inbox" sp={await searchParams} staff={false} />;
+  const me = await requireAgent();
+  const viewing = Boolean(await getViewAs());
+  return <WaInbox base="/agent/inbox" sp={await searchParams} staff={false} viewAsAgent={viewing ? me.id : undefined} />;
 }

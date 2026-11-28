@@ -4,6 +4,9 @@ import { AttendanceBeacon, PresenceBeacon } from "@/components/presence";
 import { getSession, requireRole } from "@/lib/auth";
 import { pendingLocationCheck } from "@/lib/location-gate";
 import { createClient } from "@/lib/supabase/server";
+import type { Profile } from "@/lib/types";
+import { getViewAs } from "@/lib/view-as";
+import { ViewAsBanner } from "@/components/view-as-banner";
 
 type Badge = "wa" | "tasks";
 const NAV: { href: string; label: string; icon: string; group: string; exact?: boolean; also?: string[]; mobile?: "tab" | "fab"; desktop?: false; badge?: Badge }[] = [
@@ -19,6 +22,8 @@ const NAV: { href: string; label: string; icon: string; group: string; exact?: b
 ];
 
 export default async function AgentLayout({ children }: LayoutProps<"/agent">) {
+  const view = await getViewAs();
+  if (view) return <ViewAsLayout agent={view.agent}>{children}</ViewAsLayout>;
   const profile = await requireRole("agent");
   const session = (await getSession())!;
   const unread = session.unread;
@@ -32,6 +37,33 @@ export default async function AgentLayout({ children }: LayoutProps<"/agent">) {
       <PresenceBeacon userId={profile.id} />
       {!mustCheckIn && <AttendanceBeacon />}
       {mustCheckIn ? <GeoGate locationName={mustCheckIn} /> : children}
+    </AppShell>
+  );
+}
+
+/**
+ * «شوف كأجنت»: the same menu and pages with the agent's data, read-only. No presence or attendance
+ * beacons (they would mark the agent online), no location gate, and the banner is the way out.
+ */
+async function ViewAsLayout({ agent, children }: { agent: Profile; children: React.ReactNode }) {
+  const supabase = await createClient();
+  const [agentsRes, tasksRes] = await Promise.all([
+    supabase.from("profiles").select("id, full_name").eq("role", "agent").eq("is_active", true).order("full_name"),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("agent_id", agent.id).in("status", ["pending", "in_progress"]),
+  ]);
+  const agents = agentsRes.data ?? [];
+  if (!agents.some((a) => a.id === agent.id)) agents.unshift({ id: agent.id, full_name: agent.full_name });
+  const nav = NAV.map(({ badge, ...n }) => ({ ...n, badge: badge === "tasks" ? tasksRes.count ?? undefined : undefined }));
+  return (
+    <AppShell
+      profile={agent}
+      nav={nav}
+      unread={0}
+      notificationsHref="/agent/notifications"
+      readOnly
+      banner={<ViewAsBanner agentId={agent.id} agentName={agent.full_name} agents={agents} />}
+    >
+      {children}
     </AppShell>
   );
 }

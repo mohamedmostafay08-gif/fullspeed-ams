@@ -2,7 +2,7 @@ import { setTaskStatus } from "@/app/actions/notifications";
 import { PageHeader } from "@/components/app-shell";
 import { AGENT_WORK_TABS, SubTabs } from "@/components/sub-tabs";
 import { Empty, formatDate } from "@/components/ui";
-import { requireRole } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
@@ -15,7 +15,7 @@ const NEXT: Partial<Record<TaskStatus, { status: TaskStatus; label: string }[]>>
 
 export default async function AgentTasksPage() {
   const t = await getT();
-  const profile = await requireRole("agent");
+  const profile = await requireAgent();
   const supabase = await createClient();
   const { data: tasks } = await supabase
     .from("tasks")

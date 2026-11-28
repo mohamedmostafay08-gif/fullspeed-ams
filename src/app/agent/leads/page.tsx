@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/app-shell";
 import { LeadsBoard } from "@/components/leads-board";
 import { LeadsTable, ViewToggle, type LeadRow } from "@/components/leads-table";
 import { LiveRefresh } from "@/components/live";
-import { requireRole } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 import { getAssignedCompanies } from "@/lib/data";
 import { BOARD_LIMIT, filtersToQuery, queryLeads, readFilters, readView, toBoardLeads } from "@/lib/lead-query";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -15,7 +15,7 @@ const PAGE_SIZE = 50;
 
 export default async function AgentLeadsPage({ searchParams }: PageProps<"/agent/leads">) {
   const t = await getT();
-  const profile = await requireRole("agent");
+  const profile = await requireAgent();
   const sp = await searchParams;
   const f = { ...readFilters(sp), agent: profile.id };
   const view = readView(sp);

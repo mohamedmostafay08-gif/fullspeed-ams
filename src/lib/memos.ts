@@ -12,8 +12,9 @@ export type Memo = {
   team: { name: string } | null;
 };
 
-/** The memos this user can see (newest first), marking the ones addressed to them as read. */
-export async function loadMemosAndMarkRead(userId: string, limit = 50) {
+/** The memos this user can see (newest first), marking the ones addressed to them as read.
+ *  markRead=false for «شوف كأجنت»: the admin looking must not mark the agent's memos read. */
+export async function loadMemosAndMarkRead(userId: string, limit = 50, markRead = true) {
   const supabase = await createClient();
   const [{ data }, { data: reads }] = await Promise.all([
     supabase
@@ -26,6 +27,6 @@ export async function loadMemosAndMarkRead(userId: string, limit = 50) {
   const memos = (data ?? []) as unknown as Memo[];
   const readIds = new Set((reads ?? []).map((r) => r.broadcast_id));
   const unread = memos.filter((m) => m.created_by !== userId && !readIds.has(m.id)).map((m) => m.id);
-  if (unread.length) await supabase.from("broadcast_reads").insert(unread.map((id) => ({ broadcast_id: id, user_id: userId })));
+  if (markRead && unread.length) await supabase.from("broadcast_reads").insert(unread.map((id) => ({ broadcast_id: id, user_id: userId })));
   return { memos, unread: new Set(unread) };
 }

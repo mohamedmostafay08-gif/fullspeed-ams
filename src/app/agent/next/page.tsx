@@ -7,7 +7,7 @@ import type { Terms } from "@/lib/terms";
 import { CallButton } from "@/components/call-timer";
 import { CompanyLogo, Empty, StatusBadge, formatDate } from "@/components/ui";
 import { WhatsAppMenu } from "@/components/whatsapp-menu";
-import { requireRole } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 import { formatFieldValue } from "@/lib/forms";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -30,7 +30,7 @@ type NextLead = {
 /** Calling mode: one lead at a time — due call-backs first, then new leads, then no-answers worth retrying. */
 export default async function NextLeadPage({ searchParams }: PageProps<"/agent/next">) {
   const [t, locale] = await Promise.all([getT(), getLocale()]);
-  const profile = await requireRole("agent");
+  const profile = await requireAgent();
   const supabase = await createClient();
   const sp = await searchParams;
   const skip = String(sp.skip ?? "").split(",").filter((s) => UUID.test(s)).slice(-50);

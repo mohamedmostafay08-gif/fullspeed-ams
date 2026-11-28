@@ -19,7 +19,18 @@ const FILTERS = { all: "الكل", waiting: "مستني رد", unread: "مقرت
 type Filter = keyof typeof FILTERS;
 
 /** Shared WhatsApp inbox: conversations on one side, the open conversation on the other. */
-export async function WaInbox({ base, sp, staff }: { base: string; sp: Record<string, string | string[] | undefined>; staff: boolean }) {
+export async function WaInbox({
+  base,
+  sp,
+  staff,
+  viewAsAgent,
+}: {
+  base: string;
+  sp: Record<string, string | string[] | undefined>;
+  staff: boolean;
+  /** «شوف كأجنت»: the admin sees every chat, so keep only this agent's leads' chats. */
+  viewAsAgent?: string;
+}) {
   const [t, locale, me] = await Promise.all([getT(), getLocale(), getProfile()]);
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const f: Filter = Object.hasOwn(FILTERS, str("f")) && (staff || str("f") !== "nolead") ? (str("f") as Filter) : "all";
@@ -41,7 +52,8 @@ export async function WaInbox({ base, sp, staff }: { base: string; sp: Record<st
     staff ? supabase.from("companies").select("id, name").eq("is_active", true).order("name") : Promise.resolve({ data: [] as { id: string; name: string }[] }),
   ]);
   let threads = (data ?? []) as unknown as Thread[];
-  if (f === "mine") threads = threads.filter((th) => th.lead?.agent_id === me?.id);
+  if (viewAsAgent) threads = threads.filter((th) => th.lead?.agent_id === viewAsAgent);
+  if (f === "mine") threads = threads.filter((th) => th.lead?.agent_id === (viewAsAgent ?? me?.id));
   const current = threads.find((th) => th.phone === selected) ?? null;
   const link = (p: Record<string, string>) => `${base}?${new URLSearchParams({ ...(f !== "all" && { f }), ...(q && { q }), ...p })}`;
   const leadBase = staff ? "/admin/leads/" : "/agent/leads/";

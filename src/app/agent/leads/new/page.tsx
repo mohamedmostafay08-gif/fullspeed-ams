@@ -1,12 +1,12 @@
 import { PageHeader } from "@/components/app-shell";
 import { LeadForm } from "@/components/lead-form";
-import { requireRole } from "@/lib/auth";
+import { requireAgent } from "@/lib/view-as";
 import { getAssignedCompanies, getGeo } from "@/lib/data";
 import { getT } from "@/lib/i18n/server";
 
 export default async function AgentNewLeadPage({ searchParams }: PageProps<"/agent/leads/new">) {
   const t = await getT();
-  const profile = await requireRole("agent");
+  const profile = await requireAgent();
   const sp = await searchParams;
   const [companies, geo] = await Promise.all([getAssignedCompanies(profile.id), getGeo()]);
   const requested = typeof sp.company === "string" ? sp.company : undefined;

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { VIEW_AS_COOKIE, VIEW_AS_READ_ONLY, parseViewAs } from "@/lib/view-as-cookie";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -30,6 +31,20 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+  // «شوف كأجنت» is read-only: no form, server action or API write from the agent pages while it's on.
+  // The cookie only counts for the admin who started it; on anyone else's session it is dropped.
+  const viewAs = parseViewAs(request.cookies.get(VIEW_AS_COOKIE)?.value);
+  if (request.cookies.has(VIEW_AS_COOKIE) && (!viewAs || viewAs.viewer !== data?.claims?.sub)) {
+    response.cookies.delete(VIEW_AS_COOKIE);
+  } else if (
+    viewAs &&
+    request.method !== "GET" &&
+    request.method !== "HEAD" &&
+    (pathname.startsWith("/agent") || pathname.startsWith("/api/")) &&
+    !pathname.startsWith("/api/view-as")
+  ) {
+    return new NextResponse(VIEW_AS_READ_ONLY, { status: 403, headers: { "content-type": "text/plain; charset=utf-8" } });
   }
   if (signedIn && pathname === "/login" && !request.nextUrl.searchParams.has("e")) {
     const url = request.nextUrl.clone();

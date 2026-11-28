@@ -26,6 +26,7 @@ const TABLES: Record<string, string> = {
   leave_requests: "الإجازات",
   hour_permits: "الأذونات",
   public_holidays: "الإجازات الرسمية",
+  view_as: "شوف كأجنت",
 };
 
 const FIELDS: Record<string, string> = {
@@ -57,6 +58,8 @@ const ACTION: Record<string, { label: string; cls: string }> = {
   insert: { label: "إضافة", cls: "bg-emerald-100 text-emerald-800" },
   update: { label: "تعديل", cls: "bg-sky-100 text-sky-800" },
   delete: { label: "حذف", cls: "bg-rose-100 text-rose-700" },
+  view_as_start: { label: "👀 بدأ يشوف كأجنت", cls: "bg-violet-100 text-violet-800" },
+  view_as_end: { label: "↩️ خرج من وضع العرض", cls: "bg-zinc-100 text-zinc-700" },
 };
 const PAGE = 100;
 const UUID = /^[0-9a-f-]{36}$/i;
