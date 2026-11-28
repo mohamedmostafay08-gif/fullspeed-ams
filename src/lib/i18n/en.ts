@@ -341,6 +341,7 @@ export const EN: Record<string, string> = {
   "طلبات الحسابات ({0})": "Account requests ({0})",
   "🤖 رسالة ترحيب واتساب اتبعتت أوتوماتيك": "🤖 WhatsApp welcome sent automatically",
   " · واتبعتت لـ Google Drive ✓": " · sent to Google Drive ✓",
+  " · وبتتبعت لـ Google Drive (النتيجة بتظهر تحت بعد دقيقة)": " · sending to Google Drive (the result shows below in a minute)",
   "اتعملت نسخة: {0} سجل · {1}": "Backup done: {0} records · {1}",
   "النسخة فشلت: {0}": "Backup failed: {0}",
   "الرابط لازم يكون رابط Web app من Google Apps Script وبينتهي بـ /exec": "The link must be a Google Apps Script web app URL ending in /exec",

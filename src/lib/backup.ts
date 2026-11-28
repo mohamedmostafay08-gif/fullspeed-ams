@@ -32,11 +32,11 @@ export async function runBackup(options: { withDrive?: boolean } = {}): Promise<
   if (old.length) await db.storage.from("backups").remove(old);
 
   const result: BackupResult = { file, bytes: body.length, drive: "skipped" };
-  // The Google Drive copy is made by the database itself (backup_to_drive), so it never depends
-  // on this request's time limits; here we only ask it to run when a backup is started by hand.
+  // Google Drive gets the same gzipped file. The database posts it (drive_backup_send), so this
+  // request never waits on Apps Script, and the morning check reads Google's answer.
   const cfg = await getConfig();
-  if (cfg.drive_script_url && cfg.drive_secret && options.withDrive) {
-    const { error: driveError } = await db.rpc("backup_to_drive");
+  if (cfg.drive_script_url && cfg.drive_secret && options.withDrive !== false) {
+    const { error: driveError } = await db.rpc("drive_backup_send", { p_name: file, p_data: Buffer.from(body).toString("base64") });
     Object.assign(result, driveError ? { drive: "error", driveError: driveError.message } : { drive: "ok" });
   }
   // Read by the database's morning check, which alerts the admin when a backup is missing.
