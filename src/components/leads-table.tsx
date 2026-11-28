@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Columns3, MessageCircle, Phone, Rows3 } from "lucide-react";
 import { LeadStatusSelect } from "@/components/live";
+import { SelectAllLeads } from "@/components/bulk-leads";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
 import type { LeadStatus } from "@/lib/types";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -44,7 +45,7 @@ export async function ContactButtons({ phone }: { phone: string }) {
   );
 }
 
-export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRow[]; basePath: string; showAgent: boolean }) {
+export async function LeadsTable({ leads, basePath, showAgent, selectable }: { leads: LeadRow[]; basePath: string; showAgent: boolean; selectable?: boolean }) {
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   if (leads.length === 0) return <Empty>{t("مفيش ليدز بالفلتر ده")}</Empty>;
   return (
@@ -53,6 +54,7 @@ export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRo
         <table className="data-table">
           <thead>
             <tr>
+              {selectable && <th className="w-8"><SelectAllLeads /></th>}
               <th>{t("المتقدم")}</th>
               <th>{t("الشركة")}</th>
               <th>{t("المنطقة")}</th>
@@ -67,6 +69,9 @@ export async function LeadsTable({ leads, basePath, showAgent }: { leads: LeadRo
               const c = l.companies as Company;
               return (
                 <tr key={l.id}>
+                  {selectable && (
+                    <td><input type="checkbox" name="ids" value={l.id} form="bulk-leads" aria-label={l.full_name} className="size-4 accent-brand-600" /></td>
+                  )}
                   <td>
                     <Link href={`${basePath}/${l.id}`} className="font-semibold hover:text-brand-700">{l.full_name}</Link>
                     <p className="num text-xs text-zinc-500" dir="ltr">{l.phone}</p>
