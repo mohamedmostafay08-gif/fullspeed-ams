@@ -319,3 +319,29 @@ export function BottomNav({ items, profile, theme }: { items: NavItem[]; profile
     </>
   );
 }
+
+/** Where you are, in the desktop header: «الليدز › ليدز للتوزيع», plus «تفاصيل» on a page inside it. */
+export function Breadcrumb({ items }: { items: NavItem[] }) {
+  const t = useT();
+  const pathname = usePathname();
+  const match = items
+    .filter((i) => i.desktop !== false && isActive(pathname, i))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  if (!match) return null;
+  const deeper = pathname !== match.href && !(match.also ?? []).includes(pathname) && pathname.startsWith(match.href + "/");
+  return (
+    <nav aria-label={t("مكانك")} className="hidden min-w-0 items-center gap-1.5 text-sm md:flex">
+      {match.group && <span className="truncate text-zinc-400">{t(match.group)}</span>}
+      {match.group && <ChevronDown size={14} className="shrink-0 text-zinc-300 ltr:-rotate-90 rtl:rotate-90" />}
+      {deeper ? (
+        <>
+          <Link href={match.href} className="truncate font-semibold text-zinc-500 hover:text-(--fg)">{t(match.label)}</Link>
+          <ChevronDown size={14} className="shrink-0 text-zinc-300 ltr:-rotate-90 rtl:rotate-90" />
+          <span className="truncate font-semibold">{t("تفاصيل")}</span>
+        </>
+      ) : (
+        <span className="truncate font-semibold">{t(match.label)}</span>
+      )}
+    </nav>
+  );
+}

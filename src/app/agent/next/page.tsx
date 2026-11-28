@@ -15,19 +15,18 @@ import { createClient } from "@/lib/supabase/server";
 import { cairoDateTime } from "@/lib/time";
 import { placeName, type FormField, type LeadStatus } from "@/lib/types";
 import { templatesFor, type Template } from "@/lib/whatsapp";
+import { MAX_ATTEMPTS, pickNextLead, queueClock } from "@/lib/next-lead";
 
 const SELECT =
   "id, full_name, phone, status, notes, source, form_data, created_at, attempts, last_contact_at, callback_at, interview_at, interview_place, company_id, companies(name, logo_path, form_schema, call_script, salary, order_price, working_hours, terms), governorates(name_ar, name_en), regions(name_ar)";
-const RETRY_AFTER_MS = 2 * 3_600_000;
-const MAX_ATTEMPTS = 5;
 const UUID = /^[0-9a-f-]{36}$/i;
 
-type Queue = "callback" | "new" | "retry";
-
-function clock() {
-  const ms = Date.now();
-  return { now: new Date(ms).toISOString(), retryBefore: new Date(ms - RETRY_AFTER_MS).toISOString() };
-}
+type NextLead = {
+  id: string; full_name: string; phone: string; status: string; notes: string | null; source: string; form_data: unknown;
+  created_at: string; attempts: number; last_contact_at: string | null; callback_at: string | null;
+  interview_at: string | null; interview_place: string | null; company_id: string;
+  companies: unknown; governorates: unknown; regions: unknown;
+};
 
 /** Calling mode: one lead at a time — due call-backs first, then new leads, then no-answers worth retrying. */
 export default async function NextLeadPage({ searchParams }: PageProps<"/agent/next">) {
@@ -36,35 +35,16 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
   const supabase = await createClient();
   const sp = await searchParams;
   const skip = String(sp.skip ?? "").split(",").filter((s) => UUID.test(s)).slice(-50);
-  const { now, retryBefore } = clock();
-
-  const base = () => {
-    let q = supabase.from("leads").select(SELECT).eq("agent_id", profile.id);
-    if (skip.length) q = q.not("id", "in", `(${skip.join(",")})`);
-    return q;
-  };
+  const { now, retryBefore } = queueClock();
   const count = () => supabase.from("leads").select("id", { count: "exact", head: true }).eq("agent_id", profile.id);
 
-  const [dueRes, newRes, retryRes, dueCount, newCount, retryCount, tplRes] = await Promise.all([
-    base().lte("callback_at", now).not("status", "in", "(hired,rejected)").order("callback_at").limit(1),
-    base().eq("status", "new").is("callback_at", null).order("created_at").limit(1),
-    base()
-      .eq("status", "no_answer")
-      .is("callback_at", null)
-      .lt("attempts", MAX_ATTEMPTS)
-      .or(`last_contact_at.is.null,last_contact_at.lt.${retryBefore}`)
-      .order("last_contact_at", { nullsFirst: true })
-      .limit(1),
+  const [{ lead, queue }, dueCount, newCount, retryCount, tplRes] = await Promise.all([
+    pickNextLead<NextLead>(supabase, profile.id, SELECT, skip),
     count().lte("callback_at", now).not("status", "in", "(hired,rejected)"),
     count().eq("status", "new").is("callback_at", null),
     count().eq("status", "no_answer").is("callback_at", null).lt("attempts", MAX_ATTEMPTS).or(`last_contact_at.is.null,last_contact_at.lt.${retryBefore}`),
     supabase.from("whatsapp_templates").select("id, title, body, company_id").order("sort").order("created_at"),
   ]);
-
-  const picks: [Queue, typeof dueRes][] = [["callback", dueRes], ["new", newRes], ["retry", retryRes]];
-  const found = picks.find(([, r]) => r.data?.length);
-  const lead = found?.[1].data?.[0];
-  const queue = found?.[0];
 
   const counters = [
     { key: "callback", label: t("مكالمات متأجلة جه معادها"), value: dueCount.count ?? 0, icon: Clock, cls: "text-amber-600 bg-amber-50" },

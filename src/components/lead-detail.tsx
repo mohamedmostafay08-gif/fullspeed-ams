@@ -6,11 +6,11 @@ import { CallPanel } from "@/components/call-panel";
 import { CallScript } from "@/components/call-script";
 import { CompanyTerms } from "@/components/company-terms";
 import type { Terms } from "@/lib/terms";
-import { CallButton } from "@/components/call-timer";
 import { LeadDocuments } from "@/components/lead-documents";
+import { LeadTimeline, type TimelineItem } from "@/components/lead-timeline";
+import { NextStepBar } from "@/components/next-step-bar";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, StatusBadge, formatDate } from "@/components/ui";
-import { WhatsAppMenu } from "@/components/whatsapp-menu";
 import { WaChat } from "@/components/wa-chat";
 import Link from "next/link";
 import { getProfile } from "@/lib/auth";
@@ -18,7 +18,8 @@ import { formatFieldValue } from "@/lib/forms";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { cairoDateTime, toCairoLocal } from "@/lib/time";
-import { LEAD_STATUS_LABELS, placeName, type FormField, type LeadStatus } from "@/lib/types";
+import { DOC_KINDS, LEAD_STATUS_LABELS, placeName, type FormField, type LeadStatus } from "@/lib/types";
+import type { T } from "@/lib/i18n/translate";
 import { templatesFor, type Template } from "@/lib/whatsapp";
 
 export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) {
@@ -41,7 +42,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const extraKeys = Object.keys(formData).filter((k) => !schemaKeys.has(k) && (!k.startsWith("_") || me.role === "admin"));
   const closed = lead.status === "hired" || lead.status === "rejected";
 
-  const [{ data: activity }, agentsRes, { data: banned }, tplRes] = await Promise.all([
+  const [{ data: activity }, agentsRes, { data: banned }, tplRes, waRes, docsRes] = await Promise.all([
     supabase
       .from("lead_activities")
       .select("id, from_status, to_status, note, created_at, actor:profiles(full_name)")
@@ -52,6 +53,8 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
       : Promise.resolve({ data: null }),
     supabase.rpc("blacklist_reason", { p_phone: lead.phone }),
     supabase.from("whatsapp_templates").select("id, title, body, company_id").order("sort").order("created_at"),
+    supabase.from("wa_messages").select("id, direction, kind, body, created_at").eq("phone", lead.phone).order("created_at", { ascending: false }).limit(40),
+    supabase.from("lead_documents").select("id, kind, created_at, uploader:profiles(full_name)").eq("lead_id", id).order("created_at", { ascending: false }),
   ]);
   const agents = ((agentsRes.data ?? []) as unknown as { profiles: { id: string; full_name: string; is_active: boolean } | null }[])
     .map((r) => r.profiles)
@@ -69,8 +72,15 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
     interviewPlace: lead.interview_place ?? undefined,
   };
   const callbackDue = lead.callback_at && new Date(lead.callback_at) <= new Date();
+  const timeline = buildTimeline(t, locale, {
+    activity: (activity ?? []) as unknown as Activity[],
+    wa: (waRes.data ?? []) as unknown as WaRow[],
+    docs: (docsRes.data ?? []) as unknown as DocRow[],
+  });
+  const step = nextStep(t, locale, lead);
 
   return (
+    <div>
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="space-y-5 lg:col-span-2">
         {banned && (
@@ -84,17 +94,11 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
             <CompanyLogo name={company.name} src={company.logo_path} size={48} />
             <div className="flex-1">
               <h1 className="text-xl font-bold">{lead.full_name}</h1>
-              <p className="text-sm text-zinc-500">{company.name}</p>
+              <p className="text-sm text-zinc-500">{company.name} · <span dir="ltr" className="num">{lead.phone}</span></p>
             </div>
             <StatusBadge status={lead.status as LeadStatus} />
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <CallButton leadId={lead.id} name={lead.full_name} phone={lead.phone} className="btn-primary">
-              <PhoneCall size={17} /> <span dir="ltr" className="num">{lead.phone}</span>
-            </CallButton>
-            <WhatsAppMenu leadId={lead.id} phone={lead.phone} templates={templates} vars={vars} />
-          </div>
-          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+          <dl className="mt-4 grid grid-cols-2 gap-2 text-sm lg:grid-cols-3">
             <Row label={t("المحافظة / المنطقة")}>
               {placeName(lead.governorates as unknown as { name_ar: string; name_en: string | null } | null, locale) ?? "—"} / {(lead.regions as unknown as { name_ar: string } | null)?.name_ar ?? "—"}
             </Row>
@@ -171,12 +175,14 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
         )}
 
         {!closed && (
-          <section className="card">
+          <section id="outcome" className="card scroll-mt-24">
             <div className="mb-4 space-y-3"><CompanyTerms terms={company} /><CallScript script={company.call_script} defaultOpen={false} /></div>
             <h2 className="card-title"><PhoneCall size={18} className="text-brand-600" /> {t("نتيجة المكالمة")}</h2>
             <CallPanel leadId={lead.id} />
           </section>
         )}
+
+        <LeadTimeline items={timeline} />
 
         <section className="card grid gap-5 md:grid-cols-2">
           <div>
@@ -278,25 +284,102 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
         <WaChat phone={lead.phone} compact />
         <Link href={`${staff ? "/admin" : "/agent"}/inbox?p=${lead.phone}`} className="mt-2 inline-block text-xs font-semibold text-brand-700 hover:underline">{t("افتحها في صندوق الواتساب ←")}</Link>
       </section>
-      <section className="card h-fit">
-        <h2 className="mb-3 font-semibold">{t("سجل الحركة")}</h2>
-        <ol className="space-y-3 text-sm">
-          {(activity ?? []).map((a) => (
-            <li key={a.id} className="border-s-2 border-brand-500 ps-3">
-              <p className="font-medium">
-                {a.from_status ? t("{0} ← ", t(LEAD_STATUS_LABELS[a.from_status as LeadStatus])) : ""}
-                {a.to_status ? t(LEAD_STATUS_LABELS[a.to_status as LeadStatus]) : t(a.note ?? "")}
-              </p>
-              <p className="text-xs text-zinc-500">
-                {(a.actor as unknown as { full_name: string } | null)?.full_name ?? t("النظام")} · {formatDate(a.created_at)}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
       </div>
     </div>
+
+    <NextStepBar step={step} closed={closed} leadId={lead.id} name={lead.full_name} phone={lead.phone} templates={templates} vars={vars} />
+    </div>
   );
+}
+
+type Activity = { id: string; from_status: string | null; to_status: string | null; note: string | null; created_at: string; actor: { full_name: string } | null };
+type WaRow = { id: string; direction: "in" | "out"; kind: string; body: string | null; created_at: string };
+type DocRow = { id: string; kind: string; created_at: string; uploader: { full_name: string } | null };
+
+const WA_KIND: Record<string, string> = { image: "📷 صورة", video: "🎬 فيديو", audio: "🎙️ رسالة صوتية", document: "📎 ملف", sticker: "🙂 ستيكر", template: "📨 قالب" };
+const WA_GAP_MS = 60 * 60_000;
+
+/** Merges the lead's log (calls are logged there with their length), WhatsApp messages and papers into one list, newest first.
+ *  WhatsApp messages less than an hour apart become one entry with their bubbles. */
+function buildTimeline(t: T, locale: string, src: { activity: Activity[]; wa: WaRow[]; docs: DocRow[] }): TimelineItem[] {
+  const items: TimelineItem[] = [];
+  const when = (iso: string) => cairoDateTime(iso, locale);
+
+  for (const a of src.activity) {
+    const who = a.actor?.full_name ?? t("النظام");
+    if (a.note?.startsWith("created via ")) {
+      items.push({ id: a.id, kind: "created", at: a.created_at, when: when(a.created_at), title: t("ليد جديد من {0}", a.note.slice(12)), sub: who });
+    } else if (a.to_status && !a.note) {
+      const from = a.from_status ? t(LEAD_STATUS_LABELS[a.from_status as LeadStatus] ?? a.from_status) : null;
+      const to = t(LEAD_STATUS_LABELS[a.to_status as LeadStatus] ?? a.to_status);
+      items.push({ id: a.id, kind: "status", at: a.created_at, when: when(a.created_at), title: from ? t("الحالة: {0} ← {1}", from, to) : to, sub: who });
+    } else if (a.note) {
+      // Notes are written with a leading emoji by recordCall, logWhatsApp and the after-hire steps.
+      const kind = /^(📅|⏰)/u.test(a.note) ? "schedule" : /^(📞|📵|✋|🎉|⏱)/u.test(a.note) ? "call" : /^💬/u.test(a.note) ? "wa" : "note";
+      items.push({ id: a.id, kind, at: a.created_at, when: when(a.created_at), title: t(a.note), sub: who });
+    }
+  }
+  for (const d of src.docs) {
+    items.push({ id: d.id, kind: "doc", at: d.created_at, when: when(d.created_at), title: t("اترفع: {0}", t(DOC_KINDS[d.kind as keyof typeof DOC_KINDS] ?? "أخرى")), sub: d.uploader?.full_name });
+  }
+  // src.wa is newest first; walk it and start a new group whenever the gap passes an hour.
+  let group: WaRow[] = [];
+  const flush = () => {
+    if (!group.length) return;
+    const newest = group[0];
+    const shown = [...group].reverse().slice(-4);
+    items.push({
+      id: `wa-${newest.id}`, kind: "wa", at: newest.created_at, when: when(newest.created_at),
+      title: group.length > 4 ? t("واتساب · {0} رسالة", group.length) : t("واتساب"),
+      bubbles: shown.map((m) => ({ mine: m.direction === "out", text: m.body?.trim() || t(WA_KIND[m.kind] ?? m.kind) })),
+    });
+    group = [];
+  };
+  for (const m of src.wa) {
+    const last = group[group.length - 1];
+    if (last && Date.parse(last.created_at) - Date.parse(m.created_at) > WA_GAP_MS) flush();
+    group.push(m);
+  }
+  flush();
+
+  return items.sort((x, y) => Date.parse(y.at) - Date.parse(x.at));
+}
+
+type StepLead = {
+  status: string; attempts: number; callback_at: string | null; interview_at: string | null; interview_place: string | null;
+  first_order_at: string | null; active7_at: string | null; active30_at: string | null; left_at: string | null;
+};
+
+/** One sentence that tells whoever opens the lead what to do now. */
+function nextStep(t: T, locale: string, l: StepLead): { text: string; urgent: boolean } {
+  const now = Date.now();
+  if (l.status === "rejected") return { text: t("الليد مقفول (رفض)"), urgent: false };
+  if (l.status === "hired") {
+    if (l.left_at) return { text: t("ساب الشغل"), urgent: false };
+    if (!l.first_order_at) return { text: t("اتأكد إنه نزل أول أوردر"), urgent: false };
+    if (!l.active7_at) return { text: t("تابع إنه يكمّل 7 أيام"), urgent: false };
+    if (!l.active30_at) return { text: t("تابع إنه يكمّل 30 يوم"), urgent: false };
+    return { text: t("كمّل 30 يوم 🏆"), urgent: false };
+  }
+  if (l.callback_at) {
+    const due = Date.parse(l.callback_at) <= now;
+    return due
+      ? { text: t("كلّمه دلوقتي — كان معاده {0}", cairoDateTime(l.callback_at, locale)), urgent: true }
+      : { text: t("كلّمه {0}", cairoDateTime(l.callback_at, locale)), urgent: false };
+  }
+  if (l.status === "interview" && l.interview_at) {
+    const at = cairoDateTime(l.interview_at, locale);
+    return Date.parse(l.interview_at) > now
+      ? { text: t("فكّره بالمقابلة {0}", at) + (l.interview_place ? ` · ${l.interview_place}` : ""), urgent: false }
+      : { text: t("اسأله حضر المقابلة؟ ({0})", at), urgent: true };
+  }
+  if (l.status === "new") return { text: t("أول مكالمة — محدش كلّمه لسه"), urgent: true };
+  if (l.status === "no_answer") {
+    return l.attempts >= 5
+      ? { text: t("مردش {0} مرات — جرّب واتساب", l.attempts), urgent: false }
+      : { text: t("حاول تاني — {0} محاولات لحد دلوقتي", l.attempts), urgent: false };
+  }
+  return { text: t("حدد مقابلة أو معاد مكالمة"), urgent: false };
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
