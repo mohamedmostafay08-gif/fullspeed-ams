@@ -268,3 +268,27 @@ export async function setHireStage(_prev: { error?: string; ok?: string } | unde
   revalidatePath("/", "layout");
   return { ok: t("تم الحفظ") };
 }
+
+// ───────── Bulk actions from the leads table ─────────
+const UUID_RE = /^[0-9a-f-]{36}$/i;
+
+/** Hands the ticked leads to one agent (or takes them off everyone) in a single update. RLS still decides which rows a person may touch. */
+export async function bulkAssignLeads(_prev: { error?: string; ok?: string } | undefined, form: FormData): Promise<{ error?: string; ok?: string }> {
+  const t = await getT();
+  const profile = await getProfile();
+  if (!profile) redirect("/login");
+  if (profile.role === "agent" || profile.role === "performance") return { error: t("مش مسموح") };
+  const ids = [...new Set(form.getAll("ids").map(String).filter((id) => UUID_RE.test(id)))].slice(0, 200);
+  if (ids.length === 0) return { error: t("اختار ليدز الأول") };
+  const target = String(form.get("agent_id") ?? "");
+  if (target !== "none" && !UUID_RE.test(target)) return { error: t("اختار الأجنت") };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("leads")
+    .update({ agent_id: target === "none" ? null : target })
+    .in("id", ids)
+    .select("id");
+  if (error) return { error: requiredFieldsError(t, error.message) ?? error.message };
+  revalidatePath("/admin/leads");
+  return { ok: t("اتنقل {0} ليد", data?.length ?? 0) };
+}

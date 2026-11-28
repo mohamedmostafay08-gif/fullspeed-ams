@@ -55,8 +55,12 @@ export function LiveBoard({ agents, base }: { agents: LiveAgent[]; base: string 
       if (online.has(a.id)) return since <= IDLE_MIN ? "active" : "idle";
       return a.lastAt ? "away" : "off";
     };
-    const order: Record<State, number> = { active: 0, idle: 1, break: 2, away: 3, off: 4 };
-    return agents.map((a) => ({ ...a, state: stateOf(a) })).sort((x, y) => order[x.state] - order[y.state] || y.points - x.points);
+    // Stuck first: open but idle, or sitting on leads waiting 30+ minutes. Then working, break, away, off.
+    const order: Record<State, number> = { idle: 1, active: 2, break: 3, away: 4, off: 5 };
+    const rank = (a: LiveAgent & { state: State }) => (a.state === "idle" || (a.slow > 0 && a.state !== "off") ? 0 : order[a.state]);
+    return agents
+      .map((a) => ({ ...a, state: stateOf(a) }))
+      .sort((x, y) => rank(x) - rank(y) || (rank(x) === 0 ? y.slow - x.slow : 0) || order[x.state] - order[y.state] || y.points - x.points);
   }, [agents, online, now]);
 
   const count = (s: State) => rows.filter((r) => r.state === s).length;
@@ -84,7 +88,7 @@ export function LiveBoard({ agents, base }: { agents: LiveAgent[]; base: string 
 
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {rows.map((a) => (
-          <li key={a.id} className="card lift flex flex-col gap-3 p-4">
+          <li key={a.id} className={`card lift flex flex-col gap-3 p-4 ${a.state === "idle" || (a.slow > 0 && a.state !== "off") ? "ring-2 ring-rose-200" : ""}`}>
             <div className="flex items-center gap-3">
               <span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-ink text-sm font-bold text-white">
                 {a.name.split(/\s+/).slice(0, 2).map((p) => p[0]).join("")}

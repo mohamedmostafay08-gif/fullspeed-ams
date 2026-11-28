@@ -147,42 +147,32 @@ export default async function FacebookLeadsPage() {
                       </StateForm>
                     )}
                   </div>
-              <ul className="grid gap-4 lg:grid-cols-2">
+              {/* Compact rows: who, where from, first message, then the company and the button on the same line. */}
+              <ul className="card divide-y divide-(--card-edge) p-0">
                 {items.map(({ id, created_at, lead }) => (
-              <li key={id} className="card space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold">{lead.name || t("من غير اسم")}</p>
-                    <p className="num text-sm text-zinc-600" dir="ltr">{lead.phone || "—"}</p>
-                  </div>
-                  <span className="num text-xs text-zinc-400">{formatDate(created_at)}</span>
-                </div>
-                <dl className="grid gap-1 text-sm">
-                  {[
-                    [t("الإعلان"), lead.ad_name],
-                    [t("الحملة"), lead.campaign_name],
-                    [t("المسؤول في LineCRM"), me.role === "admin" ? lead.owner_name : undefined],
-                    [t("أول رسالة"), lead.notes?.replace(/^whatsapp:\s*/, "")],
-                  ].filter(([, v]) => v).map(([q, a]) => (
-                    <div key={q} className="flex gap-2">
-                      <dt className="text-zinc-500">{q}:</dt>
-                      <dd className="font-medium">{a}</dd>
+                  <li key={id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+                    <div className="w-44 min-w-0">
+                      <p className="truncate font-semibold">{lead.name || t("من غير اسم")}</p>
+                      <p className="num text-xs text-zinc-500" dir="ltr">{lead.phone || "—"}</p>
                     </div>
-                  ))}
-                </dl>
-                <div className="flex flex-wrap items-start gap-2">
-                  <StateForm action={assignLineCrmLead} submitLabel={t("دخّله على الشركة")} className="flex flex-1 flex-wrap items-center gap-2">
-                    <input type="hidden" name="event_id" value={id} />
-                    <CompanySelect companies={companies} value={guessCompany(companies, `${lead.campaign_name ?? ""} ${lead.ad_name ?? ""}`)} placeholder={t("الشركة")} />
-                  </StateForm>
-                  <form action={dismissLineCrmLead}>
-                    <input type="hidden" name="event_id" value={id} />
-                    <button className="btn-ghost text-sm text-zinc-500">{t("تجاهل")}</button>
-                  </form>
-                </div>
-              </li>
-            ))}
-                </ul>
+                    <div className="min-w-0 flex-1 basis-56 text-xs text-zinc-500">
+                      <p className="truncate">{[lead.ad_name, me.role === "admin" ? lead.owner_name : undefined].filter(Boolean).join(" · ") || "—"}</p>
+                      {lead.notes && <p className="truncate text-zinc-700" title={lead.notes}>{lead.notes.replace(/^whatsapp:\s*/, "")}</p>}
+                    </div>
+                    <span className="num text-xs text-zinc-400">{formatDate(created_at)}</span>
+                    <div className="flex items-center gap-2">
+                      <StateForm action={assignLineCrmLead} submitLabel={t("دخّله")} className="flex items-center gap-2">
+                        <input type="hidden" name="event_id" value={id} />
+                        <CompanySelect companies={companies} value={guessCompany(companies, `${lead.campaign_name ?? ""} ${lead.ad_name ?? ""}`)} placeholder={t("الشركة")} />
+                      </StateForm>
+                      <form action={dismissLineCrmLead}>
+                        <input type="hidden" name="event_id" value={id} />
+                        <button className="btn-ghost btn-sm text-zinc-500" aria-label={t("تجاهل")} title={t("تجاهل")}><X size={14} /></button>
+                      </form>
+                    </div>
+                  </li>
+                ))}
+              </ul>
                 </div>
               );
             })}

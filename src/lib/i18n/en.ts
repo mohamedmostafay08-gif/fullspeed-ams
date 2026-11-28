@@ -1,5 +1,20 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Redesign batch 4: manager lead work.
+  "مش متوزعة": "Unassigned",
+  "محدش كلمهم": "Never called",
+  "متعطلة": "Stuck",
+  "اختار الكل": "Select all",
+  "{0} ليد مختار": "{0} leads selected",
+  "انقلهم لأجنت…": "Move them to an agent…",
+  "شيلهم من الأجنت (مش متوزعين)": "Take them off the agent (unassigned)",
+  "انقل": "Move",
+  "إلغاء الاختيار": "Clear selection",
+  "مش مسموح": "Not allowed",
+  "اختار ليدز الأول": "Select leads first",
+  "اختار الأجنت": "Choose the agent",
+  "اتنقل {0} ليد": "Moved {0} leads",
+  "دخّله": "Add",
   // Redesign batch 2: shared parts.
   "إجازة أو إذن": "Leave or permit",
   "تعميم": "Memo",

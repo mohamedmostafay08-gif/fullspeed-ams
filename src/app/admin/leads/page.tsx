@@ -10,6 +10,8 @@ import { BOARD_LIMIT, filtersToQuery, queryLeads, readFilters, readView, toBoard
 import { createClient } from "@/lib/supabase/server";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { LeadFilterForm } from "@/components/lead-filters";
+import { BulkLeadsBar } from "@/components/bulk-leads";
+import { LeadQuickTabs, MANAGER_QUICK } from "@/components/quick-tabs";
 
 const PAGE_SIZE = 50;
 
@@ -42,6 +44,7 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
         </div>
       </PageHeader>
 
+      <LeadQuickTabs f={f} path="/admin/leads" view={view} tabs={MANAGER_QUICK} />
       <LeadFilterForm
         f={f}
         view={view}
@@ -56,7 +59,8 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
         <LeadsBoard leads={toBoardLeads((leads ?? []) as Parameters<typeof toBoardLeads>[0])} basePath="/admin/leads" showAgent={true} />
       ) : (
         <section className="card">
-          <LeadsTable leads={(leads ?? []) as LeadRow[]} basePath="/admin/leads" showAgent />
+          <LeadsTable leads={(leads ?? []) as LeadRow[]} basePath="/admin/leads" showAgent selectable />
+          <BulkLeadsBar agents={(agents ?? []).map((a) => ({ id: a.id, name: a.full_name }))} />
           {pages > 1 && (
             <div className="mt-4 flex items-center justify-center gap-2 text-sm">
               {f.page > 1 && <Link className="btn-ghost" href={`/admin/leads?${filtersToQuery(f, f.page - 1)}`}>{t("السابق")}</Link>}
