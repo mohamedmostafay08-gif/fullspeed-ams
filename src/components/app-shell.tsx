@@ -6,6 +6,7 @@ import { SignOutForm } from "@/components/sign-out-form";
 import { BottomNav, RailToggle, SideNav, type NavItem } from "@/components/nav-links";
 import { cookies } from "next/headers";
 import { NotificationBell } from "@/components/notification-bell";
+import { CommandPalette } from "@/components/command-palette";
 import { ROLE_LABELS, type Profile } from "@/lib/types";
 import { PrefsControls } from "@/components/prefs";
 import { InstallButton } from "@/components/pwa";
@@ -27,12 +28,15 @@ export async function AppShell({
   nav,
   unread,
   notificationsHref,
+  extraSearch = [],
   children,
 }: {
   profile: Profile;
   nav: NavItem[];
   unread: number;
   notificationsHref: string;
+  /** Pages that aren't in the menu but should still come up in quick search. */
+  extraSearch?: { href: string; label: string; group?: string }[];
   children: React.ReactNode;
 }) {
   const [t, theme, jar] = await Promise.all([getT(), getTheme(), cookies()]);
@@ -78,6 +82,10 @@ export async function AppShell({
             </div>
           </div>
           <div className="ms-auto flex items-center gap-1">
+            <CommandPalette
+              pages={[...nav.map(({ href, label, group }) => ({ href, label, group })), ...extraSearch]}
+              leadBase={profile.role === "performance" ? null : profile.role === "agent" ? "/agent/leads" : "/admin/leads"}
+            />
             <InstallButton compact />
             <div className="hidden md:block">
               <PrefsControls theme={theme} sound />
