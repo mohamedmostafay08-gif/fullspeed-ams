@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/app-shell";
+import { CONNECT_TABS, SubTabs } from "@/components/sub-tabs";
 import { CompanyLogo } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
@@ -38,6 +39,7 @@ export default async function CrmPage() {
   return (
     <>
       <PageHeader title={t("ربط الـ CRM")} subtitle={t("الليدز تدخل السيستم أوتوماتيك وتتوزع على الأجنتس، والحالات ترجع للـ CRM")} />
+      <SubTabs tabs={CONNECT_TABS} current="/admin/crm" />
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card space-y-3 text-sm leading-7">
           <p className={`badge ${configured ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>

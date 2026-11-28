@@ -5,6 +5,7 @@ import { saveAssignments, saveTargets, updateUser } from "@/app/admin/actions";
 import { requestAccountChange } from "@/app/actions/management";
 import { StateForm } from "@/components/state-form";
 import { PageHeader } from "@/components/app-shell";
+import { PageTabs } from "@/components/sub-tabs";
 import { CompanyLogo, Empty, Progress, StatCard, formatDate } from "@/components/ui";
 import { MANAGERS, cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
@@ -20,6 +21,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
   const { id } = await params;
   const sp = await searchParams;
   const date = typeof sp.date === "string" && DATE_RE.test(sp.date) ? sp.date : cairoToday();
+  const tab = sp.tab === "companies" || sp.tab === "account" ? sp.tab : "perf";
   const supabase = await createClient();
 
   const { data: agent } = await supabase.from("profiles").select("id, full_name, phone, role, team_id, is_active, location_id, allow_anywhere").eq("id", id).maybeSingle();
@@ -68,14 +70,22 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
         <Link href={`/admin/leads?agent=${agent.id}`} className="btn-ghost">{t("ليدز الأجنت")}</Link>
         {agent.role === "agent" && <Link href={`/admin/scorecard?agent=${agent.id}`} className="btn-ghost">{t("التقييم الأسبوعي")}</Link>}
       </PageHeader>
+      <PageTabs path={`/admin/agents/${agent.id}`} current={tab} tabs={[
+        { key: "perf", label: t("الأداء والتاسكات") },
+        { key: "companies", label: t("الشركات والتارجت") },
+        ...(canManage || canRequest ? [{ key: "account", label: t("الحساب") }] : []),
+      ]} />
 
+      {tab === "perf" && (
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard emoji="📥" label={t("ليدز آخر 7 أيام")} value={weekLeads} />
         <StatCard emoji="🎉" label={t("اشتغلوا آخر 7 أيام")} value={weekHired} tone="good" />
         <StatCard emoji="🏢" label={t("الشركات المتعين عليها")} value={assigned.size} tone="brand" />
       </div>
+      )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className={`grid gap-6 lg:grid-cols-2 ${tab === "perf" ? "mt-6" : ""}`}>
+        {tab === "companies" && (
         <section className="card">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="font-semibold">{t("الشركات المتعين عليها")}</h2>
@@ -103,11 +113,14 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
             <button className="btn-primary">{t("حفظ التعيينات")}</button>
           </ActionForm>
         </section>
+        )}
 
+        {tab === "companies" && (
         <section className="card">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">{t("التارجت اليومي")}</h2>
             <form className="flex items-center gap-2">
+              <input type="hidden" name="tab" value="companies" />
               <input type="date" name="date" defaultValue={date} className="input" />
               <button className="btn-ghost">{t("عرض")}</button>
             </form>
@@ -149,7 +162,9 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
             </ActionForm>
           )}
         </section>
+        )}
 
+        {tab === "perf" && (
         <section className="card">
           <h2 className="mb-3 font-semibold">{t("أداء آخر 7 أيام")}</h2>
           {perf.length === 0 ? (
@@ -170,7 +185,9 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
             </ul>
           )}
         </section>
+        )}
 
+        {tab === "perf" && (
         <section className="card">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">{t("التاسكات")}</h2>
@@ -189,8 +206,9 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
             </ul>
           )}
         </section>
+        )}
 
-        {canManage && (() => { const self = agent.id === me.id; const activeLocked = self || me.role !== "admin"; return (
+        {tab === "account" && canManage && (() => { const self = agent.id === me.id; const activeLocked = self || me.role !== "admin"; return (
           <section className="card lg:col-span-2">
             <h2 className="card-title">{t("بيانات الحساب ومكان الشغل")}</h2>
             <ActionForm action={updateUser} className="grid gap-3 sm:grid-cols-3">
@@ -243,7 +261,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
           </section>
         ); })()}
 
-        {canRequest && (
+        {tab === "account" && canRequest && (
           <section className="card lg:col-span-2">
             <h2 className="card-title">{agent.is_active ? t("طلب إيقاف الحساب") : t("طلب تفعيل الحساب")}</h2>
             {pendingRequest ? (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Megaphone, Target, UserCheck } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { REPORT_TABS, SubTabs } from "@/components/sub-tabs";
 import { Empty, StatCard } from "@/components/ui";
 import { cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
@@ -36,6 +37,7 @@ export default async function CampaignsPage({ searchParams }: PageProps<"/admin/
     return (
       <>
         <PageHeader title={t("مسار الحملات")} />
+        <SubTabs tabs={REPORT_TABS} current="/admin/campaigns" />
         <Empty>{t("الصفحة دي محتاجة migration 0051 — اتأكد إنه اتطبق في Supabase")}</Empty>
       </>
     );
@@ -74,6 +76,7 @@ export default async function CampaignsPage({ searchParams }: PageProps<"/admin/
           <button className="btn-primary py-1.5">{t("عرض")}</button>
         </form>
       </PageHeader>
+      <SubTabs tabs={REPORT_TABS} current="/admin/campaigns" />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard label={t("ليدز في الفترة")} value={f.total.leads} icon={Megaphone} hint={t("{0} حملة باسمها", named.length)} />

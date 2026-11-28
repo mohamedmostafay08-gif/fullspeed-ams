@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/app-shell";
+import { REPORT_TABS, SubTabs } from "@/components/sub-tabs";
 import { RangePicker, readRange } from "@/components/range-picker";
 import { Scorecard } from "@/components/scorecard";
 import { Empty } from "@/components/ui";
@@ -28,6 +29,7 @@ export default async function AdminScorecardPage({ searchParams }: PageProps<"/a
           <button className="btn-ghost">{t("عرض")}</button>
         </form>
       </PageHeader>
+      <SubTabs tabs={REPORT_TABS} current="/admin/scorecard" />
       <RangePicker path="/admin/scorecard" from={from} to={to} keep={agentId ? { agent: agentId } : {}} />
       {agentId ? (
         <Scorecard agentId={agentId} from={from} to={to} />

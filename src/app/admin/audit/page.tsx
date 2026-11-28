@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { History } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
+import { LOG_TABS, SubTabs } from "@/components/sub-tabs";
 import { Empty, formatDate } from "@/components/ui";
 import { MANAGERS, cairoRange, requireRole } from "@/lib/auth";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -62,7 +63,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 
 export default async function AuditPage({ searchParams }: PageProps<"/admin/audit">) {
   const [t, locale] = await Promise.all([getT(), getLocale()]);
-  await requireRole(...MANAGERS);
+  const me = await requireRole(...MANAGERS);
   const sp = await searchParams;
   const table = typeof sp.table === "string" && Object.hasOwn(TABLES, sp.table) ? sp.table : "";
   const actor = typeof sp.actor === "string" && UUID.test(sp.actor) ? sp.actor : "";
@@ -121,6 +122,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   return (
     <>
       <PageHeader title={t("سجل التعديلات")} subtitle={t("كل إضافة وتعديل وحذف في السيستم — مين عمل إيه وإمتى")} />
+      <SubTabs tabs={LOG_TABS} current="/admin/audit" role={me.role} />
       <form className="card mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <select name="table" defaultValue={table} className="input">
           <option value="">{t("كل الأقسام")}</option>
