@@ -1,6 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { getConfig } from "@/lib/app-config";
 import { createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
+import { fetchLinecrmLead, linecrmBackoffActive } from "@/lib/linecrm";
 
 /**
  * LineCRM event notifications (Developers & API → إشعارات الأحداث).
@@ -10,26 +11,6 @@ import { createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
  */
 
 const MAX_BYTES = 200_000;
-const LINECRM_API = "https://linecrm.app/api/v1";
-
-/** lead.created carries no phone: read the full lead from LineCRM with the read-only key. */
-async function fetchLead(leadId: string, key: string): Promise<{ details: unknown; error: string | null }> {
-  const get = (path: string) =>
-    fetch(`${LINECRM_API}${path}`, { headers: { Authorization: `Bearer ${key}`, Accept: "application/json" }, signal: AbortSignal.timeout(8000) });
-  try {
-    let res = await get(`/leads/${encodeURIComponent(leadId)}`);
-    if (res.status === 404 || res.status === 405) res = await get(`/leads?q=${encodeURIComponent(leadId)}`);
-    const text = await res.text();
-    let body: unknown = text.slice(0, 50_000);
-    try {
-      body = JSON.parse(text);
-    } catch {}
-    return res.ok ? { details: body, error: null } : { details: body, error: `HTTP ${res.status}` };
-  } catch (e) {
-    return { details: null, error: e instanceof Error ? e.message.slice(0, 200) : "fetch failed" };
-  }
-}
-
 function same(a: string, b: string) {
   const x = Buffer.from(a);
   const y = Buffer.from(b);
@@ -102,22 +83,16 @@ export async function POST(request: Request) {
   );
   if (error) return Response.json({ error: "store failed" }, { status: 500 });
 
+  // Read the new lead once, right away, unless LineCRM is rate-limiting us (HTTP 429).
+  // Everything else (failed reads, leads still waiting for a phone) is re-read by the scheduler
+  // at a steady pace: /api/linecrm/recheck. Re-reading here on every delivery is what caused the 429s.
   const data = payload?.data as { id?: unknown } | undefined;
-  if (scheme && type === "lead.created" && eventId && cfg.linecrm_api_key && (typeof data?.id === "string" || typeof data?.id === "number")) {
+  if (scheme && type === "lead.created" && eventId && cfg.linecrm_api_key && !linecrmBackoffActive(cfg) && (typeof data?.id === "string" || typeof data?.id === "number")) {
     const { data: row } = await db.from("linecrm_events").select("details").eq("id", eventId).maybeSingle();
     if (row && row.details == null) {
-      const { details, error: detailError } = await fetchLead(String(data.id), cfg.linecrm_api_key);
-      await db.rpc("linecrm_store_details", { p_event: eventId, p_details: details, p_error: detailError });
-    }
-  }
-
-  // Each signed delivery also re-reads a few earlier leads that had no usable phone yet:
-  // LineCRM's screening automation fills «رقم الموبايل» after the lead is created.
-  if (scheme && cfg.linecrm_api_key) {
-    const { data: due } = await db.rpc("linecrm_recheck_list", { p_limit: 3 });
-    for (const r of (due ?? []) as { id: string; lead_id: string }[]) {
-      const { details, error: detailError } = await fetchLead(r.lead_id, cfg.linecrm_api_key);
-      await db.rpc("linecrm_store_details", { p_event: r.id, p_details: detailError ? null : details, p_error: detailError });
+      const { details, error: detailError } = await fetchLinecrmLead(String(data.id), cfg.linecrm_api_key);
+      await db.rpc("linecrm_store_details", { p_event: eventId, p_details: detailError ? null : details, p_error: detailError });
+      if (detailError === "HTTP 429") await db.rpc("linecrm_rate_state", { p_limited: true });
     }
   }
   return Response.json({ ok: true });

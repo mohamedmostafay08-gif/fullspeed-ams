@@ -40,5 +40,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/crm|api/meta/webhook|api/linecrm/webhook|api/push/dispatch|api/backup/run|api/whatsapp/welcome|api/whatsapp/reminder|privacy$|_next/static|_next/image|favicon.ico|logos/|icons/|sw\\.js|manifest\\.webmanifest|offline\\.html|.*\\.(?:png|jpg|jpeg|svg|webp)$).*)"],
+  matcher: ["/((?!api/crm|api/meta/webhook|api/linecrm/webhook|api/linecrm/recheck|api/push/dispatch|api/backup/run|api/whatsapp/welcome|api/whatsapp/reminder|privacy$|_next/static|_next/image|favicon.ico|logos/|icons/|sw\\.js|manifest\\.webmanifest|offline\\.html|.*\\.(?:png|jpg|jpeg|svg|webp)$).*)"],
 };
