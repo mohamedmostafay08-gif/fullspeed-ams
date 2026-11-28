@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { FormField, LeadStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
 import { cairoLocalToIso } from "@/lib/time";
+import { requiredFieldsError } from "@/lib/status-rules";
 
 export type LeadFormState = { error?: string; duplicateOf?: string } | undefined;
 
@@ -64,7 +65,7 @@ export async function createLead(_prev: LeadFormState, form: FormData): Promise<
     .single();
   if (error) {
     if (error.message.includes("BLACKLISTED")) return { error: t("الرقم ده في البلاك ليست — {0}", "") };
-    return { error: t("مقدرتش أحفظ الليد — اتأكد إنك متعين على الشركة دي") };
+    return { error: requiredFieldsError(t, error.message) ?? t("مقدرتش أحفظ الليد — اتأكد إنك متعين على الشركة دي") };
   }
 
   revalidatePath("/", "layout");
@@ -91,7 +92,7 @@ export async function updateLead(form: FormData) {
 
   if (Object.keys(patch).length) {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
-    if (error) throw new Error(t("مقدرتش أعدل الليد"));
+    if (error) throw new Error(requiredFieldsError(t, error.message) ?? t("مقدرتش أعدل الليد"));
   }
   revalidatePath("/", "layout");
 }
@@ -160,7 +161,7 @@ export async function recordCall(form: FormData): Promise<CallResult> {
     delete patch.reject_reason;
     ({ error } = await supabase.from("leads").update(patch).eq("id", id));
   }
-  if (error) return { error: t("مقدرتش أعدل الليد") };
+  if (error) return { error: requiredFieldsError(t, error.message) ?? t("مقدرتش أعدل الليد") };
   const reasonNote = outcome === "rejected" ? ` — ${REJECT_REASONS[String(form.get("reason")) as RejectReason]}` : "";
   await supabase.rpc("log_lead_note", { p_lead: id, p_note: OUTCOME_NOTE[outcome] + reasonNote });
   const note = String(form.get("note") ?? "").trim();
@@ -201,7 +202,7 @@ export async function scheduleLead(_prev: { error?: string; ok?: string } | unde
   } else return { error: t("حصلت مشكلة، جرّب تاني") };
 
   const { error } = await supabase.from("leads").update(patch).eq("id", id);
-  if (error) return { error: t("مقدرتش أعدل الليد") };
+  if (error) return { error: requiredFieldsError(t, error.message) ?? t("مقدرتش أعدل الليد") };
   if (note) await supabase.rpc("log_lead_note", { p_lead: id, p_note: note });
   revalidatePath("/", "layout");
   return { ok: t("تم الحفظ") };
