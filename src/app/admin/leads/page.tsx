@@ -45,6 +45,12 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
       </PageHeader>
 
       <LeadQuickTabs f={f} path="/admin/leads" view={view} tabs={MANAGER_QUICK} />
+      {f.agent === "none" && (count ?? 0) > 0 && (
+        <div className="card mb-4 flex flex-wrap items-center gap-3 bg-amber-50 ring-1 ring-amber-200">
+          <p className="min-w-0 flex-1 text-sm">⚡ {t("{0} ليد مستنيين أجنت. اربط الأجنتس بالشركات ووزّعهم كلهم بضغطة من صفحة التوزيع.", count ?? 0)}</p>
+          <Link href="/admin/assign" className="btn-primary">{t("روح للتوزيع")}</Link>
+        </div>
+      )}
       <LeadFilterForm
         f={f}
         view={view}

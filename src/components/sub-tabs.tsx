@@ -61,3 +61,9 @@ export const CONNECT_TABS: Tab[] = [
 export async function PageTabs({ tabs, current, path }: { tabs: { key: string; label: string }[]; current: string; path: string }) {
   return <SubTabs tabs={tabs.map((x, i) => ({ href: i === 0 ? path : `${path}?tab=${x.key}`, label: x.label }))} current={tabs[0].key === current ? path : `${path}?tab=${current}`} />;
 }
+
+export const ASSIGN_TABS: Tab[] = [
+  { href: "/admin/assign", label: "وزّع الليدز", roles: ["admin", "manager", "team_leader"] },
+  { href: "/admin/agents/assign", label: "الأجنت ← الشركات", roles: ["admin", "manager", "team_leader"] },
+  { href: "/admin/distribution", label: "القواعد والمهلة" },
+];

@@ -1,6 +1,7 @@
 import { FilterBar } from "@/components/filter-bar";
 import Link from "next/link";
 import { PageHeader } from "@/components/app-shell";
+import { ASSIGN_TABS, SubTabs } from "@/components/sub-tabs";
 import { AssignMatrix } from "@/components/assign-matrix";
 import { Empty } from "@/components/ui";
 import { MANAGERS, requireRole, STAFF } from "@/lib/auth";
@@ -52,6 +53,7 @@ export default async function AssignCompaniesPage({ searchParams }: PageProps<"/
       <PageHeader title={t("توزيع الشركات على الأجنتس")} subtitle={t("علّم على الشركات اللي كل أجنت هيشتغل عليها، وبعدين اضغط حفظ مرة واحدة")}>
         <Link href="/admin/agents" className="btn-ghost">{t("الفريق")}</Link>
       </PageHeader>
+      <SubTabs tabs={ASSIGN_TABS} current="/admin/agents/assign" role={me.role} />
 
       <FilterBar clearHref={"/admin/agents/assign"} active={Boolean(fQ || (isManager && fTeam) || showInactive)}>
         <input name="q" defaultValue={fQ} placeholder={t("اسم الأجنت")} className="input" aria-label={t("بحث")} />

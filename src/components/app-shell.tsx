@@ -105,7 +105,7 @@ export async function AppShell({
             <NotificationBell userId={profile.id} initial={unread} href={notificationsHref} />
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1440px] px-4 py-5 md:px-8 md:py-8 2xl:px-10">{children}</main>
+        <main className="w-full px-4 py-5 md:px-8 md:py-8 2xl:px-10">{children}</main>
       </div>
 
       <CallReturnWatcher />

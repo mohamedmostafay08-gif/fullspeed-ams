@@ -574,3 +574,25 @@ export async function saveTeamTargets(_prev: ActionState, form: FormData): Promi
   revalidatePath("/admin", "layout");
   return { ok: changed ? t("اتحفظ واتوزع على الأجنتس") : t("مفيش تغيير") };
 }
+
+/** One company, its agents: tick who works on it. Only the agents whose box changed are sent, each with its full company list. */
+export async function saveCompanyAgents(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireRole(...STAFF);
+  const t = await getT();
+  const companyId = str(form, "company_id");
+  if (!UUID_RE.test(companyId)) return { error: t("بيانات غلط — اعمل refresh وجرّب تاني") };
+  const wanted = new Set(form.getAll("agent_id").map(String).filter((id) => UUID_RE.test(id)));
+  const before = new Set(form.getAll("was").map(String).filter((id) => UUID_RE.test(id)));
+  const touched = [...new Set([...wanted, ...before])].filter((id) => wanted.has(id) !== before.has(id));
+  if (touched.length === 0) return { ok: t("مفيش تغييرات تتحفظ") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("agent_companies").select("agent_id, company_id").in("agent_id", touched);
+  if (error) return { error: error.message };
+  const sets = new Map(touched.map((id) => [id, new Set<string>()]));
+  for (const r of data ?? []) sets.get(r.agent_id)?.add(r.company_id);
+  for (const id of touched) {
+    if (wanted.has(id)) sets.get(id)!.add(companyId);
+    else sets.get(id)!.delete(companyId);
+  }
+  return syncAgentCompanies(touched.map((id) => ({ agent_id: id, company_ids: [...sets.get(id)!] })));
+}
