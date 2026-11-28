@@ -97,12 +97,15 @@ export async function saveLineCrmChat(_prev: ActionState, form: FormData): Promi
   const key = String(form.get("send_key") ?? "").trim();
   const account = String(form.get("account") ?? "").trim();
   const purpose = String(form.get("purpose") ?? "").trim();
+  const chatSecret = String(form.get("chat_secret") ?? "").trim();
+  if (chatSecret && (chatSecret.length < 16 || chatSecret.length > 300 || /\s/.test(chatSecret))) return { error: t("الـ secret شكله مش مظبوط — انسخه تاني من LineCRM") };
   if (key && (key.length < 16 || key.length > 300 || /\s/.test(key))) return { error: t("المفتاح شكله مش مظبوط — انسخه تاني من LineCRM") };
   if (account.length > 100 || /\s/.test(account)) return { error: t("رقم الحساب المربوط شكله مش مظبوط") };
   if (purpose.length > 100 || /\s/.test(purpose)) return { error: t("اسم الغرض (purpose) من غير مسافات") };
   await Promise.all([
     setConfig("wa_provider", form.get("enabled") === "on" ? "linecrm" : "meta"),
     key ? setConfig("linecrm_send_key", key) : Promise.resolve(),
+    chatSecret ? setConfig("linecrm_chat_secret", chatSecret) : Promise.resolve(),
     setConfig("linecrm_wa_account", account),
     setConfig("linecrm_wa_purpose", purpose),
   ]);
