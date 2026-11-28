@@ -11,6 +11,8 @@ import { ROLE_LABELS, type Profile } from "@/lib/types";
 import { PrefsControls } from "@/components/prefs";
 import { InstallButton } from "@/components/pwa";
 import { CallReturnWatcher } from "@/components/call-timer";
+import { QuickAdd } from "@/components/quick-add";
+import { TableLabels } from "@/components/table-labels";
 import { getT, getTheme } from "@/lib/i18n/server";
 
 function initials(name: string) {
@@ -83,6 +85,7 @@ export async function AppShell({
           </div>
           <Breadcrumb items={nav} />
           <div className="ms-auto flex items-center gap-1">
+            <QuickAdd role={profile.role} />
             <CommandPalette
               pages={[...nav.map(({ href, label, group }) => ({ href, label, group })), ...extraSearch]}
               leadBase={profile.role === "performance" ? null : profile.role === "agent" ? "/agent/leads" : "/admin/leads"}
@@ -98,6 +101,7 @@ export async function AppShell({
       </div>
 
       <CallReturnWatcher />
+      <TableLabels />
       <BottomNav items={nav} profile={{ name: profile.full_name, role: ROLE_LABELS[profile.role] }} theme={theme} />
     </div>
   );

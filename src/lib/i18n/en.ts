@@ -1,5 +1,9 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Redesign batch 2: shared parts.
+  "إجازة أو إذن": "Leave or permit",
+  "تعميم": "Memo",
+  "بونص أو تعريفة": "Bonus or rate",
   // Redesign batch 1: the agent's day.
   "جديدة": "New",
   "فاضل {0} مكالمة": "{0} calls left",

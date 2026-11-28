@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Inbox, type LucideIcon } from "lucide-react";
 import { CountUp } from "@/components/count-up";
 import { Tr, When } from "@/components/tr";
-import { LEAD_STATUS_COLORS, LEAD_STATUS_EMOJI, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
+import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/types";
 
 export function CompanyLogo({ name, src, size = 36 }: { name: string; src: string | null; size?: number }) {
   if (!src) {
@@ -81,7 +81,6 @@ export function Progress({ value, target }: { value: number; target: number }) {
 export function StatusBadge({ status }: { status: LeadStatus }) {
   return (
     <span className={`badge ${LEAD_STATUS_COLORS[status]}`}>
-      <span aria-hidden>{LEAD_STATUS_EMOJI[status]}</span>
       <Tr text={LEAD_STATUS_LABELS[status]} />
     </span>
   );
