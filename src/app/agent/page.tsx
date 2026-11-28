@@ -6,6 +6,7 @@ import { BadgesCard, Leaderboard } from "@/components/leaderboard";
 import { badgesFor, type AgentStats, type BoardRow } from "@/lib/badges";
 import Link from "next/link";
 import { CompanyTerms } from "@/components/company-terms";
+import { NextCall } from "@/components/next-call";
 import { TodayQueue } from "@/components/today-queue";
 import { BellRing, CheckCircle2, ClipboardList, Gift, Flame, PhoneCall, Plus, UserPlus } from "lucide-react";
 import { setTaskStatus } from "@/app/actions/notifications";
@@ -100,11 +101,15 @@ export default async function AgentHome() {
         <Link href="/agent/leads/new" className="btn-ghost">
           <Plus size={18} /> {t("ليد جديد")}
         </Link>
-        <Link href="/agent/next" className="btn-primary relative overflow-hidden">
+        <Link href="/agent/next" className="btn-ghost">
           <PhoneCall size={18} /> {t("ابدأ المكالمات")}
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 -start-1/2 w-1/3 animate-shine bg-white/25" />
         </Link>
       </PageHeader>
+
+      {/* Work first: the next call sits above everything else, numbers come after. */}
+      <div className="mb-6 max-w-3xl">
+        <NextCall agentId={profile.id} agentName={profile.full_name} />
+      </div>
 
       <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatCard emoji="📥" label={t("ليدز النهارده")} value={sum("leads_count")} icon={UserPlus} progress={{ value: sum("leads_count"), target: sum("target_leads") }} />
