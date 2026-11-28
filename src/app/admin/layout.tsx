@@ -4,6 +4,7 @@ import { AttendanceBeacon } from "@/components/presence";
 import { getSession, requireRole, VIEWERS } from "@/lib/auth";
 import { pendingLocationCheck } from "@/lib/location-gate";
 import { createClient } from "@/lib/supabase/server";
+import { SETTINGS_PAGES, settingsFor } from "@/lib/settings-pages";
 import type { Role } from "@/lib/types";
 
 type Badge = "approvals" | "distribute" | "wa";
@@ -28,15 +29,7 @@ const NAV: Item[] = [
   { group: "التقارير", href: "/admin/analytics", label: "التحليلات", icon: "analytics", perf: true },
   { group: "التقارير", href: "/admin/report", label: "التقرير اليومي", icon: "report", perf: true },
   { group: "الإعدادات", href: "/admin/companies", label: "الشركات", icon: "companies" },
-  { group: "الإعدادات", href: "/admin/templates", label: "قوالب واتساب", icon: "templates" },
-  { group: "الإعدادات", href: "/admin/blacklist", label: "البلاك ليست", icon: "ban" },
-  { group: "الإعدادات", href: "/admin/locations", label: "أماكن الشغل", icon: "location", roles: ["admin", "manager"] },
-  { group: "الإعدادات", href: "/admin/requests", label: "طلبات الحسابات", icon: "requests", roles: ["admin", "manager", "team_leader"] },
-  { group: "الإعدادات", href: "/admin/audit", label: "سجل التعديلات", icon: "audit", roles: ["admin", "manager"] },
-  { group: "الإعدادات", href: "/admin/logins", label: "سجل الدخول", icon: "logins", roles: ["admin"] },
-  { group: "الإعدادات", href: "/admin/crm", label: "ربط الـ CRM", icon: "crm", roles: ["admin"] },
-  { group: "الإعدادات", href: "/admin/integrations", label: "النسخ والتكاملات", icon: "backup", roles: ["admin"] },
-  { group: "الإعدادات", href: "/admin/account", label: "حسابي", icon: "account", perf: true },
+  { group: "الإعدادات", href: "/admin/settings", label: "كل الإعدادات", icon: "settings", perf: true, also: SETTINGS_PAGES.map((p) => p.href) },
 ];
 
 /** Menu badge counts, from one database call. Missing function (migration not applied yet) → no badges. */
@@ -60,7 +53,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     badge: badge ? badges[badge] : undefined,
   }));
   return (
-    <AppShell profile={profile} nav={nav} unread={unread} notificationsHref="/admin/notifications">
+    <AppShell profile={profile} nav={nav} extraSearch={settingsFor(profile.role).map(({ href, label }) => ({ href, label, group: "الإعدادات" }))} unread={unread} notificationsHref="/admin/notifications">
       {profile.role === "team_leader" && !mustCheckIn && <AttendanceBeacon />}
       {mustCheckIn ? <GeoGate locationName={mustCheckIn} /> : children}
     </AppShell>
