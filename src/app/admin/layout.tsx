@@ -17,9 +17,10 @@ const NAV: Item[] = [
   { group: "الرئيسية", href: "/admin/approvals", label: "الموافقات", icon: "approvals", mobile: "tab", badge: "approvals", roles: ["admin", "manager", "team_leader"] },
   { group: "الليدز", href: "/admin/leads/new", label: "ليد جديد", icon: "add", mobile: "fab", desktop: false },
   { group: "الليدز", href: "/admin/leads", label: "الليدز", icon: "leads", mobile: "tab" },
+  { group: "الليدز", href: "/admin/assign", label: "التوزيع", icon: "distribution", roles: ["admin", "manager", "team_leader"], also: ["/admin/distribution", "/admin/agents/assign"] },
   { group: "الليدز", href: "/admin/facebook-leads", label: "ليدز للتوزيع", icon: "memo", roles: ["admin", "manager"], badge: "distribute" },
   { group: "الليدز", href: "/admin/inbox", label: "واتساب", icon: "whatsapp", badge: "wa" },
-  { group: "الليدز", href: "/admin/distribution", label: "التوزيع والمهلة", icon: "distribution", perf: true },
+  { group: "الليدز", href: "/admin/distribution", label: "التوزيع والمهلة", icon: "distribution", perf: true, roles: [] }, // staff reach it as a tab of «التوزيع»
   { group: "الفريق", href: "/admin/agents", label: "الفريق", icon: "team" },
   { group: "الفريق", href: "/admin/view-as", label: "شوف كأجنت", icon: "eye", roles: ["admin"] },
   { group: "الفريق", href: "/admin/teams", label: "التيمات", icon: "teams", perf: true },

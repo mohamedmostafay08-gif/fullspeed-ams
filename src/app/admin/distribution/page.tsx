@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Clock, Shuffle, Timer, UserX, Zap } from "lucide-react";
 import { saveAgentReceiving, saveAssignmentSettings, saveStatusRule } from "@/app/actions/assignment";
 import { PageHeader } from "@/components/app-shell";
+import { ASSIGN_TABS, SubTabs } from "@/components/sub-tabs";
 import { StateForm } from "@/components/state-form";
 import { Empty, StatCard, formatDate } from "@/components/ui";
 import { MANAGERS, VIEWERS, requireRole } from "@/lib/auth";
@@ -49,6 +50,7 @@ export default async function DistributionPage({ searchParams }: PageProps<"/adm
     return (
       <>
         <PageHeader title={t("التوزيع والمهلة")} />
+        <SubTabs tabs={ASSIGN_TABS} current="/admin/distribution" role={me.role} />
         <Empty>{t("الصفحة دي محتاجة migration 0050 — اتأكد إنه اتطبق في Supabase")}</Empty>
       </>
     );
@@ -79,6 +81,7 @@ export default async function DistributionPage({ searchParams }: PageProps<"/adm
           ))}
         </div>
       </PageHeader>
+      <SubTabs tabs={ASSIGN_TABS} current="/admin/distribution" role={me.role} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard label={t("ليدز اتوزعت")} value={k.handed} icon={Shuffle} hint={t("{0} اتكلموا", k.contacted)} />

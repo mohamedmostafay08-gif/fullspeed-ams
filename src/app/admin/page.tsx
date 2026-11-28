@@ -111,7 +111,7 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   // Everything that waits on a manager, in one list instead of a banner each.
   const attention = profile.role === "performance" ? [] : [
     { href: "/admin/approvals", label: t("طلبات مستنية موافقتك"), count: badges.approvals ?? 0 },
-    { href: "/admin/leads?agent=none", label: t("ليدز مش متوزعة على حد"), count: unassigned.count ?? 0 },
+    { href: "/admin/assign", label: t("ليدز مش متوزعة على حد — وزّعهم"), count: unassigned.count ?? 0 },
     { href: "/admin/facebook-leads", label: t("ليدز مستنية شركة"), count: badges.distribute ?? 0 },
     { href: "/admin/breaks", label: t("في البريك دلوقتي"), count: onBreak },
   ].filter((a) => a.count > 0);

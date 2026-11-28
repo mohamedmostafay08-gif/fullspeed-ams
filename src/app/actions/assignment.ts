@@ -76,3 +76,20 @@ export async function saveStatusRule(_prev: ActionState, form: FormData): Promis
   revalidatePath(PAGE);
   return { ok: t("تم الحفظ") };
 }
+
+/** «وزّع»: hands one company's (or every company's) unassigned leads to its agents, evenly, in one DB call (0054). */
+export async function distributeUnassigned(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole(...MANAGERS);
+  const company = str(form, "company_id");
+  if (company && !/^[0-9a-f-]{36}$/i.test(company)) return { error: t("بيانات غلط — اعمل refresh وجرّب تاني") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("distribute_unassigned", { p_company: company || null, p_limit: 5000 });
+  if (error) {
+    if (error.code === "PGRST202" || error.message.includes("distribute_unassigned")) return { error: t("لازم migration 0054 تتطبق في Supabase الأول") };
+    return { error: /FORBIDDEN/.test(error.message) ? t("مش مسموحلك تعمل ده") : error.message };
+  }
+  revalidatePath("/admin", "layout");
+  const n = Number(data ?? 0);
+  return n > 0 ? { ok: t("اتوزّع {0} ليد ✓", n) } : { error: t("مفيش ليدز اتوزعت — اربط أجنتس بالشركة الأول") };
+}

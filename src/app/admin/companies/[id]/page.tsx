@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createAnnouncement, updateCompany, saveCallScript, saveCompanyTerms } from "@/app/admin/actions";
+import { createAnnouncement, updateCompany, saveCallScript, saveCompanyTerms, saveCompanyAgents } from "@/app/admin/actions";
+import { distributeUnassigned } from "@/app/actions/assignment";
 import { CompanyTerms } from "@/components/company-terms";
 import { hasTerms, type Terms } from "@/lib/terms";
 import { PageHeader } from "@/components/app-shell";
@@ -8,7 +8,7 @@ import { PageTabs } from "@/components/sub-tabs";
 import { FormBuilder } from "@/components/form-builder";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
-import { requireRole, STAFF } from "@/lib/auth";
+import { MANAGERS, requireRole, STAFF } from "@/lib/auth";
 import { getGeo } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import type { FormField } from "@/lib/types";
@@ -31,12 +31,19 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
     .maybeSingle();
   if (!company) notFound();
 
-  const [{ governorates }, hiringRes, annRes, agentsRes] = await Promise.all([
+  const [{ governorates }, hiringRes, annRes, agentsRes, allAgentsRes, waitingRes] = await Promise.all([
     getGeo(),
     supabase.from("company_governorates").select("governorate_id").eq("company_id", id),
     supabase.from("company_announcements").select("id, type, title, body, amount, valid_to, created_at").eq("company_id", id).order("created_at", { ascending: false }).limit(20),
     supabase.from("agent_companies").select("profiles!agent_companies_agent_id_fkey(id, full_name)").eq("company_id", id),
+    tab === "setup" ? supabase.from("profiles").select("id, full_name").eq("role", "agent").eq("is_active", true).order("full_name") : Promise.resolve({ data: [] }),
+    tab === "setup"
+      ? supabase.from("leads").select("id", { count: "exact", head: true }).eq("company_id", id).is("agent_id", null).not("status", "in", "(hired,rejected)")
+      : Promise.resolve({ count: 0 }),
   ]);
+  const allAgents = (allAgentsRes.data ?? []) as { id: string; full_name: string }[];
+  const waiting = waitingRes.count ?? 0;
+  const canDistribute = MANAGERS.includes(profile.role);
   const hiring = new Set((hiringRes.data ?? []).map((r) => r.governorate_id));
   const agents = (agentsRes.data ?? []).map((r) => r.profiles as unknown as { id: string; full_name: string } | null).filter(Boolean) as { id: string; full_name: string }[];
   const isAdmin = profile.role === "admin";
@@ -218,15 +225,33 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
           )}
           <div>
           <section className="card">
-            <h2 className="mb-3 font-semibold">{t("الأجنتس المتعينين")}</h2>
-            {agents.length === 0 ? (
-              <Empty>{t("مفيش — عيّن من صفحة الأجنت")}</Empty>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {agents.map((a) => (
-                  <li key={a.id}><Link href={`/admin/agents/${a.id}`} className="hover:text-brand-700">{a.full_name}</Link></li>
-                ))}
-              </ul>
+            <h2 className="mb-1 font-semibold">👥 {t("الأجنتس المتعينين")}</h2>
+            <p className="mb-3 text-xs text-zinc-500">{t("علّم الأجنتس اللي بيشتغلوا على الشركة دي — الليدز الجديدة بتتوزع عليهم أوتوماتيك.")}</p>
+            <StateForm action={saveCompanyAgents} submitLabel={t("احفظ الأجنتس")} className="space-y-3">
+              <input type="hidden" name="company_id" value={company.id} />
+              {agents.map((a) => <input key={a.id} type="hidden" name="was" value={a.id} />)}
+              {allAgents.length === 0 ? (
+                <p className="text-sm text-zinc-500">{t("مفيش أجنتس نشطين")}</p>
+              ) : (
+                <div className="flex max-h-72 flex-wrap gap-1.5 overflow-y-auto">
+                  {allAgents.map((a) => (
+                    <label key={a.id} className="chip cursor-pointer has-checked:border-(--fg) has-checked:bg-(--fg) has-checked:text-(--surface)">
+                      <input type="checkbox" name="agent_id" value={a.id} defaultChecked={agents.some((x) => x.id === a.id)} className="sr-only" />
+                      {a.full_name}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </StateForm>
+            {waiting > 0 && (
+              <div className="mt-4 border-t border-zinc-100 pt-4">
+                <p className="mb-2 text-sm">{t("{0} ليد مستنيين أجنت في الشركة دي", waiting)}</p>
+                {canDistribute && agents.length > 0 && (
+                  <StateForm action={distributeUnassigned} submitLabel={t("وزّعهم دلوقتي")}>
+                    <input type="hidden" name="company_id" value={company.id} />
+                  </StateForm>
+                )}
+              </div>
             )}
           </section>
           </div>
