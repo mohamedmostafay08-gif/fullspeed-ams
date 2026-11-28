@@ -3,6 +3,9 @@ import { ActionForm } from "@/components/action-form";
 import { notFound } from "next/navigation";
 import { saveAssignments, saveTargets, updateUser } from "@/app/admin/actions";
 import { requestAccountChange } from "@/app/actions/management";
+import { controlUser } from "@/app/actions/users";
+import { CredentialsHelper } from "@/components/credentials-helper";
+import { createAdminClient, hasServiceKey } from "@/lib/supabase/admin";
 import { StateForm } from "@/components/state-form";
 import { PageHeader } from "@/components/app-shell";
 import { PageTabs } from "@/components/sub-tabs";
@@ -23,11 +26,21 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
   const sp = await searchParams;
   const date = typeof sp.date === "string" && DATE_RE.test(sp.date) ? sp.date : cairoToday();
   const tab = sp.tab === "companies" || sp.tab === "account" ? sp.tab : "perf";
+  const isOwner = me.role === "admin";
   const supabase = await createClient();
 
   const { data: agent } = await supabase.from("profiles").select("id, full_name, phone, role, team_id, is_active, location_id, allow_anywhere").eq("id", id).maybeSingle();
   if (!agent) notFound();
 
+  // The admin's control card: sign-in e-mail, last seen, live devices, open leads, who could take them over.
+  const [authUser, overviewRes, agentsRes] = isOwner
+    ? await Promise.all([
+        hasServiceKey() ? createAdminClient().auth.admin.getUserById(id).then((r) => r.data.user) : Promise.resolve(null),
+        supabase.rpc("user_overview"),
+        supabase.from("profiles").select("id, full_name").eq("role", "agent").eq("is_active", true).neq("id", id).order("full_name"),
+      ])
+    : [null, { data: null }, { data: null }];
+  const overview = ((overviewRes.data ?? []) as { user_id: string; last_seen: string | null; sessions: number; open_leads: number }[]).find((o) => o.user_id === id);
   const weekAgo = new Date(new Date(`${date}T12:00:00Z`).getTime() - 6 * 86_400_000).toISOString().slice(0, 10);
   const [companies, assignedRes, targetsRes, perfRes, tasksRes, teamsRes, locationsRes] = await Promise.all([
     getCompanies(true),
@@ -77,6 +90,57 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
           </form>
         )}
       </PageHeader>
+      {isOwner && agent.id !== me.id && (
+        <section className="card mb-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span className="font-semibold">🛡️ {t("تحكم الأدمن")}</span>
+            {agent.is_active ? <span className="badge bg-emerald-100 text-emerald-800">🟢 {t("نشط")}</span> : <span className="badge bg-zinc-200">⏸️ {t("موقوف")}</span>}
+            {authUser?.email && <span dir="ltr" className="text-zinc-500">{authUser.email}</span>}
+            {overview ? (
+              <>
+                <span className="text-zinc-500">{t("آخر ظهور")}: {overview.last_seen ? formatDate(overview.last_seen) : "—"}</span>
+                <span className="text-zinc-500">{t("داخل من {0} جهاز", overview.sessions)}</span>
+                <span className="text-zinc-500">{t("{0} ليد مفتوح", overview.open_leads)}</span>
+              </>
+            ) : (
+              <span className="text-xs text-amber-700">{t("طبّق migration 0056 عشان يظهر آخر ظهور والأجهزة")}</span>
+            )}
+            <Link href={`/admin/logins?user=${agent.id}`} className="text-brand-700">{t("سجل دخوله")}</Link>
+          </div>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            {agent.is_active ? (
+              <ActionForm action={controlUser} className="flex flex-wrap items-end gap-2">
+                <input type="hidden" name="user_id" value={agent.id} />
+                <input type="hidden" name="op" value="suspend" />
+                {(overview?.open_leads ?? 0) > 0 || agent.role === "agent" ? (
+                  <div>
+                    <label className="label" htmlFor="transfer_to">{t("ليدزه المفتوحة")}</label>
+                    <select id="transfer_to" name="transfer_to" className="input" defaultValue="pool">
+                      <option value="pool">{t("ترجع للتوزيع")}</option>
+                      <option value="">{t("تفضل عليه زي ما هي")}</option>
+                      {(agentsRes.data ?? []).map((a) => <option key={a.id} value={a.id}>{t("تتنقل لـ {0}", a.full_name)}</option>)}
+                    </select>
+                  </div>
+                ) : null}
+                <button className="btn-ghost text-rose-600">⏸️ {t("أوقف الحساب")}</button>
+              </ActionForm>
+            ) : (
+              <ActionForm action={controlUser}>
+                <input type="hidden" name="user_id" value={agent.id} />
+                <input type="hidden" name="op" value="activate" />
+                <button className="btn-primary">🟢 {t("فعّل الحساب")}</button>
+              </ActionForm>
+            )}
+            <ActionForm action={controlUser}>
+              <input type="hidden" name="user_id" value={agent.id} />
+              <input type="hidden" name="op" value="signout" />
+              <button className="btn-ghost">🚪 {t("طلّعه من كل الأجهزة")}</button>
+            </ActionForm>
+            <Link href={`/admin/agents/${agent.id}?tab=account`} className="btn-ghost">✏️ {t("عدّل بياناته")}</Link>
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">{t("الإيقاف بيطلّعه من كل الأجهزة فوراً ومش هيقدر يدخل لحد ما تفعّله.")}</p>
+        </section>
+      )}
       <PageTabs path={`/admin/agents/${agent.id}`} current={tab} tabs={[
         { key: "perf", label: t("الأداء والتاسكات") },
         { key: "companies", label: t("الشركات والتارجت") },
@@ -228,6 +292,13 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                 <label className="label">{t("الموبايل")}</label>
                 <input name="phone" defaultValue={agent.phone ?? ""} dir="ltr" className="input" />
               </div>
+              {isOwner && (
+                <div>
+                  <label className="label">{t("الإيميل (للدخول)")}</label>
+                  <input name="email" type="email" defaultValue={authUser?.email ?? ""} dir="ltr" className="input" />
+                  <input type="hidden" name="email_before" value={authUser?.email ?? ""} />
+                </div>
+              )}
               <div>
                 <label className="label">{t("كلمة سر جديدة (اختياري)")}</label>
                 <input name="password" type="text" minLength={8} dir="ltr" className="input" />
@@ -263,6 +334,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
               {me.role === "manager" && (
                 <p className="text-xs text-zinc-500 sm:col-span-3">{t("إيقاف الحساب للأدمن بس — وتقدر تخلّي الموظف تيم ليدر أو أجنت.")}</p>
               )}
+              {isOwner && <CredentialsHelper />}
               <div className="sm:col-span-3"><button className="btn-primary">{t("حفظ")}</button></div>
             </ActionForm>
           </section>
