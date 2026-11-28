@@ -84,7 +84,7 @@ export async function CompanyLeadsTab({ companyId, sp, canDistribute }: { compan
                 </select>
               </label>
             </StateForm>
-            <p className="mt-2 text-xs text-zinc-500">{t("بيتنقل بس الليدز اللي محدش كلمها والمش متوزعة. أي ليد اتشغل عليه بيفضل مع صاحبه.")}</p>
+            <p className="mt-2 text-xs text-zinc-500">{t("بيتنقل بس الليدز اللي محدش كلمها والمش متوزعة، وأي ليد اتشغل عليه بيفضل مع صاحبه. كل أجنت بيقف عند الحد الأقصى بتاعه، واللي زيادة بيرجع «مش متوزعة» لحد ما يبقى فيه مكان.")}</p>
           </div>
         )}
       </section>

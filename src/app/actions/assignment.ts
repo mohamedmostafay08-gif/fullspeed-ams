@@ -110,5 +110,5 @@ export async function rebalanceCompanyLeads(_prev: ActionState, form: FormData):
   }
   revalidatePath("/admin", "layout");
   const n = Number(data ?? 0);
-  return n > 0 ? { ok: t("اتنقل {0} ليد والتوزيع بقى متساوي ✓", n) } : { ok: t("التوزيع متساوي أصلاً — مفيش حاجة اتنقلت") };
+  return n > 0 ? { ok: t("اتنقل {0} ليد ✓ — اللي فوق الحد الأقصى للأجنتس رجع «مش متوزعة».", n) } : { ok: t("التوزيع متساوي أصلاً — مفيش حاجة اتنقلت") };
 }
