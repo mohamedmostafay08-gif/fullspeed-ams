@@ -7,7 +7,6 @@ import { getT } from "@/lib/i18n/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getConfig } from "@/lib/app-config";
-import { chatViaLinecrm, sendLinecrmTemplate, sendLinecrmText, type LinecrmSend } from "@/lib/linecrm";
 import { sendWhatsAppTemplate, sendWhatsAppText, toWaNumber } from "@/lib/whatsapp-api";
 
 const PHONE_RE = /^\d{8,15}$/;
@@ -26,16 +25,6 @@ async function access(phone: string) {
   return { me, thread, lead };
 }
 
-/** LineCRM's refusal in words the agent can act on; the code stays visible for support. */
-function linecrmError(t: Awaited<ReturnType<typeof getT>>, r: Extract<LinecrmSend, { ok: false }>) {
-  if (r.code === "quota_exceeded") return t("رصيد LineCRM للشهر خلص، الإرسال هيرجع أول الشهر. كلّمه في التليفون دلوقتي.");
-  if (r.code === "rate_limited") return t("رسايل كتير في دقيقة واحدة، استنى دقيقة وجرّب تاني");
-  if (r.code === "insufficient_scope" || r.code === "unauthorized") return t("مفتاح LineCRM مش مسموحله يبعت رسايل — المدير يحط مفتاح فيه messages:write");
-  if (r.code === "no_purpose") return t("مفيش قالب متربط في LineCRM لفتح المحادثة — كلّمه في التليفون");
-  if (r.code === "send_failed" || r.code === "window_closed") return t("واتساب رفض: غالباً عدّى 24 ساعة من آخر رسالة منه. ({0})", r.error);
-  return t("مااتبعتتش: {0}", r.error);
-}
-
 export async function sendWaReply(_prev: ActionState, form: FormData): Promise<ActionState> {
   const t = await getT();
   const phone = String(form.get("phone") ?? "");
@@ -43,15 +32,6 @@ export async function sendWaReply(_prev: ActionState, form: FormData): Promise<A
   if (!text) return { error: t("اكتب الرسالة") };
   const a = await access(phone);
   if (!a) return { error: t("مش مسموحلك تعمل ده") };
-  const cfg = await getConfig();
-  if (chatViaLinecrm(cfg)) {
-    // LineCRM knows the real 24-hour window (the lead may have written before AMS saw any message).
-    const r = await sendLinecrmText(cfg, phone, text);
-    if (!r.ok) return { error: linecrmError(t, r) };
-    await createAdminClient().rpc("wa_record_out", { p_phone: phone, p_wa_id: r.id ?? null, p_kind: "text", p_body: text, p_user: a.me.id });
-    revalidatePath("/", "layout");
-    return { ok: t("اتبعتت ✓") };
-  }
   const last = a.thread?.last_inbound_at ? Date.parse(a.thread.last_inbound_at) : 0;
   if (Date.now() - last > DAY) return { error: t("عدّى 24 ساعة من آخر رسالة منه — ابعت قالب الترحيب الأول") };
   const r = await sendWhatsAppText(toWaNumber(phone), text);
@@ -69,15 +49,7 @@ export async function sendWaTemplate(_prev: ActionState, form: FormData): Promis
   if (!a) return { error: t("مش مسموحلك تعمل ده") };
   const name = a.lead?.full_name.split(" ")[0] ?? "";
   const company = (a.lead?.companies as unknown as { name: string } | null)?.name ?? "";
-  const cfg = await getConfig();
-  let r: { ok: true; id?: string } | { ok: false; error: string };
-  if (chatViaLinecrm(cfg)) {
-    const lc = await sendLinecrmTemplate(cfg, phone, { name, customer_name: name, company, company_name: company });
-    if (!lc.ok) return { error: linecrmError(t, lc) };
-    r = lc;
-  } else {
-    r = await sendWhatsAppTemplate(toWaNumber(phone), [name, company]);
-  }
+  const r = await sendWhatsAppTemplate(toWaNumber(phone), [name, company], "wa_template", true);
   if (!r.ok) return { error: t("مااتبعتتش: {0}", r.error) };
   await createAdminClient().rpc("wa_record_out", { p_phone: phone, p_wa_id: r.id ?? null, p_kind: "template", p_body: t("📨 قالب الترحيب"), p_user: a.me.id });
   revalidatePath("/", "layout");
@@ -98,16 +70,31 @@ export async function waMakeLead(_prev: ActionState, form: FormData): Promise<Ac
   return { ok: t("اتعمل ليد واتوزع ✓") };
 }
 
-/** How the WhatsApp button behaves: inside AMS (LineCRM number) or the agent's own WhatsApp (wa.me). */
+/**
+ * How the WhatsApp button behaves. Once the company number is linked (WhatsApp Cloud API),
+ * messages go out from it and are saved on the lead, never from the agent's own WhatsApp (wa.me).
+ */
 export async function waMode(): Promise<"inapp" | "link"> {
   const cfg = await getConfig();
-  return chatViaLinecrm(cfg) ? "inapp" : "link";
+  return cfg.wa_phone_id && cfg.wa_token ? "inapp" : "link";
 }
 
-/** A ready-made message from the WhatsApp button, sent from the company number and saved on the lead. */
+/**
+ * A ready-made message from the WhatsApp button. Inside the 24-hour window it goes as written;
+ * outside it (or before the lead ever wrote to the company number) WhatsApp only allows the
+ * approved welcome template, so that goes instead and the agent can write once the lead answers.
+ */
 export async function sendWaQuick(phone: string, text: string): Promise<ActionState> {
+  const t = await getT();
+  const a = await access(phone);
+  if (!a) return { error: t("مش مسموحلك تعمل ده") };
   const form = new FormData();
   form.set("phone", phone);
+  const last = a.thread?.last_inbound_at ? Date.parse(a.thread.last_inbound_at) : 0;
+  if (Date.now() - last > DAY) {
+    const r = await sendWaTemplate(undefined, form);
+    return r?.ok ? { ok: t("عدّى 24 ساعة من آخر رسالة منه، فاتبعت قالب الترحيب ✓ — لما يرد تقدر تكلمه") } : r;
+  }
   form.set("text", text);
   return sendWaReply(undefined, form);
 }

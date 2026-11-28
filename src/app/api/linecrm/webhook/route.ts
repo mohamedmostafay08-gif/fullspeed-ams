@@ -83,18 +83,6 @@ export async function POST(request: Request) {
   );
   if (error) return Response.json({ error: "store failed" }, { status: 500 });
 
-  // WhatsApp chat through LineCRM's number: LineCRM keeps no message text, so this delivery is
-  // the only copy. Saved into the AMS inbox (wa_messages) — only from signed deliveries.
-  if (scheme && payload && (type === "message.received" || type === "message.sent")) {
-    const { data: saved, error: chatError } = await db.rpc("linecrm_wa_event", { p: payload });
-    if (eventId) {
-      await db.from("linecrm_events").update({ status: chatError ? "chat_error" : "chat", detail_error: chatError?.message?.slice(0, 300) ?? null, details: saved ?? null }).eq("id", eventId);
-    }
-    // A failed save is answered 500 so LineCRM retries it (it keeps the delivery about two days).
-    if (chatError) return Response.json({ error: "chat save failed" }, { status: 500 });
-    return Response.json({ ok: true });
-  }
-
   // The phone comes from the bulk pull (/api/linecrm/pull, every 15 minutes): LineCRM's API quota
   // (10,000 a month) can't pay for one read per lead. Reading each lead here is kept only as an
   // opt-in setting (linecrm_per_lead_read = "1"), e.g. for a plan with a bigger quota.

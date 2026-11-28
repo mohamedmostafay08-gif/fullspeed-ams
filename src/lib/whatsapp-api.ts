@@ -3,11 +3,14 @@ import { getConfig } from "@/lib/app-config";
 
 export type WaResult = { ok: true; id?: string } | { ok: false; error: string };
 
-/** Sends an approved WhatsApp template through the WhatsApp Cloud API (Meta). */
-export async function sendWhatsAppTemplate(to: string, params: string[], templateKey: "wa_template" | "wa_reminder_template" = "wa_template"): Promise<WaResult> {
+/**
+ * Sends an approved WhatsApp template through the WhatsApp Cloud API (Meta).
+ * `manual`: an agent pressed the button, so the automatic-welcome switch (wa_enabled) doesn't apply.
+ */
+export async function sendWhatsAppTemplate(to: string, params: string[], templateKey: "wa_template" | "wa_reminder_template" = "wa_template", manual = false): Promise<WaResult> {
   const cfg = await getConfig();
   const template = cfg[templateKey];
-  if (cfg.wa_enabled !== "1" || !cfg.wa_phone_id || !cfg.wa_token || !template) return { ok: false, error: "not configured" };
+  if ((!manual && cfg.wa_enabled !== "1") || !cfg.wa_phone_id || !cfg.wa_token || !template) return { ok: false, error: "not configured" };
   const base = cfg.wa_api_base || "https://graph.facebook.com/v21.0";
   const res = await fetch(`${base}/${encodeURIComponent(cfg.wa_phone_id)}/messages`, {
     method: "POST",

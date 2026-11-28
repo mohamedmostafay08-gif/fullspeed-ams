@@ -1,5 +1,5 @@
 import { CloudUpload, DatabaseBackup, Download, Gauge, Megaphone, MessageCircle, PlugZap, Trash2 } from "lucide-react";
-import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveLineCrm, saveLineCrmChat, saveLineCrmKey, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
+import { addLeadForm, backupNow, deleteLeadForm, saveDriveUrl, saveLineCrm, saveLineCrmKey, saveMeta, saveWhatsApp, testWhatsApp } from "@/app/actions/integrations";
 import { headers } from "next/headers";
 import { PageHeader } from "@/components/app-shell";
 import { CONNECT_TABS, SubTabs } from "@/components/sub-tabs";
@@ -70,7 +70,7 @@ export default async function IntegrationsPage() {
   const host = (await headers()).get("host") ?? "ams.fullspeedlogistics.com";
   const webhookUrl = `https://${host}/api/meta/webhook`;
   const lineUrl = `https://${host}/api/linecrm/webhook`;
-  const LINE: Record<string, string> = { received: "✅ متوقّع ومتحفظ", unverified: "⏳ اتحفظ من غير تحقق (لسه مفيش secret)", bad_signature: "🔒 التوقيع مش مطابق", chat: "💬 رسالة واتساب اتحفظت", chat_error: "⚠️ رسالة واتساب ماتحفظتش" };
+  const LINE: Record<string, string> = { received: "✅ متوقّع ومتحفظ", unverified: "⏳ اتحفظ من غير تحقق (لسه مفيش secret)", bad_signature: "🔒 التوقيع مش مطابق" };
   const EVENT: Record<string, string> = { created: "✅ اتعمل ليد", duplicate: "♻️ مكرر", invalid: "❌ بيانات ناقصة", unmapped: "⏳ مستني توزيع", dismissed: "🚫 اتجاهل", no_access: "🔒 مقدرناش نقرا البيانات", blacklisted: "⛔ بلاك ليست", error: "⚠️ مشكلة", pending: "…" };
   const fileBytes = Object.values(usage?.files ?? {}).reduce((s, f) => s + Number(f.bytes), 0);
   const MB = 1024 * 1024;
@@ -313,34 +313,6 @@ export default async function IntegrationsPage() {
                 </ul>
               )}
             </div>
-          </div>
-        </section>
-        <section className="card lg:col-span-2">
-          <h2 className="card-title"><MessageCircle size={18} className="text-emerald-600" /> {t("شات الواتساب من جوه السيستم (رقم LineCRM)")}</h2>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-2 text-sm leading-7">
-              <p>{t("الإيجنت يكلّم الليد من صفحة الليد، من نفس الرقم اللي الليد كلّمه في الإعلان، والمحادثة كلها بتتحفظ على الليد والمدير يشوفها. زرار الواتساب مش هيفتح واتساب الموبايل الشخصي.")}</p>
-              <p className="font-semibold">{t("1) في LineCRM ← إشعارات الأحداث ← العنوان بتاع Full Speed AMS: علّم كمان «وصول رسالة» (message.received) و«إرسال رسالة» (message.sent).")}</p>
-              <p className="font-semibold">{t("2) اعمل مفتاح API جديد بصلاحيات: messages:write و messages:read و channels:read، وحطه هنا.")}</p>
-              <p className="text-zinc-500">{t("كل رسالة يبعتها الإيجنت بتاكل طلب واحد من رصيد LineCRM الشهري. الرسايل اللي بتيجي مجانية.")}</p>
-            </div>
-            <StateForm action={saveLineCrmChat} className="space-y-3">
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input type="checkbox" name="enabled" defaultChecked={cfg.wa_provider === "linecrm"} className="size-4 accent-brand-600" /> {t("شغّل الشات من رقم LineCRM")}
-              </label>
-              <label className="block">
-                <span className="label">{t("مفتاح الإرسال (messages:write)")}</span>
-                <input name="send_key" type="password" dir="ltr" autoComplete="off" placeholder={cfg.linecrm_send_key ? "•••••••• (" + t("محفوظ") + ")" : ""} className="input text-left" />
-              </label>
-              <label className="block">
-                <span className="label">{t("رقم الحساب المربوط (اختياري، لو عندكم أكتر من رقم واتساب)")}</span>
-                <input name="account" dir="ltr" defaultValue={cfg.linecrm_wa_account ?? ""} className="input text-left" />
-              </label>
-              <label className="block">
-                <span className="label">{t("الغرض (purpose) لقالب فتح المحادثة بعد 24 ساعة (اختياري)")}</span>
-                <input name="purpose" dir="ltr" defaultValue={cfg.linecrm_wa_purpose ?? ""} placeholder="welcome" className="input text-left" />
-              </label>
-            </StateForm>
           </div>
         </section>
       </div>
