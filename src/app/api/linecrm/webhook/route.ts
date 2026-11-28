@@ -46,7 +46,8 @@ export async function POST(request: Request) {
   const cfg = await getConfig();
   const secret = cfg.linecrm_webhook_secret ?? "";
   const signature = request.headers.get("x-linecrm-signature") ?? "";
-  const scheme = verify(raw, signature, secret);
+  // The chat events can come from a second LineCRM address with its own secret.
+  const scheme = verify(raw, signature, secret) ?? (cfg.linecrm_chat_secret ? verify(raw, signature, cfg.linecrm_chat_secret) : null);
   const db = createAdminClient();
 
   let payload: Record<string, unknown> | null = null;

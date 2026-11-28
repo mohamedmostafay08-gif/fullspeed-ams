@@ -329,6 +329,10 @@ export default async function IntegrationsPage() {
                 <input type="checkbox" name="enabled" defaultChecked={cfg.wa_provider === "linecrm"} className="size-4 accent-brand-600" /> {t("شغّل الشات من رقم LineCRM")}
               </label>
               <label className="block">
+                <span className="label">{t("الـ secret بتاع عنوان الرسايل (لو الرسايل متسجلة على عنوان لوحدها في LineCRM)")}</span>
+                <input name="chat_secret" type="password" dir="ltr" autoComplete="off" placeholder={cfg.linecrm_chat_secret ? "•••••••• (" + t("محفوظ") + ")" : ""} className="input text-left" />
+              </label>
+              <label className="block">
                 <span className="label">{t("مفتاح الإرسال (messages:write)")}</span>
                 <input name="send_key" type="password" dir="ltr" autoComplete="off" placeholder={cfg.linecrm_send_key ? "•••••••• (" + t("محفوظ") + ")" : ""} className="input text-left" />
               </label>
