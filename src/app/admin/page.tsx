@@ -2,10 +2,11 @@ import Link from "next/link";
 import { DeviceSetupBanner } from "@/components/pwa";
 import { ForecastCard, type Forecast } from "@/components/forecast";
 import { getPushPublicKey } from "@/lib/push";
-import { AlertTriangle, Building2, Coffee, CheckCircle2, PieChart, TrendingUp, Trophy, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, Building2, ChevronLeft, PieChart, Trophy } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live";
-import { CompanyLogo, Empty, Progress, StatCard } from "@/components/ui";
+import { BigNumber } from "@/components/big-number";
+import { CompanyLogo, Empty, Progress } from "@/components/ui";
 import { cairoRange, cairoToday, requireRole, VIEWERS } from "@/lib/auth";
 import { MISSING_SERVICE_KEY, hasServiceKey } from "@/lib/supabase/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -39,19 +40,25 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
   const supabase = await createClient();
   // Performance users can't read lead rows; their totals come from the server.
   const db = profile.role === "performance" ? createAdminClient() : supabase;
-  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes, pushKey, passkeysRes, forecastRes] = await Promise.all([
+  const nowIso = new Date().toISOString();
+  const [perf, agentsRes, companiesRes, statusRes, teamsRes, unassigned, breaksRes, pushKey, passkeysRes, forecastRes, waitingRes, oldestRes, overdueRes, badgesRes] = await Promise.all([
     db.rpc("performance_summary", { p_from: from, p_to: to }),
     supabase.from("profiles").select("id, full_name, role, team_id, is_active").eq("role", "agent").eq("is_active", true).order("full_name"),
     supabase.from("companies").select("id, name, logo_path").order("name"),
     db.rpc("lead_status_counts", { p_start: start, p_end: end }),
     supabase.from("teams").select("id, name"),
     supabase.from("leads").select("id", { count: "exact", head: true }).is("agent_id", null),
-    supabase.from("agent_breaks").select("status, ends_at").in("status", ["pending", "active"]),
+    supabase.from("agent_breaks").select("status, ends_at").eq("status", "active"),
     getPushPublicKey(),
     supabase.from("passkeys").select("id", { count: "exact", head: true }),
     db.rpc("month_forecast"),
+    // The three numbers on top are live, whatever dates are picked: who is waiting for a first call,
+    // and promised call-backs whose time has passed. Under RLS a team leader only counts their team.
+    db.from("leads").select("id", { count: "exact", head: true }).eq("status", "new").eq("attempts", 0),
+    db.from("leads").select("created_at").eq("status", "new").eq("attempts", 0).order("created_at").limit(1),
+    db.from("leads").select("id", { count: "exact", head: true }).lt("callback_at", nowIso).not("status", "in", "(hired,rejected)"),
+    profile.role === "performance" ? Promise.resolve({ data: null }) : supabase.rpc("nav_badges"),
   ]);
-  const pendingBreaks = (breaksRes.data ?? []).filter((b) => b.status === "pending").length;
   const onBreak = (breaksRes.data ?? []).filter((b) => b.status === "active" && b.ends_at && new Date(b.ends_at) > new Date()).length;
 
   const rows = (perf.data ?? []) as Row[];
@@ -95,6 +102,20 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
     .sort((a, b) => b.agg.hired - a.agg.hired || b.agg.leads - a.agg.leads);
   const statusTotal = [...statusCounts.values()].reduce((a, b) => a + b, 0);
 
+  const waiting = waitingRes.count ?? 0;
+  const overdue = overdueRes.count ?? 0;
+  const oldest = (oldestRes.data as { created_at: string }[] | null)?.[0]?.created_at;
+  const oldestMin = oldest ? Math.max(0, Math.round((Date.parse(nowIso) - Date.parse(oldest)) / 60_000)) : 0;
+  const oldestWait = !oldest ? null : oldestMin < 60 ? t("{0} د", oldestMin) : oldestMin < 48 * 60 ? t("{0} س", Math.round(oldestMin / 60)) : t("{0} يوم", Math.round(oldestMin / 1440));
+  const badges = (badgesRes.data ?? {}) as { approvals?: number; distribute?: number };
+  // Everything that waits on a manager, in one list instead of a banner each.
+  const attention = profile.role === "performance" ? [] : [
+    { href: "/admin/approvals", label: t("طلبات مستنية موافقتك"), count: badges.approvals ?? 0 },
+    { href: "/admin/leads?agent=none", label: t("ليدز مش متوزعة على حد"), count: unassigned.count ?? 0 },
+    { href: "/admin/facebook-leads", label: t("ليدز مستنية شركة"), count: badges.distribute ?? 0 },
+    { href: "/admin/breaks", label: t("في البريك دلوقتي"), count: onBreak },
+  ].filter((a) => a.count > 0);
+
   return (
     <>
       <LiveRefresh channel="admin-overview" />
@@ -121,28 +142,46 @@ export default async function AdminOverview({ searchParams }: PageProps<"/admin"
         </div>
       )}
 
-      {profile.role !== "performance" && (pendingBreaks > 0 || onBreak > 0) && (
-        <Link href="/admin/breaks" className="mb-5 flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 transition hover:bg-teal-100">
-          <Coffee size={18} className="shrink-0" />
-          {pendingBreaks > 0 && <span>{pendingBreaks} {t("طلب بريك مستني موافقتك")}</span>}
-          {pendingBreaks > 0 && onBreak > 0 && <span className="text-teal-400">·</span>}
-          {onBreak > 0 && <span>{onBreak} {t("في البريك دلوقتي")}</span>}
-        </Link>
-      )}
-
-      {profile.role !== "performance" && (unassigned.count ?? 0) > 0 && (
-        <Link href="/admin/leads?agent=none" className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">
-          <AlertTriangle size={18} className="shrink-0" />
-          {t("فيه")} {unassigned.count} {t("ليد مش متوزعين على حد — اضغط وزّعهم")}
-        </Link>
-      )}
-
-      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <StatCard emoji="📥" label={t("ليدز جديدة")} value={total.leads} icon={UserPlus} progress={{ value: total.leads, target: total.tLeads }} />
-        <StatCard emoji="🎉" label={t("اشتغلوا")} value={total.hired} tone="good" icon={CheckCircle2} progress={{ value: total.hired, target: total.tHired }} />
-        <StatCard emoji="📈" label={t("نسبة التحويل")} value={`${conversion}%`} tone="brand" icon={TrendingUp} hint={t("اشتغلوا ÷ ليدز")} />
-        <StatCard emoji="👥" label={t("أجنتس نشطين")} value={agents.length} icon={Users} hint={t("{0} تيم", teamName.size)} />
+      {/* Three numbers that say whether the floor is OK right now. */}
+      <div className="stagger grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
+        <BigNumber
+          href="/admin/leads?flag=never&sort=old"
+          label={t("ليدز مستنية أول مكالمة")}
+          value={waiting}
+          sub={oldestWait ? t("أقدمهم مستني من {0}", oldestWait) : t("محدش مستني")}
+          tone={waiting > 0 && oldestMin > 60 ? "warn" : "plain"}
+        />
+        <BigNumber
+          href="/admin/leads?flag=callback_due"
+          label={t("مكالمات متأخرة")}
+          value={overdue}
+          sub={t("معاد المكالمة عدّى ولسه محدش كلّمهم")}
+          tone={overdue > 0 ? "bad" : "plain"}
+        />
+        <BigNumber
+          label={from === to && from === today ? t("اتعيّنوا النهارده") : t("اتعيّنوا في الفترة دي")}
+          value={total.hired}
+          sub={total.tHired ? t("من {0} تارجت · {1} ليد · تحويل {2}%", total.tHired, total.leads, conversion) : t("{0} ليد · تحويل {1}%", total.leads, conversion)}
+          tone={total.tHired && total.hired >= total.tHired ? "good" : "plain"}
+        />
       </div>
+
+      {attention.length > 0 && (
+        <section className="card mt-5" aria-labelledby="attention-title">
+          <h2 id="attention-title" className="card-title"><AlertTriangle size={18} className="text-amber-500" /> {t("محتاج انتباهك")}</h2>
+          <ul className="divide-y divide-(--glass-line)">
+            {attention.map((a) => (
+              <li key={a.href}>
+                <Link href={a.href} className="flex items-center gap-3 py-2.5 text-sm hover:text-(--fg)">
+                  <span className="num grid h-7 min-w-7 place-items-center rounded-full bg-zinc-100 px-2 text-xs font-bold">{a.count}</span>
+                  <span className="flex-1 font-semibold">{a.label}</span>
+                  <ChevronLeft size={16} className="text-zinc-400 ltr:rotate-180" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {forecastRes.data && <div className="mt-6"><ForecastCard f={forecastRes.data as Forecast} /></div>}
 
