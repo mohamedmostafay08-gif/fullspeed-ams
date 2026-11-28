@@ -5,6 +5,7 @@ import { CompanyTerms } from "@/components/company-terms";
 import { hasTerms, type Terms } from "@/lib/terms";
 import { PageHeader } from "@/components/app-shell";
 import { PageTabs } from "@/components/sub-tabs";
+import { CompanyLeadsTab } from "./leads-tab";
 import { FormBuilder } from "@/components/form-builder";
 import { StateForm } from "@/components/state-form";
 import { CompanyLogo, Empty, formatDate } from "@/components/ui";
@@ -22,7 +23,7 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
   const profile = await requireRole(...STAFF);
   const { id } = await params;
   const sp = await searchParams;
-  const tab = sp.tab === "form" || sp.tab === "setup" ? sp.tab : "offer";
+  const tab = sp.tab === "form" || sp.tab === "setup" || sp.tab === "leads" ? sp.tab : "offer";
   const supabase = await createClient();
   const { data: company } = await supabase
     .from("companies")
@@ -60,6 +61,7 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
         { key: "offer", label: t("العرض والبونص") },
         { key: "form", label: t("فورم التسجيل") },
         { key: "setup", label: t("البيانات والأجنتس") },
+        { key: "leads", label: t("الليدز والتوزيع") },
       ]} />
 
       {tab === "offer" && (
@@ -183,6 +185,8 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
           </section>
         </div>
       )}
+
+      {tab === "leads" && <CompanyLeadsTab companyId={company.id} sp={sp} canDistribute={canDistribute} />}
 
       {tab === "setup" && (
         <div className="grid gap-6 lg:grid-cols-3">

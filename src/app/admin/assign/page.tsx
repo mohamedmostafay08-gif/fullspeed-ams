@@ -117,6 +117,11 @@ export default async function AssignPage() {
                   </StateForm>
                 </details>
 
+                {r.agents.length > 0 && (
+                  <Link href={`/admin/companies/${r.company_id}?tab=leads`} className="text-xs font-semibold text-brand-700 hover:underline">
+                    {t("ليدز الشركة ومين ماسكها ←")}
+                  </Link>
+                )}
                 {canDistribute && r.unassigned > 0 && receiving > 0 && (
                   <StateForm action={distributeUnassigned} submitLabel={t("وزّع الـ {0} على {1} أجنت", r.unassigned, receiving)} className="mt-auto">
                     <input type="hidden" name="company_id" value={r.company_id} />
