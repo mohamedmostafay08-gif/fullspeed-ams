@@ -23,8 +23,12 @@ export async function WaChat({ phone, compact = false, leadHref }: { phone: stri
   ]);
   if (thread?.unread) await supabase.rpc("wa_mark_read", { p_phone: phone });
   const msgs = ((rows ?? []) as Msg[]).reverse();
-  const open = !!thread?.last_inbound_at && new Date().getTime() - Date.parse(thread.last_inbound_at) < 24 * 3600_000;
-  const configured = Boolean(cfg.wa_phone_id && cfg.wa_token);
+  const viaLinecrm = cfg.wa_provider === "linecrm";
+  const recent = !!thread?.last_inbound_at && new Date().getTime() - Date.parse(thread.last_inbound_at) < 24 * 3600_000;
+  // Through LineCRM the lead may have written before AMS saved anything: LineCRM checks the window itself.
+  const open = recent || (viaLinecrm && !thread?.last_inbound_at);
+  const configured = viaLinecrm || Boolean(cfg.wa_phone_id && cfg.wa_token);
+  const canTemplate = viaLinecrm ? Boolean(cfg.linecrm_wa_purpose) : true;
 
   return (
     <div className="space-y-3">
@@ -58,7 +62,7 @@ export async function WaChat({ phone, compact = false, leadHref }: { phone: stri
           })}
         </ol>
       )}
-      <WaComposer phone={phone} open={open} configured={configured} />
+      <WaComposer phone={phone} open={open} configured={configured} canTemplate={canTemplate} />
       {leadHref && <Link href={leadHref} className="text-xs font-semibold text-brand-700 hover:underline">{t("افتح صفحة الليد ←")}</Link>}
     </div>
   );

@@ -228,7 +228,7 @@
 - **التحليلات:** `analytics_filtered` · `analytics_totals` · `analytics_weekly` · `acquisition_analytics` · `performance_report` · `leaderboard` · `agent_scorecard` · `month_forecast` · `team_target_progress`
 - **الشغل التقيل جوه الداتابيز:** `export_leads_csv` (بيرجع `text/csv`) · `backup_export` · `crm_import_leads` · `leads_by_company` · `waiting_leads_by_agent`
 - **التوزيع:** `company_guess` · `linecrm_lead_fields` · وظايف «ليدز للتوزيع» (اختيار شركة لليد أو لحملة كاملة)
-- **الواتساب وMeta:** `wa_receive` · `wa_record_out` · `wa_mark_read` · `wa_make_lead` · `meta_import_lead` · `meta_retry_unmapped` · `local_phone`
+- **الواتساب وMeta:** `wa_receive` · `wa_record_out` · `wa_mark_read` · `wa_make_lead` · `meta_import_lead` · `meta_retry_unmapped` · `local_phone` · `linecrm_wa_event` (رسايل LineCRM message.received / message.sent → صندوق الواتساب، 0068)
 - **الإجازات:** `request_leave` · `decide_leave` · `request_permit` · `decide_permit` · `team_leave_load` · `is_day_off` · `expected_start`
 - **الوقت:** `cairo_today()` · `cairo_day_start(date)`. كل الحسابات بتوقيت القاهرة، وفيها التوقيت الصيفي.
 
@@ -266,6 +266,8 @@
 ### مفاتيح `private.app_config` (بتتظبط من جوه السيستم)
 - **عام:** `app_url` · `dispatch_secret` · مفاتيح VAPID (بتتعمل لوحدها).
 - **النسخ:** `drive_script_url` · `drive_secret` · `last_backup_at`.
+- **ربط ليدز LineCRM من رسايلهم (0069):** `linecrm_match_message` بيدي حدث lead.created رقمه من أول رسالة واتساب (نفس الاسم، وأول رسالة لو الاسم متكرر) من غير ما يستهلك API. وتريجر `leads_link_wa` بيربط رسايل الرقم بالليد لما يتعمل.
+- **الشات من رقم LineCRM (0068):** `wa_provider` = `linecrm` · `linecrm_send_key` (messages:write) · `linecrm_wa_account` (اختياري) · `linecrm_wa_purpose` (قالب فتح المحادثة، اختياري). كل رسالة خارجة = طلب من رصيد LineCRM الشهري؛ الويبهوك مجاني.
 - **واتساب:** `wa_phone_id` · `wa_token` · `wa_template` · `wa_reminder_template` · `wa_lang` · `wa_enabled` · `wa_inbox_company` · `wa_auto_lead` · `wa_api_base` (اختياري، للتجربة).
 - **Meta:** `meta_app_secret` · `meta_verify_token` (بيتعمل لوحده) · `meta_page_token`.
 - **LineCRM والتوزيع:** `linecrm_webhook_secret` · `linecrm_api_key` (قراءة بس) · `auto_assign_by_campaign`.

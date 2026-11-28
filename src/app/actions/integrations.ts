@@ -20,7 +20,7 @@ export async function backupNow(): Promise<ActionState> {
   try {
     const r = await runBackup({ withDrive: true });
     revalidatePath("/admin/integrations");
-    const drive = r.drive === "ok" ? t(" · وبتتبعت لـ Google Drive (النتيجة بتظهر تحت بعد دقيقة)") : r.drive === "error" ? t(" · Google Drive: {0}", r.driveError ?? "") : "";
+    const drive = r.drive === "ok" ? t(" · واتبعتت لـ Google Drive ✓") : r.drive === "error" ? t(" · Google Drive: {0}", r.driveError ?? "") : "";
     return { ok: t("اتعملت نسخة: {0}", kb(r.bytes)) + drive };
   } catch (e) {
     return { error: t("النسخة فشلت: {0}", e instanceof Error ? e.message : "") };
@@ -87,6 +87,29 @@ export async function saveLineCrmKey(_prev: ActionState, form: FormData): Promis
   if (key.length < 16 || key.length > 300 || /\s/.test(key)) return { error: t("المفتاح شكله مش مظبوط — انسخه تاني من LineCRM") };
   await setConfig("linecrm_api_key", key);
   revalidatePath("/admin/integrations");
+  return { ok: t("تم الحفظ") };
+}
+
+/** WhatsApp chat from inside AMS through LineCRM's number (the one the leads already wrote to). */
+export async function saveLineCrmChat(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const t = await getT();
+  await requireRole("admin");
+  const key = String(form.get("send_key") ?? "").trim();
+  const account = String(form.get("account") ?? "").trim();
+  const purpose = String(form.get("purpose") ?? "").trim();
+  const chatSecret = String(form.get("chat_secret") ?? "").trim();
+  if (chatSecret && (chatSecret.length < 16 || chatSecret.length > 300 || /\s/.test(chatSecret))) return { error: t("الـ secret شكله مش مظبوط — انسخه تاني من LineCRM") };
+  if (key && (key.length < 16 || key.length > 300 || /\s/.test(key))) return { error: t("المفتاح شكله مش مظبوط — انسخه تاني من LineCRM") };
+  if (account.length > 100 || /\s/.test(account)) return { error: t("رقم الحساب المربوط شكله مش مظبوط") };
+  if (purpose.length > 100 || /\s/.test(purpose)) return { error: t("اسم الغرض (purpose) من غير مسافات") };
+  await Promise.all([
+    setConfig("wa_provider", form.get("enabled") === "on" ? "linecrm" : "meta"),
+    key ? setConfig("linecrm_send_key", key) : Promise.resolve(),
+    chatSecret ? setConfig("linecrm_chat_secret", chatSecret) : Promise.resolve(),
+    setConfig("linecrm_wa_account", account),
+    setConfig("linecrm_wa_purpose", purpose),
+  ]);
+  revalidatePath("/", "layout");
   return { ok: t("تم الحفظ") };
 }
 

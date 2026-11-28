@@ -32,14 +32,47 @@ export async function runBackup(options: { withDrive?: boolean } = {}): Promise<
   if (old.length) await db.storage.from("backups").remove(old);
 
   const result: BackupResult = { file, bytes: body.length, drive: "skipped" };
-  // Google Drive gets the same gzipped file. The database posts it (drive_backup_send), so this
-  // request never waits on Apps Script, and the morning check reads Google's answer.
+  // Google Drive gets the same gzipped file, posted from here so the result is known right away
+  // (the database's own HTTP client kept hanging on this call). The answer is stored where the
+  // morning check and the integrations page read it.
   const cfg = await getConfig();
   if (cfg.drive_script_url && cfg.drive_secret && options.withDrive !== false) {
-    const { error: driveError } = await db.rpc("drive_backup_send", { p_name: file, p_data: Buffer.from(body).toString("base64") });
-    Object.assign(result, driveError ? { drive: "error", driveError: driveError.message } : { drive: "ok" });
+    const drive = await sendToDrive(cfg.drive_script_url, cfg.drive_secret, file, body);
+    Object.assign(result, drive.ok ? { drive: "ok" } : { drive: "error", driveError: drive.error });
   }
   // Read by the database's morning check, which alerts the admin when a backup is missing.
   await setConfig("last_backup_at", new Date().toISOString());
   return result;
+}
+
+/** Posts the file to the admin's Apps Script and records Google's answer (drive_backup_* in app_config). */
+async function sendToDrive(url: string, secret: string, name: string, bytes: Uint8Array) {
+  const req = Date.now();
+  let code: number | null = null;
+  let text = "";
+  let error: string | null = null;
+  try {
+    // Apps Script answers a POST with a redirect to the script's output, which fetch follows.
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret, name, data: Buffer.from(bytes).toString("base64") }),
+      signal: AbortSignal.timeout(45_000),
+    });
+    code = res.status;
+    text = (await res.text()).slice(0, 300);
+    let reply: { ok?: boolean; error?: string } = {};
+    try { reply = JSON.parse(text); } catch {}
+    if (!res.ok) error = `HTTP ${res.status}`;
+    else if (reply.ok !== true) error = reply.error || text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200) || "no reply";
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+  const ok = !error;
+  await Promise.all([
+    setConfig("drive_backup_request", String(req)),
+    setConfig("drive_backup_at", new Date().toISOString()),
+    setConfig("drive_backup_result", JSON.stringify({ req, code, ok, error, body: ok ? "" : text, at: new Date().toISOString() })),
+  ]);
+  return { ok, error: error ?? "" };
 }
