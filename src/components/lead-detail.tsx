@@ -27,7 +27,7 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
   const { data: lead } = await supabase
     .from("leads")
     .select(
-      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, first_order_at, active7_at, active30_at, left_at, left_reason, agent_id, company_id, attempts, last_contact_at, callback_at, interview_at, interview_place, companies(name, logo_path, form_schema, call_script, salary, order_price, working_hours, terms), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name)",
+      "id, full_name, phone, status, notes, source, form_data, created_at, hired_at, first_order_at, active7_at, active30_at, left_at, left_reason, agent_id, company_id, attempts, last_contact_at, callback_at, interview_at, interview_place, first_contact_at, assigned_at, reassign_count, companies(name, logo_path, form_schema, call_script, salary, order_price, working_hours, terms), governorates(name_ar, name_en), regions(name_ar), agent:profiles!leads_agent_id_fkey(full_name), prev:profiles!leads_prev_agent_id_fkey(full_name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -101,6 +101,15 @@ export async function LeadDetail({ id, staff }: { id: string; staff: boolean }) 
             <Row label={t("الأجنت")}>{agent?.full_name ?? t("غير معيّن")}</Row>
             <Row label={t("المصدر")}>{lead.source}</Row>
             <Row label={t("تاريخ التسجيل")}>{formatDate(lead.created_at)}</Row>
+            {staff && (lead.prev as unknown as { full_name: string } | null) && (
+              <Row label={t("كان مع")}>
+                {(lead.prev as unknown as { full_name: string }).full_name}
+                {lead.assigned_at && <span className="text-xs text-zinc-500"> · {t("اتحوّل")} {formatDate(lead.assigned_at)}</span>}
+              </Row>
+            )}
+            <Row label={t("أول تواصل")}>
+              {lead.first_contact_at ? formatDate(lead.first_contact_at) : t("لسه محدش كلّمه")}
+            </Row>
             <Row label={t("محاولات الاتصال")}><span className="num">{lead.attempts}</span>{lead.last_contact_at && <span className="text-xs text-zinc-500"> · {formatDate(lead.last_contact_at)}</span>}</Row>
             {lead.hired_at && <Row label={t("تاريخ التعيين")}>{formatDate(lead.hired_at)}</Row>}
             {company.form_schema.map((f) => (
