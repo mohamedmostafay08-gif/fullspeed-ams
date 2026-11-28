@@ -3,6 +3,7 @@ import { ActionForm } from "@/components/action-form";
 import { History, ShieldCheck } from "lucide-react";
 import { cancelRequest, decideRequest } from "@/app/actions/management";
 import { PageHeader } from "@/components/app-shell";
+import { PendingInApprovals } from "@/components/pending-note";
 import { Empty, formatDate } from "@/components/ui";
 import { STAFF, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -49,6 +50,8 @@ export default async function RequestsPage() {
         subtitle={isAdmin ? t("طلبات المديرين لإيقاف أو تفعيل حسابات — القرار عندك") : t("إيقاف أو تفعيل أي حساب محتاج موافقة الأدمن — اطلبه من صفحة الموظف")}
       />
 
+      {isAdmin && <PendingInApprovals count={pending.length} label={t("{0} طلب حساب مستني قرارك", pending.length)} />}
+      {!isAdmin && (
       <section className="card">
         <h2 className="card-title"><ShieldCheck size={18} className="text-amber-500" /> {t("طلبات مستنية ({0})", pending.length)}</h2>
         {pending.length === 0 ? (
@@ -83,6 +86,7 @@ export default async function RequestsPage() {
           </ul>
         )}
       </section>
+      )}
 
       <section className="card mt-6">
         <h2 className="card-title"><History size={18} className="text-zinc-500" /> {t("الطلبات اللي اتقفلت")}</h2>

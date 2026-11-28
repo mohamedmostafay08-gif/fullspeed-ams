@@ -1,8 +1,9 @@
-import { Coffee, Hourglass, History } from "lucide-react";
+import { Coffee, History } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
 import { ATTENDANCE_TABS, SubTabs } from "@/components/sub-tabs";
 import { BreakDecision, Countdown } from "@/components/breaks";
 import { LiveRefresh } from "@/components/live";
+import { PendingInApprovals } from "@/components/pending-note";
 import { Empty, formatDate } from "@/components/ui";
 import { cairoRange, cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -54,26 +55,8 @@ export default async function BreaksPage() {
       <LiveRefresh channel="admin-breaks" />
       <PageHeader title={t("البريكات")} subtitle={t("كل أجنت ليه بريكين في اليوم — كل واحد نص ساعة")} />
       <SubTabs tabs={ATTENDANCE_TABS} current="/admin/breaks" />
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="card">
-          <h2 className="card-title"><Hourglass size={18} className="text-amber-500" /> {t("طلبات مستنية موافقتك (")}{pending.length})</h2>
-          {pending.length === 0 ? (
-            <Empty icon={Coffee}>{t("مفيش طلبات دلوقتي")}</Empty>
-          ) : (
-            <ul className="divide-y divide-zinc-100">
-              {pending.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-semibold">{r.agent?.full_name}</p>
-                    <p className="text-xs text-zinc-500">{t("طلب")} {formatDate(r.requested_at)}</p>
-                  </div>
-                  <BreakDecision id={r.id} mode="pending" />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
+      <PendingInApprovals count={pending.length} label={t("{0} طلب بريك مستني ردك", pending.length)} />
+      <div>
         <section className="card">
           <h2 className="card-title"><Coffee size={18} className="text-teal-600" /> {t("في البريك دلوقتي (")}{active.length})</h2>
           {active.length === 0 ? (
