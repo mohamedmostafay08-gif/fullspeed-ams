@@ -321,6 +321,8 @@ export async function updateCompany(_prev: ActionState, form: FormData): Promise
   const { error } = await supabase.from("companies").update(patch).eq("id", id);
   if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
 
+  // Hiring areas now live in «شروط التأهيل» (saveCompanyRequirements); only touch them when this form sends them.
+  if (!form.has("governorates_sent")) return done(`/admin/companies/${id}`);
   const govs = form.getAll("governorate_id").map(Number);
   const cleared = await supabase.from("company_governorates").delete().eq("company_id", id);
   if (cleared.error) return { error: t("الشركة اتحفظت بس المحافظات متحفظتش — جرّب تاني") };
