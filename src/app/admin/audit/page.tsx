@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/filter-bar";
 import Link from "next/link";
 import { History } from "lucide-react";
 import { PageHeader } from "@/components/app-shell";
@@ -123,7 +124,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
     <>
       <PageHeader title={t("سجل التعديلات")} subtitle={t("كل إضافة وتعديل وحذف في السيستم — مين عمل إيه وإمتى")} />
       <SubTabs tabs={LOG_TABS} current="/admin/audit" role={me.role} />
-      <form className="card mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <FilterBar clearHref={"/admin/audit"} active={Boolean(table || actor || action || from || to)}>
         <select name="table" defaultValue={table} className="input">
           <option value="">{t("كل الأقسام")}</option>
           {Object.entries(TABLES).map(([k, l]) => <option key={k} value={k}>{t(l)}</option>)}
@@ -138,11 +139,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
         </select>
         <input type="date" name="from" defaultValue={from} className="input" aria-label={t("من")} />
         <input type="date" name="to" defaultValue={to} className="input" aria-label={t("إلى")} />
-        <div className="flex gap-2">
-          <button className="btn-primary flex-1">{t("فلتر")}</button>
-          {(table || actor || action || from || to) && <Link href="/admin/audit" className="btn-ghost">{t("امسح")}</Link>}
-        </div>
-      </form>
+      </FilterBar>
 
       <section className="card">
         {(data ?? []).length === 0 ? (

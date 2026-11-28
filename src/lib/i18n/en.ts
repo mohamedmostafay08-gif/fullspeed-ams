@@ -1,5 +1,7 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Back / forward in the header.
+  "تقدّم": "Forward",
   // Redesign batch 5: long pages as tabs.
   "تقييم الأجنتس": "Agent scorecards",
   "السجلات": "Logs",
