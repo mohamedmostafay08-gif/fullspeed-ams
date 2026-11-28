@@ -13,12 +13,15 @@ export function WhatsAppMenu({
   templates,
   vars,
   size = "md",
+  up = false,
 }: {
   leadId: string;
   phone: string;
   templates: Template[];
   vars: TemplateVars;
   size?: "sm" | "md";
+  /** Open the menu above the button (for bars pinned to the bottom of the screen). */
+  up?: boolean;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -54,7 +57,7 @@ export function WhatsAppMenu({
         <MessageCircle size={size === "sm" ? 14 : 17} /> {t("واتساب")} <ChevronDown size={14} className={`transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div role="menu" className="absolute end-0 z-40 mt-2 w-72 animate-pop overflow-hidden rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl">
+        <div role="menu" className={`absolute end-0 z-40 w-72 animate-pop overflow-hidden rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl ${up ? "bottom-full mb-2" : "mt-2"}`}>
           {templates.map((tpl) => (
             <button
               key={tpl.id}

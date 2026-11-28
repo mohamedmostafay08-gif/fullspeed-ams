@@ -3,7 +3,7 @@ import { BrandMark } from "@/components/brand-mark";
 
 export { BrandMark };
 import { SignOutForm } from "@/components/sign-out-form";
-import { BottomNav, RailToggle, SideNav, type NavItem } from "@/components/nav-links";
+import { BottomNav, Breadcrumb, RailToggle, SideNav, type NavItem } from "@/components/nav-links";
 import { cookies } from "next/headers";
 import { NotificationBell } from "@/components/notification-bell";
 import { CommandPalette } from "@/components/command-palette";
@@ -81,6 +81,7 @@ export async function AppShell({
               <p className="truncate text-[11px] text-zinc-500">{t(ROLE_LABELS[profile.role])}</p>
             </div>
           </div>
+          <Breadcrumb items={nav} />
           <div className="ms-auto flex items-center gap-1">
             <CommandPalette
               pages={[...nav.map(({ href, label, group }) => ({ href, label, group })), ...extraSearch]}
