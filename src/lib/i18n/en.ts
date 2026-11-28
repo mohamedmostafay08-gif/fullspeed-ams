@@ -1337,7 +1337,7 @@ export const EN: Record<string, string> = {
   "كمّلوا 30 يوم": "30 days in",
   "سابوا": "Left",
   "اختيار غير صحيح": "Invalid choice",
-  // Assign companies to agents (0047)
+  // Assign companies to agents (0048)
   "حفظ التوزيع ({0} أجنت)": "Save assignments ({0} agents)",
   "رجّع زي ما كان": "Undo changes",
   "{0} من اللي علّمت عليهم مش من شركات تيم الأجنت — هتتضاف لشركات التيم أوتوماتيك لما تحفظ.": "{0} of your ticks aren't in the agent's team companies — they'll be added to the team automatically on save.",
@@ -1354,7 +1354,7 @@ export const EN: Record<string, string> = {
   "التيم لسه ملوش شركات — اطلب من المدير يضيفها من صفحة التيم": "The team has no companies yet — ask a manager to add them on the team page",
   "مفيش تغييرات تتحفظ": "Nothing to save",
   "بيانات غلط — اعمل refresh وجرّب تاني": "Invalid data — refresh and try again",
-  "لازم migration 0047 تتطبق في Supabase الأول": "Migration 0047 must be applied in Supabase first",
+  "لازم migration 0048 تتطبق في Supabase الأول": "Migration 0048 must be applied in Supabase first",
   "شركة «{0}» مش من شركات التيم — المدير أو الأدمن يضيفها للتيم الأول": "“{0}” is not one of the team’s companies — a manager or admin must add it to the team first",
   "الأجنت ده مش في تيمك": "This agent is not in your team",
   "الأجنت مش موجود": "Agent not found",

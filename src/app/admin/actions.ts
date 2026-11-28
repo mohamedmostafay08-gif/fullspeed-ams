@@ -157,7 +157,7 @@ export async function saveTeamCompanies(_prev: ActionState, form: FormData): Pro
 // ───────── Assignments & targets ─────────
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Sync each agent's companies in one DB call (0047), and turn its error codes into Arabic. */
+/** Sync each agent's companies in one DB call (0048), and turn its error codes into Arabic. */
 async function syncAgentCompanies(changes: { agent_id: string; company_ids: string[] }[]): Promise<ActionState> {
   const t = await getT();
   if (changes.length === 0) return { ok: t("مفيش تغييرات تتحفظ") };
@@ -166,7 +166,7 @@ async function syncAgentCompanies(changes: { agent_id: string; company_ids: stri
   const { data, error } = await supabase.rpc("set_agent_companies", { p_changes: changes });
   if (error) {
     const m = error.message;
-    if (error.code === "PGRST202" || m.includes("set_agent_companies")) return { error: t("لازم migration 0047 تتطبق في Supabase الأول") };
+    if (error.code === "PGRST202" || m.includes("set_agent_companies")) return { error: t("لازم migration 0048 تتطبق في Supabase الأول") };
     if (m.startsWith("company_not_in_team:")) return { error: t("شركة «{0}» مش من شركات التيم — المدير أو الأدمن يضيفها للتيم الأول", m.slice("company_not_in_team:".length)) };
     if (m.includes("agent_not_visible")) return { error: t("الأجنت ده مش في تيمك") };
     if (m.includes("agent_not_found")) return { error: t("الأجنت مش موجود") };
