@@ -33,4 +33,5 @@ export const ADMIN_WORK_TABS = [
 export const AGENT_WORK_TABS = [
   { href: "/agent/tasks", label: "التاسكات" },
   { href: "/agent/memos", label: "التعميمات" },
+  { href: "/agent/notifications", label: "الإشعارات" },
 ];

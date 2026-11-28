@@ -1,5 +1,16 @@
 // English for every Arabic UI string (keys are the Arabic source text). Generated, then hand-maintained.
 export const EN: Record<string, string> = {
+  // Redesign batch 1: the agent's day.
+  "جديدة": "New",
+  "فاضل {0} مكالمة": "{0} calls left",
+  "مفيش مكالمات مستنياك": "No calls waiting",
+  "من الكيبورد: 1 لـ 6 تسجل النتيجة، و N تعدّي": "Keyboard: 1–6 log the result, N skips",
+  "رجعت": "I'm back",
+  "مستني موافقة البريك": "Break awaiting approval",
+  "عندك {0} تاسك مفتوح": "You have {0} open tasks",
+  "الشروط والبونص وهدف النهارده لكل شركة": "Terms, bonuses and today's target for each company",
+  "عرض سريع": "Quick view",
+  "متأجلة": "Callbacks",
   // Redesign batch 3: one approvals inbox.
   "افتح الموافقات": "Open approvals",
   "{0} طلب بريك مستني ردك": "{0} break requests waiting for you",

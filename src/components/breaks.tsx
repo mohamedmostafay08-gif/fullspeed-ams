@@ -143,3 +143,44 @@ export function BreakDecision({ id, mode }: { id: string; mode: "pending" | "act
     </div>
   );
 }
+
+/** The same break flow as BreakWidget, folded into one header pill for the agent home. */
+export function BreakChip({ today }: { today: BreakRow[] }) {
+  const t = useT();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState<string>();
+  const now = useNow(false);
+
+  const active = today.find((b) => b.status === "active" && b.ends_at && new Date(b.ends_at).getTime() > now);
+  const waiting = today.find((b) => b.status === "pending");
+  const used = today.filter((b) => b.status === "pending" || b.status === "ended" || b.status === "active").length;
+  const left = Math.max(0, BREAKS_PER_DAY - used);
+  const run = (fn: () => Promise<BreakActionState>) =>
+    start(async () => {
+      const r = await fn();
+      setErr(r?.error);
+      router.refresh();
+    });
+
+  const base = "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition disabled:opacity-50";
+  return (
+    <span className="inline-flex flex-col items-end">
+      {active ? (
+        <button type="button" className={`${base} bg-teal-100 text-teal-800 hover:bg-teal-200`} disabled={pending} onClick={() => run(() => endBreak(active.id))} title={t("رجعت من البريك")}>
+          <Coffee size={16} /> <Countdown endsAt={active.ends_at!} onDone={() => router.refresh()} /> · {t("رجعت")}
+        </button>
+      ) : waiting ? (
+        <button type="button" className={`${base} bg-amber-50 text-amber-800 hover:bg-amber-100`} disabled={pending} onClick={() => run(() => endBreak(waiting.id))} title={t("إلغاء الطلب")}>
+          <Loader2 size={16} className="animate-spin" /> {t("مستني موافقة البريك")} <X size={14} />
+        </button>
+      ) : (
+        <button type="button" className={`${base} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`} disabled={pending || left === 0} onClick={() => run(requestBreak)}
+          title={left > 0 ? t("معاك {0} بريك النهارده — كل واحد نص ساعة", left) : t("خلّصت البريكين بتوع النهارده")}>
+          {pending ? <Loader2 size={16} className="animate-spin" /> : <Coffee size={16} />} {t("بريك")} <span className="num text-xs opacity-60">{left}/{BREAKS_PER_DAY}</span>
+        </button>
+      )}
+      {err && <span className="mt-1 text-xs text-rose-600">{err}</span>}
+    </span>
+  );
+}
