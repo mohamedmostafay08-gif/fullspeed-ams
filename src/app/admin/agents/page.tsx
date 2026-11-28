@@ -5,7 +5,10 @@ import { Building2 } from "lucide-react";
 import { createTeam, createUser, updateTeam } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
-import { Empty } from "@/components/ui";
+import { Empty, formatDate } from "@/components/ui";
+import { bulkUsers } from "@/app/actions/users";
+import { CredentialsHelper } from "@/components/credentials-helper";
+import { SelectAllBox } from "@/components/select-all-box";
 import { requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ROLE_EMOJI, ROLE_LABELS, assignableRoles, type Role } from "@/lib/types";
@@ -17,6 +20,8 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
   const isAdmin = profile.role === "admin" || profile.role === "manager";
   // Team leaders add agents straight into their own team.
   const canAdd = isAdmin || (profile.role === "team_leader" && !!profile.team_id);
+  // Suspending, signing out and the bulk bar are the admin's.
+  const isOwner = profile.role === "admin";
   const sp = await searchParams;
   const str = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const UUID = /^[0-9a-f-]{36}$/i;
@@ -28,13 +33,24 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
   const fStatus = ["active", "inactive"].includes(str("status")) ? str("status") : "";
   const anyF = !!(fQ || fRole || fTeam || fCompany || fLoc || fStatus);
   const supabase = await createClient();
-  const [{ data: people }, { data: teams }, { data: assignments }, { data: locations }, { data: companies }] = await Promise.all([
+  const [{ data: people }, { data: teams }, { data: assignments }, { data: locations }, { data: companies }, { data: overview }, { data: myTeamCompanies }] = await Promise.all([
     supabase.from("profiles").select("id, full_name, phone, role, team_id, is_active, location_id, allow_anywhere").order("role").order("full_name"),
     supabase.from("teams").select("id, name, leader_id").order("name"),
     supabase.from("agent_companies").select("agent_id, company_id"),
     supabase.from("work_locations").select("id, name").order("name"),
     supabase.from("companies").select("id, name").order("name"),
+    // Last seen / devices / open leads (migration 0056); the page still works without it.
+    isAdmin ? supabase.rpc("user_overview") : Promise.resolve({ data: null }),
+    profile.role === "team_leader" && profile.team_id
+      ? supabase.from("team_companies").select("company_id").eq("team_id", profile.team_id)
+      : Promise.resolve({ data: null }),
   ]);
+  const seen = new Map(((overview ?? []) as { user_id: string; last_seen: string | null; sessions: number; open_leads: number }[]).map((o) => [o.user_id, o]));
+  const hasOverview = seen.size > 0;
+  // A team leader can only hand out their team's companies.
+  const teamCompanySet = myTeamCompanies ? new Set(myTeamCompanies.map((r) => r.company_id)) : null;
+  const formCompanies = (companies ?? []).filter((c) => !teamCompanySet || teamCompanySet.has(c.id));
+  const activeAgents = (people ?? []).filter((p) => p.role === "agent" && p.is_active);
   const locationName = new Map((locations ?? []).map((l) => [l.id, l.name]));
   const teamName = new Map((teams ?? []).map((row) => [row.id, row.name]));
   const companyCount = new Map<string, number>();
@@ -88,17 +104,60 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
       </FilterBar>
       {anyF && <p className="mb-2 text-sm text-zinc-500">{t("{0} نتيجة", list.length)}</p>}
 
+      {isOwner && (
+        <ActionForm id="bulk-users" action={bulkUsers} className="card mb-4 flex flex-wrap items-end gap-2">
+          <p className="w-full text-sm font-semibold">☑️ {t("علّم على الموظفين من الجدول، واختار تعمل فيهم إيه مرة واحدة")}</p>
+          <div className="min-w-40 flex-1">
+            <label className="label" htmlFor="bulk-op">{t("الأكشن")}</label>
+            <select id="bulk-op" name="op" required className="input" defaultValue="">
+              <option value="" disabled>{t("اختار…")}</option>
+              <option value="suspend">⏸️ {t("إيقاف الحساب")}</option>
+              <option value="activate">🟢 {t("تفعيل الحساب")}</option>
+              <option value="signout">🚪 {t("طلّعهم من كل الأجهزة")}</option>
+              <option value="add_company">🏢 {t("ضيف شركة")}</option>
+              <option value="remove_company">➖ {t("شيل شركة")}</option>
+              <option value="team">👥 {t("انقلهم لتيم")}</option>
+            </select>
+          </div>
+          <div className="min-w-40 flex-1">
+            <label className="label" htmlFor="bulk-company">{t("الشركة (لإضافة/شيل شركة)")}</label>
+            <select id="bulk-company" name="company_id" className="input" defaultValue="">
+              <option value="">—</option>
+              {(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="min-w-40 flex-1">
+            <label className="label" htmlFor="bulk-team">{t("التيم (للنقل)")}</label>
+            <select id="bulk-team" name="team_id" className="input" defaultValue="">
+              <option value="">—</option>
+              <option value="none">{t("من غير تيم")}</option>
+              {(teams ?? []).map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+            </select>
+          </div>
+          <div className="min-w-40 flex-1">
+            <label className="label" htmlFor="bulk-transfer">{t("ليدزهم المفتوحة (عند الإيقاف)")}</label>
+            <select id="bulk-transfer" name="transfer_to" className="input" defaultValue="">
+              <option value="">{t("تفضل زي ما هي")}</option>
+              <option value="pool">{t("ترجع للتوزيع")}</option>
+              {activeAgents.map((a) => <option key={a.id} value={a.id}>{t("تتنقل لـ {0}", a.full_name)}</option>)}
+            </select>
+          </div>
+          <button className="btn-primary">{t("نفّذ")}</button>
+        </ActionForm>
+      )}
+
       <section className="card md:overflow-x-auto">
         {list.length === 0 ? (
           <Empty>{t("مفيش حد لسه")}</Empty>
         ) : (
           <table className="data-table hidden md:table">
             <thead>
-              <tr><th>{t("الاسم")}</th><th>{t("الصلاحية")}</th><th>{t("التيم")}</th><th>{t("المكان")}</th><th>{t("الشركات")}</th><th>{t("الموبايل")}</th><th>{t("الحالة")}</th></tr>
+              <tr>{isOwner && <th className="w-8"><SelectAllBox form="bulk-users" /></th>}<th>{t("الاسم")}</th><th>{t("الصلاحية")}</th><th>{t("التيم")}</th><th>{t("المكان")}</th><th>{t("الشركات")}</th><th>{t("الموبايل")}</th>{hasOverview && <th>{t("آخر ظهور")}</th>}<th>{t("الحالة")}</th></tr>
             </thead>
             <tbody>
               {list.map((p) => (
                 <tr key={p.id} className={p.is_active ? "" : "opacity-50"}>
+                  {isOwner && <td>{p.id !== profile.id && <input type="checkbox" name="user_id" value={p.id} form="bulk-users" aria-label={p.full_name} className="accent-brand-600" />}</td>}
                   <td><Link href={`/admin/agents/${p.id}`} className="font-medium hover:text-brand-700">{p.full_name}</Link></td>
                   <td>{ROLE_EMOJI[p.role]} {t(ROLE_LABELS[p.role as Role])}</td>
                   <td className="text-zinc-500">{p.team_id ? teamName.get(p.team_id) : "—"}</td>
@@ -108,6 +167,12 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
                   </td>
                   <td className="tabular-nums">{companyCount.get(p.id) ?? 0}</td>
                   <td className="text-zinc-500"><span dir="ltr">{p.phone ?? "—"}</span></td>
+                  {hasOverview && (() => { const o = seen.get(p.id); return (
+                    <td className="text-xs text-zinc-500">
+                      {o?.last_seen ? formatDate(o.last_seen) : "—"}
+                      {o && o.sessions > 0 && <span className="badge ms-1 bg-emerald-100 text-emerald-800">{t("{0} جهاز", o.sessions)}</span>}
+                    </td>
+                  ); })()}
                   <td>{p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">🟢 {t("نشط")}</span> : <span className="badge bg-zinc-200">⏸️ {t("موقوف")}</span>}</td>
                 </tr>
               ))}
@@ -117,8 +182,9 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
         {/* Phone: one card per person */}
         <ul className="-my-1 divide-y divide-zinc-100 md:hidden">
           {list.map((p) => (
-            <li key={p.id} className={p.is_active ? "" : "opacity-50"}>
-              <Link href={`/admin/agents/${p.id}`} className="flex items-center gap-3 py-3 active:bg-zinc-50">
+            <li key={p.id} className={`flex items-center gap-2 ${p.is_active ? "" : "opacity-50"}`}>
+              {isOwner && p.id !== profile.id && <input type="checkbox" name="user_id" value={p.id} form="bulk-users" aria-label={p.full_name} className="accent-brand-600" />}
+              <Link href={`/admin/agents/${p.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 active:bg-zinc-50">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-ink text-sm font-bold text-white">
                   {p.full_name.split(/\s+/).slice(0, 2).map((x: string) => x[0]).join("")}
                 </span>
@@ -133,6 +199,7 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   {p.is_active ? <span className="badge bg-emerald-100 text-emerald-800">🟢 {t("نشط")}</span> : <span className="badge bg-zinc-200">⏸️ {t("موقوف")}</span>}
                   <span className="text-[11px] text-zinc-400">{t("{0} شركة", companyCount.get(p.id) ?? 0)}</span>
+                  {seen.get(p.id)?.last_seen && <span className="text-[11px] text-zinc-400">{t("آخر ظهور")} {formatDate(seen.get(p.id)!.last_seen)}</span>}
                 </div>
               </Link>
             </li>
@@ -190,6 +257,21 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
                   <p className="input bg-zinc-50">{teamName.get(profile.team_id!) ?? "—"}</p>
                 )}
               </div>
+              {formCompanies.length > 0 && (
+                <fieldset className="sm:col-span-full">
+                  <legend className="label">🏢 {t("الشركات اللي هيشتغل عليها (للأجنت)")}</legend>
+                  <div className="grid max-h-56 grid-cols-1 gap-1 overflow-y-auto rounded-xl border border-zinc-200 p-2 sm:grid-cols-2">
+                    {formCompanies.map((c) => (
+                      <label key={c.id} className="flex items-center gap-2 rounded-lg p-1.5 text-sm hover:bg-zinc-50">
+                        <input type="checkbox" name="company_id" value={c.id} className="accent-brand-600" /> {c.name}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500">{t("تقدر تعدّلها بعدين من صفحة الأجنت أو من «توزيع الشركات».")}</p>
+                </fieldset>
+              )}
+              <CredentialsHelper />
+              <p className="text-xs text-zinc-500 sm:col-span-full">{t("ابعت الواتساب قبل «إنشاء الحساب» — الفورم بيتمسح بعد الحفظ.")}</p>
             </StateForm>
           </section>
 

@@ -55,7 +55,14 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
       is_active: true,
     })
     .eq("id", data.user.id);
-  if (profileError) return { error: t("الحساب اتعمل بس الصلاحية متحفظتش — عدّلها من صفحة الموظف") };
+  if (profileError) return { error: t("الحساب اتعمل بس الصلاحية متحفظتش — عدّلها من صفحة الموظف") + ` (${profileError.message})` };
+  // Companies picked right in the form (agents only); the database checks the caller may assign them.
+  const companyIds = [...new Set(form.getAll("company_id").map(String))].filter((v) => UUID_RE.test(v));
+  let companiesNote = "";
+  if (role === "agent" && companyIds.length > 0) {
+    const res = await syncAgentCompanies([{ agent_id: data.user.id, company_ids: companyIds }]);
+    companiesNote = res?.error ? ` — ${t("بس الشركات متحفظتش:")} ${res.error}` : ` · ${t("على {0} شركة", companyIds.length)}`;
+  }
   // The auth server creates the profile row, so the activity log can't tell who asked for it.
   await createAdminClient()
     .from("audit_log")
@@ -71,7 +78,7 @@ export async function createUser(_prev: ActionState, form: FormData): Promise<Ac
       (bosses ?? []).map((b) => ({ user_id: b.id, type: "info", title: `👤 ${me.full_name} ضاف أجنت جديد: ${fullName}`, link: `/admin/agents/${data.user.id}` })),
     );
   }
-  return done("/admin/agents", t("تم إنشاء حساب {0}", fullName));
+  return done("/admin/agents", t("تم إنشاء حساب {0}", fullName) + companiesNote);
 }
 
 export async function updateUser(_prev: ActionState, form: FormData): Promise<ActionState> {
@@ -100,12 +107,26 @@ export async function updateUser(_prev: ActionState, form: FormData): Promise<Ac
       allow_anywhere: form.get("allow_anywhere") === "on",
     })
     .eq("id", id);
-  if (profileError) return { error: "مقدرتش أحفظ — جرّب تاني" };
+  if (profileError) return { error: `مقدرتش أحفظ: ${profileError.message}` };
 
   const password = str(form, "password");
-  if (password.length >= 8 && hasServiceKey()) {
-    const { error: pwError } = await createAdminClient().auth.admin.updateUserById(id, { password });
-    if (pwError) return { error: "البيانات اتحفظت بس كلمة السر متغيرتش" };
+  if (password && password.length < 8) return { error: "البيانات اتحفظت بس كلمة السر لازم 8 حروف على الأقل" };
+  // The admin may also change anyone's sign-in e-mail.
+  const email = str(form, "email").toLowerCase();
+  const changes: { password?: string; email?: string; email_confirm?: boolean } = {};
+  if (password.length >= 8) changes.password = password;
+  if (email && me.role === "admin" && email !== str(form, "email_before").toLowerCase()) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "البيانات اتحفظت بس الإيميل شكله غلط" };
+    changes.email = email;
+    changes.email_confirm = true;
+  }
+  if (Object.keys(changes).length > 0) {
+    if (!hasServiceKey()) return { error: MISSING_SERVICE_KEY };
+    const { error: authError } = await createAdminClient().auth.admin.updateUserById(id, changes);
+    if (authError) {
+      const m = authError.message.includes("already") ? "الإيميل ده متسجل لحساب تاني" : authError.message;
+      return { error: `البيانات اتحفظت بس ${changes.email ? "الإيميل/كلمة السر" : "كلمة السر"} متغيرتش: ${m}` };
+    }
   }
   revalidatePath("/admin", "layout");
   return { ok: "اتحفظ ✓" };
