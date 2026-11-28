@@ -13,7 +13,7 @@ export default async function AgentMemosPage() {
   const { memos, unread } = await loadMemosAndMarkRead(me.id);
   return (
     <>
-      <PageHeader title={t("التعميمات")} subtitle={t("رسايل الإدارة والتيم ليدر ليك")} />
+      <PageHeader title={t("المطلوب مني")} subtitle={t("رسايل الإدارة والتيم ليدر ليك")} />
       <SubTabs tabs={AGENT_WORK_TABS} current="/agent/memos" />
       <div className="grid gap-4">
         {memos.length === 0 ? (

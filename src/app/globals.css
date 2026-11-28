@@ -536,3 +536,9 @@ html {
   .app-side[data-rail] .nav-fold { justify-content: center; }
   .app-side[data-rail] .side-me { justify-content: center; padding: 0.5rem; }
 }
+
+/* Calling mode: the page marks itself [data-focus] and the desktop sidebar steps aside. */
+@media (min-width: 768px) {
+  body:has([data-focus]) .app-side { display: none; }
+  main:has([data-focus]) { max-width: 72rem; margin-inline: auto; }
+}

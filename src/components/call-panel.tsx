@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, CheckCircle2, Clock, Loader2, PartyPopper, PhoneOff, ThumbsDown } from "lucide-react";
 import { recordCall, type CallOutcome } from "@/app/actions/leads";
@@ -24,7 +24,7 @@ function preset(kind: "1h" | "3h" | "tomorrow") {
 }
 
 /** Logs a call result in one tap; call-back and interview ask for a time first. */
-export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => void }) {
+export function CallPanel({ leadId, onDone, shortcuts, skipHref }: { leadId: string; onDone?: () => void; shortcuts?: boolean; skipHref?: string }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -71,10 +71,34 @@ export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => v
     });
   };
 
+  // Calling mode on a keyboard: 1–6 log the outcome, N skips to the next lead.
+  const submitRef = useRef(submit);
+  useEffect(() => {
+    submitRef.current = submit;
+  });
+  useEffect(() => {
+    if (!shortcuts) return;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (e.ctrlKey || e.metaKey || e.altKey || el?.closest("input, textarea, select, [contenteditable=true]")) return;
+      // e.code keeps working on an Arabic keyboard layout.
+      const n = Number(/^(?:Digit|Numpad)(\d)$/.exec(e.code)?.[1]);
+      if (n >= 1 && n <= OUTCOMES.length) {
+        e.preventDefault();
+        submitRef.current(OUTCOMES[n - 1].key);
+      } else if (skipHref && e.code === "KeyN") {
+        e.preventDefault();
+        router.push(skipHref);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shortcuts, skipHref, router]);
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {OUTCOMES.map(({ key, label, icon: Icon, cls }) => (
+        {OUTCOMES.map(({ key, label, icon: Icon, cls }, i) => (
           <button
             key={key}
             type="button"
@@ -84,6 +108,7 @@ export function CallPanel({ leadId, onDone }: { leadId: string; onDone?: () => v
             className={`btn justify-start py-3 ${cls} ${picking === key ? "ring-2" : ""}`}
           >
             <Icon size={18} /> {t(label)}
+            {shortcuts && <kbd className="ms-auto hidden rounded-md bg-white/70 px-1.5 text-[11px] font-semibold text-zinc-500 lg:inline">{i + 1}</kbd>}
           </button>
         ))}
       </div>

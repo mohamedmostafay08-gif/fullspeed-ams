@@ -11,10 +11,10 @@ const NAV: { href: string; label: string; icon: string; group: string; exact?: b
   { group: "شغلي", href: "/agent/next", label: "ابدأ المكالمات", icon: "phone", mobile: "fab" },
   { group: "شغلي", href: "/agent/leads", label: "الليدز بتاعتي", icon: "leads", mobile: "tab" },
   { group: "شغلي", href: "/agent/inbox", label: "واتساب", icon: "whatsapp", mobile: "tab", badge: "wa" },
-  { group: "أنا", href: "/agent/tasks", label: "التاسكات والتعميمات", icon: "tasks", also: ["/agent/memos"], badge: "tasks" },
+  { group: "شغلي", href: "/agent/companies", label: "شركاتي", icon: "companies" },
+  { group: "أنا", href: "/agent/tasks", label: "المطلوب مني", icon: "tasks", also: ["/agent/memos", "/agent/notifications"], badge: "tasks" },
   { group: "أنا", href: "/agent/scorecard", label: "تقييمي", icon: "scorecard" },
   { group: "أنا", href: "/agent/leaves", label: "الإجازات والأذونات", icon: "leave" },
-  { group: "أنا", href: "/agent/notifications", label: "الإشعارات", icon: "bell" },
   { group: "أنا", href: "/agent/account", label: "حسابي", icon: "account" },
 ];
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Clock, Coffee, ExternalLink, Phone, PhoneCall, RotateCcw, SkipForward, Sparkles, UserRound } from "lucide-react";
-import { PageHeader } from "@/components/app-shell";
+import { Clock, Coffee, ExternalLink, Phone, PhoneCall, RotateCcw, SkipForward, Sparkles, UserRound, X } from "lucide-react";
 import { CallPanel } from "@/components/call-panel";
 import { CallScript } from "@/components/call-script";
 import { CompanyTerms } from "@/components/company-terms";
@@ -47,38 +46,38 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
   ]);
 
   const counters = [
-    { key: "callback", label: t("مكالمات متأجلة جه معادها"), value: dueCount.count ?? 0, icon: Clock, cls: "text-amber-600 bg-amber-50" },
-    { key: "new", label: t("ليدز جديدة"), value: newCount.count ?? 0, icon: Sparkles, cls: "text-brand-600 bg-brand-50" },
-    { key: "retry", label: t("مردوش — نحاول تاني"), value: retryCount.count ?? 0, icon: RotateCcw, cls: "text-zinc-600 bg-zinc-100" },
+    { key: "callback", label: t("متأجلة جه معادها"), value: dueCount.count ?? 0, icon: Clock },
+    { key: "new", label: t("جديدة"), value: newCount.count ?? 0, icon: Sparkles },
+    { key: "retry", label: t("مردوش"), value: retryCount.count ?? 0, icon: RotateCcw },
   ];
+  const left = counters.reduce((s, c) => s + c.value, 0);
 
+  // Calling mode: one slim bar instead of a page header and three cards, so the lead fills the screen.
   const header = (
-    <PageHeader title={t("ابدأ المكالمات")} subtitle={t("ليد ورا التاني — الأهم الأول")}>
-      {skip.length > 0 && (
-        <Link href="/agent/next" className="btn-ghost"><RotateCcw size={16} /> {t("رجّع اللي عدّيتهم ({0})", skip.length)}</Link>
-      )}
-    </PageHeader>
-  );
-
-  const counterRow = (
-    <div className="stagger mb-5 grid grid-cols-3 gap-2 sm:gap-3">
-      {counters.map((c) => (
-        <div key={c.key} className={`card flex items-center gap-3 p-3 sm:p-4 ${queue === c.key ? "ring-2 ring-brand-500" : ""}`}>
-          <span className={`hidden size-10 shrink-0 place-items-center rounded-xl sm:grid ${c.cls}`}><c.icon size={18} /></span>
-          <div className="min-w-0">
-            <p className="num text-2xl font-semibold">{c.value}</p>
-            <p className="truncate text-xs text-zinc-500">{c.label}</p>
-          </div>
-        </div>
-      ))}
+    <div data-focus className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex items-baseline gap-2">
+        <h1 className="text-xl font-extrabold tracking-tight">{t("ابدأ المكالمات")}</h1>
+        <span className="text-sm text-zinc-500">{left > 0 ? t("فاضل {0} مكالمة", left) : t("مفيش مكالمات مستنياك")}</span>
+      </div>
+      <ul className="flex flex-wrap gap-1.5 text-xs">
+        {counters.map((c) => (
+          <li key={c.key} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 ${queue === c.key ? "bg-(--fg) text-(--surface)" : "bg-zinc-100 text-zinc-600"}`}>
+            <c.icon size={12} /> {c.label} <span className="num font-semibold">{c.value}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="ms-auto flex items-center gap-2">
+        {skip.length > 0 && (
+          <Link href="/agent/next" className="btn-ghost btn-sm"><RotateCcw size={14} /> {t("رجّع اللي عدّيتهم ({0})", skip.length)}</Link>
+        )}
+        <Link href="/agent" className="btn-ghost btn-sm"><X size={14} /> {t("خروج")}</Link>
+      </div>
     </div>
   );
-
   if (!lead) {
     return (
       <>
         {header}
-        {counterRow}
         <section className="card">
           <Empty icon={Coffee}>
             <p className="text-base font-bold text-ink">{t("خلّصت كل المكالمات المطلوبة دلوقتي 👏")}</p>
@@ -110,7 +109,6 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
   return (
     <>
       {header}
-      {counterRow}
       <div className="grid gap-5 lg:grid-cols-5">
         <section key={lead.id} className="card animate-slide-in space-y-5 lg:col-span-3">
           <p className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${queue === "callback" ? "bg-amber-50 text-amber-800" : queue === "new" ? "bg-brand-50 text-brand-700" : "bg-zinc-100 text-zinc-600"}`}>
@@ -133,7 +131,7 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
             </CallButton>
             <WhatsAppMenu leadId={lead.id} phone={lead.phone} templates={templates} vars={vars} />
             <Link href={`/agent/leads/${lead.id}`} className="btn-ghost"><ExternalLink size={16} /> {t("صفحة الليد")}</Link>
-            <Link href={skipHref} className="btn-ghost ms-auto"><SkipForward size={16} /> {t("عدّي")}</Link>
+            <Link href={skipHref} className="btn-ghost ms-auto"><SkipForward size={16} /> {t("عدّي")} <kbd className="hidden rounded-md bg-zinc-100 px-1.5 text-[11px] text-zinc-500 lg:inline">N</kbd></Link>
           </div>
 
           <CompanyTerms terms={company} />
@@ -141,7 +139,7 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
 
           <div>
             <h3 className="mb-2 text-sm font-bold text-zinc-600">{t("نتيجة المكالمة")}</h3>
-            <CallPanel leadId={lead.id} />
+            <CallPanel leadId={lead.id} shortcuts skipHref={skipHref} />
           </div>
         </section>
 
@@ -158,6 +156,7 @@ export default async function NextLeadPage({ searchParams }: PageProps<"/agent/n
           </dl>
           {lead.notes && <p className="rounded-xl bg-amber-50 p-3 text-amber-900">{lead.notes}</p>}
           <p className="flex items-center gap-1.5 text-xs text-zinc-400"><Phone size={12} /> {t("الترتيب: المتأجلة اللي جه معادها ← الجديدة ← اللي مردتش من ساعتين")}</p>
+          <p className="hidden text-xs text-zinc-400 lg:block">{t("من الكيبورد: 1 لـ 6 تسجل النتيجة، و N تعدّي")}</p>
         </aside>
       </div>
     </>

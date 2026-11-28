@@ -8,6 +8,7 @@ import { getAssignedCompanies } from "@/lib/data";
 import { BOARD_LIMIT, filtersToQuery, queryLeads, readFilters, readView, toBoardLeads } from "@/lib/lead-query";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { LeadFilterForm } from "@/components/lead-filters";
+import { LeadQuickTabs } from "@/components/quick-tabs";
 import { createClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 50;
@@ -35,6 +36,7 @@ export default async function AgentLeadsPage({ searchParams }: PageProps<"/agent
         <ViewToggle base="/agent/leads" query={filtersToQuery(base)} view={view} />
         <Link href="/agent/leads/new" className="btn-primary">{t("+ ليد جديد")}</Link>
       </PageHeader>
+      <LeadQuickTabs f={base} path="/agent/leads" view={view} />
       <LeadFilterForm
         f={base}
         view={view}

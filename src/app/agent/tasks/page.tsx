@@ -28,7 +28,7 @@ export default async function AgentTasksPage() {
 
   return (
     <>
-      <PageHeader title={t("التاسكات")} />
+      <PageHeader title={t("المطلوب مني")} />
       <SubTabs tabs={AGENT_WORK_TABS} current="/agent/tasks" />
       {(tasks ?? []).length === 0 ? (
         <Empty>{t("مفيش تاسكات")}</Empty>
