@@ -5,13 +5,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const URGENT = new Set(["bonus", "rate", "reminder", "lead", "assignment"]);
 
-/** Called by the database (pg_net) for each new notification; fans it out to the user's devices. */
+/**
+ * Called by the database (pg_net) once per user per batch of new notifications (migration 0058), or once
+ * per notification before it. `id` is the newest one; `count` > 1 means several arrived together, and the
+ * phone gets one push for all of them instead of one each.
+ */
 export async function POST(request: Request) {
   const cfg = await getPushConfig();
   if (!cfg) return Response.json({ error: "push not configured" }, { status: 503 });
   if (!secretMatches(request.headers.get("x-dispatch-secret"), cfg.dispatchSecret)) return Response.json({ error: "forbidden" }, { status: 403 });
 
-  const { id } = (await request.json().catch(() => ({}))) as { id?: string };
+  const { id, count } = (await request.json().catch(() => ({}))) as { id?: string; count?: number };
+  const more = Math.max(0, Math.min(9999, Math.floor(Number(count) || 1)) - 1);
   if (!id) return Response.json({ error: "missing id" }, { status: 400 });
 
   const db = createAdminClient();
@@ -32,7 +37,7 @@ export async function POST(request: Request) {
       const t = makeT(s.locale as Locale);
       const payload = JSON.stringify({
         title: t(n.title),
-        body: n.body ? t(n.body) : "",
+        body: [n.body ? t(n.body) : "", more ? t("و{0} إشعارات تانية", more) : ""].filter(Boolean).join(" · "),
         url: n.link || "/",
         tag: n.id,
         type: n.type,

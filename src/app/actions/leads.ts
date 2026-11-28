@@ -163,10 +163,12 @@ export async function recordCall(form: FormData): Promise<CallResult> {
   }
   if (error) return { error: requiredFieldsError(t, error.message) ?? t("مقدرتش أعدل الليد") };
   const reasonNote = outcome === "rejected" ? ` — ${REJECT_REASONS[String(form.get("reason")) as RejectReason]}` : "";
-  await supabase.rpc("log_lead_note", { p_lead: id, p_note: OUTCOME_NOTE[outcome] + reasonNote });
+  const { error: outcomeError } = await supabase.rpc("log_lead_note", { p_lead: id, p_note: OUTCOME_NOTE[outcome] + reasonNote });
   const note = String(form.get("note") ?? "").trim();
-  if (note) await supabase.rpc("log_lead_note", { p_lead: id, p_note: note });
+  const noteError = note ? (await supabase.rpc("log_lead_note", { p_lead: id, p_note: note })).error : null;
   revalidatePath("/", "layout");
+  const logError = outcomeError ?? noteError;
+  if (logError) return { error: `${t("النتيجة اتحفظت بس النوت متسجلتش")}: ${logError.message}` };
   return { ok: true };
 }
 
@@ -203,8 +205,9 @@ export async function scheduleLead(_prev: { error?: string; ok?: string } | unde
 
   const { error } = await supabase.from("leads").update(patch).eq("id", id);
   if (error) return { error: requiredFieldsError(t, error.message) ?? t("مقدرتش أعدل الليد") };
-  if (note) await supabase.rpc("log_lead_note", { p_lead: id, p_note: note });
+  const noteError = note ? (await supabase.rpc("log_lead_note", { p_lead: id, p_note: note })).error : null;
   revalidatePath("/", "layout");
+  if (noteError) return { error: `${t("اتحفظ بس النوت متسجلتش")}: ${noteError.message}` };
   return { ok: t("تم الحفظ") };
 }
 

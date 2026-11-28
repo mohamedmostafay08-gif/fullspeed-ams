@@ -10,6 +10,7 @@ import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, TASK_STATUS_LABELS, type TaskPriority, type TaskStatus } from "@/lib/types";
 import { getT } from "@/lib/i18n/server";
+import { ActionForm } from "@/components/action-form";
 
 const STATUS_CLS: Record<TaskStatus, string> = {
   pending: "bg-zinc-200 text-zinc-700",
@@ -111,10 +112,10 @@ export default async function AdminTasksPage({ searchParams }: PageProps<"/admin
                         <button className="btn-ghost px-2 py-1 text-xs">{t("إلغاء")}</button>
                       </form>
                     )}
-                    <form action={deleteTask}>
+                    <ActionForm action={deleteTask}>
                       <input type="hidden" name="id" value={row.id} />
                       <button className="btn-danger px-2 py-1 text-xs">{t("حذف")}</button>
-                    </form>
+                    </ActionForm>
                   </div>
                 </li>
               ))}

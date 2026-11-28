@@ -142,7 +142,10 @@ export async function createTeam(_prev: ActionState, form: FormData): Promise<Ac
   const { data, error } = await supabase.from("teams").insert({ name, leader_id: leaderId }).select("id").single();
   if (error) return { error: t("اسم التيم موجود قبل كده") };
   // Only agents/team leaders become a team's leader role; a manager picked as leader keeps their role.
-  if (leaderId) await supabase.from("profiles").update({ team_id: data.id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
+  if (leaderId) {
+    const { error: leaderError } = await supabase.from("profiles").update({ team_id: data.id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
+    if (leaderError) return { error: `${t("التيم اتعمل بس التيم ليدر متعينش")}: ${leaderError.message}` };
+  }
   return done("/admin/agents", t("تم إنشاء التيم"));
 }
 
@@ -152,8 +155,11 @@ export async function updateTeam(_prev: ActionState, form: FormData): Promise<Ac
   const id = str(form, "id");
   const leaderId = str(form, "leader_id") || null;
   const { error } = await supabase.from("teams").update({ name: str(form, "name"), leader_id: leaderId }).eq("id", id);
-  if (error) return { error: "مقدرتش أحفظ — جرّب تاني" };
-  if (leaderId) await supabase.from("profiles").update({ team_id: id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
+  if (error) return { error: `مقدرتش أحفظ: ${error.message}` };
+  if (leaderId) {
+    const { error: leaderError } = await supabase.from("profiles").update({ team_id: id, role: "team_leader" }).eq("id", leaderId).in("role", ["agent", "team_leader"]);
+    if (leaderError) return { error: `التيم اتحفظ بس التيم ليدر متعينش: ${leaderError.message}` };
+  }
   revalidatePath("/admin", "layout");
   return { ok: "اتحفظ ✓" };
 }
@@ -170,7 +176,8 @@ export async function saveTeamCompanies(_prev: ActionState, form: FormData): Pro
   const toRemove = [...have].filter((c) => !wanted.has(c));
   const added = toAdd.length ? await supabase.from("team_companies").insert(toAdd) : { error: null };
   const removed = toRemove.length ? await supabase.from("team_companies").delete().eq("team_id", teamId).in("company_id", toRemove) : { error: null };
-  if (added.error || removed.error) return { error: "مقدرتش أحفظ — جرّب تاني" };
+  const saveError = added.error ?? removed.error;
+  if (saveError) return { error: `مقدرتش أحفظ: ${saveError.message}` };
   revalidatePath("/admin", "layout");
   return { ok: "اتحفظ ✓" };
 }
@@ -244,7 +251,7 @@ export async function saveTargets(_prev: ActionState, form: FormData): Promise<A
   const all = dates.flatMap((d) => rows.map((r) => ({ ...r, date: d })));
   if (all.length) {
     const { error } = await supabase.from("daily_targets").upsert(all, { onConflict: "agent_id,company_id,date" });
-    if (error) return { error: "مقدرتش أحفظ — جرّب تاني" };
+    if (error) return { error: `مقدرتش أحفظ: ${error.message}` };
   }
   revalidatePath("/admin", "layout");
   return { ok: "اتحفظ ✓" };
@@ -264,7 +271,7 @@ async function uploadLogo(file: File | null, slug: string): Promise<string | nul
   const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z]/g, "") || "png";
   const path = `${slug}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type, upsert: true });
-  if (error) throw new Error("مقدرتش أرفع اللوجو");
+  if (error) throw new Error(`مقدرتش أرفع اللوجو: ${error.message}`);
   return supabase.storage.from("logos").getPublicUrl(path).data.publicUrl;
 }
 
@@ -312,7 +319,7 @@ export async function updateCompany(_prev: ActionState, form: FormData): Promise
     return { error: (e as Error).message };
   }
   const { error } = await supabase.from("companies").update(patch).eq("id", id);
-  if (error) return { error: t("مقدرتش أحفظ") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
 
   const govs = form.getAll("governorate_id").map(Number);
   const cleared = await supabase.from("company_governorates").delete().eq("company_id", id);
@@ -335,7 +342,7 @@ export async function saveFormSchema(_prev: ActionState, form: FormData): Promis
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_company_content", { p_id: str(form, "id"), p_form_schema: schema, p_call_script: null, p_set_script: false });
-  if (error) return { error: t("مقدرتش أحفظ الفورم") };
+  if (error) return { error: `${t("مقدرتش أحفظ الفورم")}: ${error.message}` };
   return done(`/admin/companies/${str(form, "id")}`, t("تم حفظ الفورم"));
 }
 
@@ -358,7 +365,7 @@ export async function createAnnouncement(_prev: ActionState, form: FormData): Pr
     valid_to: str(form, "valid_to") || null,
     created_by: me.id,
   });
-  if (error) return { error: t("مقدرتش أنشر الإعلان") };
+  if (error) return { error: `${t("مقدرتش أنشر الإعلان")}: ${error.message}` };
   return done("/admin", t("تم النشر وإرسال إشعار لكل الأجنتس المتعينين على الشركة"));
 }
 
@@ -372,7 +379,7 @@ export async function sendMessage(_prev: ActionState, form: FormData): Promise<A
   const { error } = await supabase
     .from("notifications")
     .insert(recipients.map((user_id) => ({ user_id, type: "info", title, body: str(form, "body") || null })));
-  if (error) return { error: t("مقدرتش أبعت") };
+  if (error) return { error: `${t("مقدرتش أبعت")}: ${error.message}` };
   return done("/admin", t("اتبعتت لـ {0}", recipients.length));
 }
 
@@ -395,7 +402,7 @@ export async function createTask(_prev: ActionState, form: FormData): Promise<Ac
       assigned_by: me.id,
     })),
   );
-  if (error) return { error: t("مقدرتش أنشئ التاسك") };
+  if (error) return { error: `${t("مقدرتش أنشئ التاسك")}: ${error.message}` };
   return done("/admin/tasks", t("تم إرسال التاسك لـ {0} أجنت", agentIds.length));
 }
 
@@ -413,17 +420,20 @@ export async function importLeadRows(companyId: string, distribute: string, rows
   if (error) {
     if (error.message.includes("no_agents")) return { error: t("مفيش أجنتس متعينين على الشركة دي للتوزيع") };
     if (error.message.includes("agent_not_on_company")) return { error: t("الأجنت ده مش متعين على الشركة دي") };
-    return { error: t("مقدرتش أستورد الملف") };
+    return { error: `${t("مقدرتش أستورد الملف")}: ${error.message}` };
   }
   revalidatePath("/admin", "layout");
   return data as ImportTotals;
 }
 
-export async function deleteTask(form: FormData) {
+export async function deleteTask(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...STAFF);
   const supabase = await createClient();
-  await supabase.from("tasks").delete().eq("id", str(form, "id"));
+  const { data, error } = await supabase.from("tasks").delete().eq("id", str(form, "id")).select("id");
+  if (error) return { error: `مقدرتش أمسح التاسك: ${error.message}` };
+  if (!data?.length) return { error: "التاسك مش موجودة أو مش مسموحلك تمسحها" };
   revalidatePath("/admin/tasks");
+  return { ok: "اتمسحت ✓" };
 }
 
 // ───────── Work locations ─────────
@@ -439,24 +449,30 @@ export async function createLocation(_prev: ActionState, form: FormData): Promis
   if (!coords) return { error: t("مقدرتش أقرا اللوكيشن — ابعت لينك جوجل ماب أو الإحداثيات بالشكل ده: 30.0911, 31.3220") };
   const supabase = await createClient();
   const { error } = await supabase.from("work_locations").insert({ name, lat: coords.lat, lng: coords.lng, radius_m: radius });
-  if (error) return { error: error.code === "23505" ? t("الاسم ده موجود قبل كده") : t("مقدرتش أحفظ المكان") };
+  if (error) return { error: error.code === "23505" ? t("الاسم ده موجود قبل كده") : `${t("مقدرتش أحفظ المكان")}: ${error.message}` };
   return done("/admin/locations", t("اتضاف {0} ({1}, {2})", name, coords.lat.toFixed(5), coords.lng.toFixed(5)));
 }
 
-export async function updateLocationRadius(form: FormData) {
+export async function updateLocationRadius(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...MANAGERS);
   const radius = Math.round(Number(form.get("radius_m")));
-  if (radius < 50 || radius > 5000) return;
+  if (radius < 50 || radius > 5000) return { error: "نص القطر لازم يكون بين 50 و 5000 متر" };
   const supabase = await createClient();
-  await supabase.from("work_locations").update({ radius_m: radius }).eq("id", str(form, "id"));
+  const { data, error } = await supabase.from("work_locations").update({ radius_m: radius }).eq("id", str(form, "id")).select("id");
+  if (error) return { error: `مقدرتش أحفظ: ${error.message}` };
+  if (!data?.length) return { error: "المكان مش موجود أو مش مسموحلك تعدله" };
   revalidatePath("/admin/locations");
+  return { ok: "اتحفظ ✓" };
 }
 
-export async function deleteLocation(form: FormData) {
+export async function deleteLocation(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...MANAGERS);
   const supabase = await createClient();
-  await supabase.from("work_locations").delete().eq("id", str(form, "id"));
+  const { data, error } = await supabase.from("work_locations").delete().eq("id", str(form, "id")).select("id");
+  if (error) return { error: `مقدرتش أمسح المكان: ${error.message}` };
+  if (!data?.length) return { error: "المكان مش موجود أو مش مسموحلك تمسحه" };
   revalidatePath("/admin", "layout");
+  return { ok: "اتمسح ✓" };
 }
 
 // ───────── Import a company's own form (pasted text or a Google Form link) ─────────
@@ -489,15 +505,18 @@ export async function addTemplate(_prev: ActionState, form: FormData): Promise<A
   const { error } = await supabase
     .from("whatsapp_templates")
     .insert({ title, body, company_id: str(form, "company_id") || null, created_by: me.id });
-  if (error) return { error: t("مقدرتش أحفظ") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
   return done("/admin/templates", t("تم الحفظ"));
 }
 
-export async function deleteTemplate(form: FormData) {
+export async function deleteTemplate(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...STAFF);
   const supabase = await createClient();
-  await supabase.from("whatsapp_templates").delete().eq("id", str(form, "id"));
+  const { data, error } = await supabase.from("whatsapp_templates").delete().eq("id", str(form, "id")).select("id");
+  if (error) return { error: `مقدرتش أمسح القالب: ${error.message}` };
+  if (!data?.length) return { error: "القالب مش موجود أو مش مسموحلك تمسحه" };
   revalidatePath("/admin/templates");
+  return { ok: "اتمسح ✓" };
 }
 
 // ───────── Blacklist ─────────
@@ -512,23 +531,28 @@ export async function addToBlacklist(_prev: ActionState, form: FormData): Promis
   const { error } = await supabase
     .from("blacklist")
     .insert({ phone, reason, full_name: str(form, "full_name") || null, created_by: me.id });
-  if (error) return { error: error.code === "23505" ? t("الرقم ده في البلاك ليست بالفعل") : t("مقدرتش أحفظ") };
+  if (error) return { error: error.code === "23505" ? t("الرقم ده في البلاك ليست بالفعل") : `${t("مقدرتش أحفظ")}: ${error.message}` };
 
   // Blocking from a lead page also closes every open lead with that number.
   const leadId = str(form, "lead_id");
   if (leadId) {
-    await supabase.from("leads").update({ status: "rejected", callback_at: null }).eq("phone", phone).not("status", "in", "(hired,rejected)");
-    await supabase.rpc("log_lead_note", { p_lead: leadId, p_note: `⛔ اتحظر: ${reason}`.slice(0, 300) });
+    const { error: closeError } = await supabase.from("leads").update({ status: "rejected", callback_at: null }).eq("phone", phone).not("status", "in", "(hired,rejected)");
+    if (closeError) return { error: `${t("الرقم اتحظر بس الليدز المفتوحة بيه متقفلتش")}: ${closeError.message}` };
+    const { error: noteError } = await supabase.rpc("log_lead_note", { p_lead: leadId, p_note: `⛔ اتحظر: ${reason}`.slice(0, 300) });
+    if (noteError) return { error: `${t("الرقم اتحظر بس النوت متسجلتش")}: ${noteError.message}` };
   }
   revalidatePath("/", "layout");
   return { ok: t("الرقم اتحظر") };
 }
 
-export async function removeFromBlacklist(form: FormData) {
+export async function removeFromBlacklist(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole(...STAFF);
   const supabase = await createClient();
-  await supabase.from("blacklist").delete().eq("id", str(form, "id"));
+  const { data, error } = await supabase.from("blacklist").delete().eq("id", str(form, "id")).select("id");
+  if (error) return { error: `مقدرتش أشيله من البلاك ليست: ${error.message}` };
+  if (!data?.length) return { error: "الرقم مش موجود أو مش مسموحلك تشيله" };
   revalidatePath("/admin/blacklist");
+  return { ok: "اتشال ✓" };
 }
 
 // ───────── Call script ─────────
@@ -542,7 +566,7 @@ export async function saveCallScript(_prev: ActionState, form: FormData): Promis
     p_call_script: str(form, "call_script").slice(0, 4000),
     p_set_script: true,
   });
-  if (error) return { error: t("مقدرتش أحفظ") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
   return done("/admin/companies", t("تم الحفظ"));
 }
 
@@ -570,7 +594,7 @@ export async function saveCompanyTerms(_prev: ActionState, form: FormData): Prom
     p_hours: str(form, "working_hours"),
     p_terms: terms,
   });
-  if (error) return { error: t("مقدرتش أحفظ") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
   return done(`/admin/companies/${str(form, "id")}`, t("تم الحفظ"));
 }
 
@@ -589,7 +613,7 @@ export async function saveTeamTargets(_prev: ActionState, form: FormData): Promi
     const target = Math.round(Number(raw));
     if (!Number.isFinite(target) || target < 0) return { error: t("التارجت لازم يكون رقم موجب") };
     const { error } = await supabase.rpc("set_team_target", { p_team: teamId, p_company: companyId, p_month: month, p_target: target });
-    if (error) return { error: t("مقدرتش أحفظ") };
+    if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
     changed++;
   }
   revalidatePath("/admin", "layout");

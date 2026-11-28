@@ -7,6 +7,7 @@ import { Empty, formatDate } from "@/components/ui";
 import { requireRole, STAFF } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+import { ActionForm } from "@/components/action-form";
 
 export default async function BlacklistPage({ searchParams }: PageProps<"/admin/blacklist">) {
   const t = await getT();
@@ -53,10 +54,10 @@ export default async function BlacklistPage({ searchParams }: PageProps<"/admin/
                       <td className="text-rose-700">{b.reason}</td>
                       <td className="text-xs text-zinc-500">{(b.by as unknown as { full_name: string } | null)?.full_name ?? "—"}<br />{formatDate(b.created_at)}</td>
                       <td>
-                        <form action={removeFromBlacklist}>
+                        <ActionForm action={removeFromBlacklist}>
                           <input type="hidden" name="id" value={b.id} />
                           <button className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-ink" aria-label={t("شيل من البلاك ليست")} title={t("شيل من البلاك ليست")}><Trash2 size={15} /></button>
-                        </form>
+                        </ActionForm>
                       </td>
                     </tr>
                   ))}
