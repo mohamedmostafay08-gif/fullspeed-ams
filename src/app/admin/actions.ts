@@ -155,21 +155,54 @@ export async function saveTeamCompanies(_prev: ActionState, form: FormData): Pro
 }
 
 // ───────── Assignments & targets ─────────
-export async function saveAssignments(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const me = await requireRole(...STAFF);
-  const supabase = await createClient();
-  const agentId = str(form, "agent_id");
-  const wanted = new Set(form.getAll("company_id").map(String));
-  const { data: current } = await supabase.from("agent_companies").select("company_id").eq("agent_id", agentId);
-  const have = new Set((current ?? []).map((r) => r.company_id));
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  const toAdd = [...wanted].filter((c) => !have.has(c)).map((company_id) => ({ agent_id: agentId, company_id, assigned_by: me.id }));
-  const toRemove = [...have].filter((c) => !wanted.has(c));
-  const added = toAdd.length ? await supabase.from("agent_companies").insert(toAdd) : { error: null };
-  const removed = toRemove.length ? await supabase.from("agent_companies").delete().eq("agent_id", agentId).in("company_id", toRemove) : { error: null };
-  if (added.error || removed.error) return { error: "مقدرتش أحفظ — جرّب تاني" };
+/** Sync each agent's companies in one DB call (0047), and turn its error codes into Arabic. */
+async function syncAgentCompanies(changes: { agent_id: string; company_ids: string[] }[]): Promise<ActionState> {
+  const t = await getT();
+  if (changes.length === 0) return { ok: t("مفيش تغييرات تتحفظ") };
+  if (changes.some((c) => !UUID_RE.test(c.agent_id) || c.company_ids.some((id) => !UUID_RE.test(id)))) return { error: t("بيانات غلط — اعمل refresh وجرّب تاني") };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_agent_companies", { p_changes: changes });
+  if (error) {
+    const m = error.message;
+    if (error.code === "PGRST202" || m.includes("set_agent_companies")) return { error: t("لازم migration 0047 تتطبق في Supabase الأول") };
+    if (m.startsWith("company_not_in_team:")) return { error: t("شركة «{0}» مش من شركات التيم — المدير أو الأدمن يضيفها للتيم الأول", m.slice("company_not_in_team:".length)) };
+    if (m.includes("agent_not_visible")) return { error: t("الأجنت ده مش في تيمك") };
+    if (m.includes("agent_not_found")) return { error: t("الأجنت مش موجود") };
+    if (m.includes("company_not_found")) return { error: t("شركة مش موجودة — اعمل refresh وجرّب تاني") };
+    if (m.includes("not_allowed")) return { error: t("مش مسموحلك تعيّن شركات") };
+    return { error: m };
+  }
   revalidatePath("/admin", "layout");
-  return { ok: "اتحفظ ✓" };
+  const r = (data ?? {}) as { added?: number; removed?: number; team_added?: number };
+  const extra = r.team_added ? t(" · واتضافت {0} شركة لتيمات الأجنتس", r.team_added) : "";
+  return { ok: t("اتحفظ ✓ — اتضاف {0} واتشال {1}{2}", r.added ?? 0, r.removed ?? 0, extra) };
+}
+
+export async function saveAssignments(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireRole(...STAFF);
+  const agentId = str(form, "agent_id");
+  const companyIds = [...new Set(form.getAll("company_id").map(String))];
+  return syncAgentCompanies([{ agent_id: agentId, company_ids: companyIds }]);
+}
+
+/** The «توزيع الشركات» page: only the agents whose boxes changed, as JSON. */
+export async function saveBulkAssignments(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireRole(...STAFF);
+  const t = await getT();
+  let changes: unknown;
+  try {
+    changes = JSON.parse(str(form, "changes") || "[]");
+  } catch {
+    return { error: t("بيانات غلط — اعمل refresh وجرّب تاني") };
+  }
+  if (!Array.isArray(changes) || changes.length > 500) return { error: t("بيانات غلط — اعمل refresh وجرّب تاني") };
+  const clean = changes.map((c) => ({
+    agent_id: String((c as { agent_id?: unknown })?.agent_id ?? ""),
+    company_ids: Array.isArray((c as { company_ids?: unknown })?.company_ids) ? ((c as { company_ids: unknown[] }).company_ids).map(String) : [],
+  }));
+  return syncAgentCompanies(clean);
 }
 
 export async function saveTargets(_prev: ActionState, form: FormData): Promise<ActionState> {

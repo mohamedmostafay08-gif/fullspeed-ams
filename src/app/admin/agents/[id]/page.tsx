@@ -6,7 +6,7 @@ import { requestAccountChange } from "@/app/actions/management";
 import { StateForm } from "@/components/state-form";
 import { PageHeader } from "@/components/app-shell";
 import { CompanyLogo, Empty, Progress, StatCard, formatDate } from "@/components/ui";
-import { cairoToday, requireRole, STAFF } from "@/lib/auth";
+import { MANAGERS, cairoToday, requireRole, STAFF } from "@/lib/auth";
 import { getCompanies } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { PRIORITY_LABELS, ROLE_LABELS, TASK_STATUS_LABELS, assignableRoles, canManageRole, type Role, type TaskPriority, type TaskStatus } from "@/lib/types";
@@ -48,7 +48,9 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
   ]);
   // An agent in a team can only work on that team's companies.
   const teamCompanyIds = teamCompanyRows ? new Set(teamCompanyRows.map((r) => r.company_id)) : null;
-  const pickable = teamCompanyIds ? companies.filter((c) => teamCompanyIds.has(c.id)) : companies;
+  // An admin or manager may pick any company: saving adds it to the agent's team too.
+  const isManager = MANAGERS.includes(me.role);
+  const pickable = teamCompanyIds && !isManager ? companies.filter((c) => teamCompanyIds.has(c.id)) : companies;
   const canManage = canManageRole(me.role, agent.role as Role);
   // Keep the current role visible even if this user may not assign it.
   const roleOptions = Object.entries(ROLE_LABELS).filter(([v]) => assignableRoles(me.role).includes(v as Role) || v === agent.role);
@@ -75,11 +77,17 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="card">
-          <h2 className="mb-3 font-semibold">{t("الشركات المتعين عليها")}</h2>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="font-semibold">{t("الشركات المتعين عليها")}</h2>
+            <Link href="/admin/agents/assign" className="text-sm text-brand-700">{t("توزيع كل الأجنتس مرة واحدة")}</Link>
+          </div>
           <ActionForm action={saveAssignments} className="space-y-3">
             <input type="hidden" name="agent_id" value={agent.id} />
-            {teamCompanyIds && (
+            {teamCompanyIds && !isManager && (
               <p className="text-xs text-zinc-500">{t("بتظهر شركات التيم بس — شركات التيم بيحددها المدير أو الأدمن من صفحة التيم.")}</p>
+            )}
+            {teamCompanyIds && isManager && (
+              <p className="text-xs text-zinc-500">{t("الشركة اللي عليها «برّه التيم» هتتضاف لشركات تيم الأجنت أوتوماتيك لما تحفظ.")}</p>
             )}
             {pickable.length === 0 && <Empty>{t("التيم لسه ملوش شركات")}</Empty>}
             <div className="grid max-h-96 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
@@ -88,6 +96,7 @@ export default async function AgentPage({ params, searchParams }: PageProps<"/ad
                   <input type="checkbox" name="company_id" value={c.id} defaultChecked={assigned.has(c.id)} className="accent-brand-600" />
                   <CompanyLogo name={c.name} src={c.logo_path} size={24} />
                   {c.name}
+                  {teamCompanyIds && !teamCompanyIds.has(c.id) && <span className="badge ms-auto bg-amber-100 text-[10px] text-amber-800">{t("برّه التيم")}</span>}
                 </label>
               ))}
             </div>
