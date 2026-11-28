@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ActionForm } from "@/components/action-form";
-import { Filter, X } from "lucide-react";
+import { Building2, Filter, X } from "lucide-react";
 import { createTeam, createUser, updateTeam } from "@/app/admin/actions";
 import { PageHeader } from "@/components/app-shell";
 import { StateForm } from "@/components/state-form";
@@ -55,7 +55,9 @@ export default async function AgentsPage({ searchParams }: PageProps<"/admin/age
 
   return (
     <>
-      <PageHeader title={t("الفريق")} subtitle={t("{0} أجنت نشط", (people ?? []).filter((p) => p.role === "agent" && p.is_active).length)} />
+      <PageHeader title={t("الفريق")} subtitle={t("{0} أجنت نشط", (people ?? []).filter((p) => p.role === "agent" && p.is_active).length)}>
+        <Link href="/admin/agents/assign" className="btn-primary"><Building2 size={16} /> {t("توزيع الشركات على الأجنتس")}</Link>
+      </PageHeader>
 
       <form className="card mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
         <input name="q" defaultValue={fQ} placeholder={t("الاسم أو الموبايل")} className="input" aria-label={t("بحث")} />
