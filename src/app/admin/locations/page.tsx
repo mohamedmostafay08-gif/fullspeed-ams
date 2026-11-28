@@ -6,6 +6,7 @@ import { Empty } from "@/components/ui";
 import { MANAGERS, requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getT } from "@/lib/i18n/server";
+import { ActionForm } from "@/components/action-form";
 
 export default async function LocationsPage() {
   const t = await getT();
@@ -77,16 +78,16 @@ export default async function LocationsPage() {
                       </a>
                     </div>
                     <div className="flex items-center gap-2">
-                      <form action={updateLocationRadius} className="flex items-center gap-1.5">
+                      <ActionForm action={updateLocationRadius} className="flex items-center gap-1.5">
                         <input type="hidden" name="id" value={l.id} />
                         <input name="radius_m" type="number" min={50} max={5000} defaultValue={l.radius_m} className="input w-24 py-1.5" aria-label={t("النطاق بالمتر")} />
                         <span className="text-xs text-zinc-500">{t("متر")}</span>
                         <button className="btn-ghost btn-sm">{t("حفظ")}</button>
-                      </form>
-                      <form action={deleteLocation}>
+                      </ActionForm>
+                      <ActionForm action={deleteLocation}>
                         <input type="hidden" name="id" value={l.id} />
                         <button className="btn-danger btn-sm" aria-label={t("حذف {0}", l.name)}><Trash2 size={14} /></button>
-                      </form>
+                      </ActionForm>
                     </div>
                   </div>
                   <p className="mt-4 mb-2 flex items-center gap-1.5 text-xs font-semibold text-zinc-500">

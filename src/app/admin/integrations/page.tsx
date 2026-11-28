@@ -10,6 +10,7 @@ import { ensureSecret, getConfig } from "@/lib/app-config";
 import { requireRole } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
 import { createAdminClient, hasServiceKey, MISSING_SERVICE_KEY } from "@/lib/supabase/admin";
+import { ActionForm } from "@/components/action-form";
 
 const kb = (n?: number) => (n ? `${Math.max(1, Math.round(n / 1024))} KB` : "—");
 
@@ -57,6 +58,7 @@ export default async function IntegrationsPage() {
   const usage = usageData as {
     db_bytes: number; leads: number; people: number; files: Record<string, { bytes: number; count: number }>;
     last_backup_at: string | null; drive_backup_at: string | null; drive_status: number | null;
+    drive_error?: string | null;
   } | null;
   const userDb = await createClient();
   const [formsRes, eventsRes, companiesRes] = await Promise.all([
@@ -98,6 +100,9 @@ export default async function IntegrationsPage() {
             {t("{0} ليد · {1} موظف نشط", usage.leads, usage.people)} · {t("آخر نسخة في السيستم:")} {formatDate(usage.last_backup_at)} · {t("آخر نسخة على Google Drive:")} {formatDate(usage.drive_backup_at)}
             {usage.drive_status != null && (usage.drive_status === 200 || usage.drive_status === 302 ? " ✓" : ` ✗ (${usage.drive_status})`)}
           </p>
+          {usage.drive_error && (
+            <p className="mt-1 text-xs text-red-600" dir="ltr">{t("رد جوجل درايف:")} {usage.drive_error}</p>
+          )}
           <p className="mt-1 text-xs text-zinc-500">{t("لما أي واحد يعدّي 70% (اللون الأحمر)، وقتها نطلع لباقة Supabase Pro.")}</p>
         </section>
       )}
@@ -217,7 +222,7 @@ export default async function IntegrationsPage() {
                       <li key={f.form_id} className="flex items-center gap-2 rounded-xl border border-(--glass-line) px-3 py-2 text-sm">
                         <span className="num text-xs text-zinc-500" dir="ltr">{f.form_id}</span>
                         <span className="flex-1 truncate">{f.name ?? ""} ← <b>{(f.companies as unknown as { name: string } | null)?.name}</b></span>
-                        <form action={deleteLeadForm}><input type="hidden" name="form_id" value={f.form_id} /><button className="btn-ghost px-2 text-rose-600" aria-label={t("امسح")}><Trash2 size={15} /></button></form>
+                        <ActionForm action={deleteLeadForm}><input type="hidden" name="form_id" value={f.form_id} /><button className="btn-ghost px-2 text-rose-600" aria-label={t("امسح")}><Trash2 size={15} /></button></ActionForm>
                       </li>
                     ))}
                   </ul>

@@ -8,6 +8,7 @@ import { getCompanies } from "@/lib/data";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import { PLACEHOLDERS, fillTemplate } from "@/lib/whatsapp";
+import { ActionForm } from "@/components/action-form";
 
 const SAMPLE = { name: "محمد", company: "Talabat", agent: "سارة", interviewAt: "الأحد 11:00 ص", interviewPlace: "فرع مصر الجديدة" };
 
@@ -60,10 +61,10 @@ export default async function TemplatesPage() {
                   <p className="font-bold">{tpl.title}</p>
                   <p className="text-xs text-zinc-500">{(tpl.companies as unknown as { name: string } | null)?.name ?? t("كل الشركات")}</p>
                 </div>
-                <form action={deleteTemplate}>
+                <ActionForm action={deleteTemplate}>
                   <input type="hidden" name="id" value={tpl.id} />
                   <button className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-600" aria-label={t("حذف")} title={t("حذف")}><Trash2 size={15} /></button>
-                </form>
+                </ActionForm>
               </div>
               <p className="mt-3 rounded-2xl rounded-ss-sm bg-emerald-50 p-3 text-sm leading-6 whitespace-pre-line text-emerald-950 dark:text-emerald-900">{fillTemplate(tpl.body, SAMPLE)}</p>
             </article>

@@ -7,6 +7,7 @@ import { Empty, formatDate } from "@/components/ui";
 import { requireRole } from "@/lib/auth";
 import { getT } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
+import { ActionForm } from "@/components/action-form";
 
 type Field = { name?: string; values?: string[] };
 type Payload = { field_data?: Field[]; campaign_name?: string; ad_name?: string } | null;
@@ -117,10 +118,10 @@ export default async function FacebookLeadsPage() {
                 {keywords.map((k) => (
                   <li key={k.id} className="badge flex items-center gap-1 bg-zinc-100 text-zinc-700">
                     <span>{companyName.get(k.company_id) ?? "—"}: {k.keyword}</span>
-                    <form action={deleteCompanyKeyword}>
+                    <ActionForm action={deleteCompanyKeyword}>
                       <input type="hidden" name="id" value={k.id} />
                       <button aria-label={t("امسح")} className="text-zinc-400 hover:text-rose-600"><X size={12} /></button>
-                    </form>
+                    </ActionForm>
                   </li>
                 ))}
               </ul>
@@ -165,10 +166,10 @@ export default async function FacebookLeadsPage() {
                         <input type="hidden" name="event_id" value={id} />
                         <CompanySelect companies={companies} value={guessCompany(companies, `${lead.campaign_name ?? ""} ${lead.ad_name ?? ""}`)} placeholder={t("الشركة")} />
                       </StateForm>
-                      <form action={dismissLineCrmLead}>
+                      <ActionForm action={dismissLineCrmLead}>
                         <input type="hidden" name="event_id" value={id} />
                         <button className="btn-ghost btn-sm text-zinc-500" aria-label={t("تجاهل")} title={t("تجاهل")}><X size={14} /></button>
-                      </form>
+                      </ActionForm>
                     </div>
                   </li>
                 ))}
@@ -217,10 +218,10 @@ export default async function FacebookLeadsPage() {
                     <input type="hidden" name="leadgen_id" value={e.leadgen_id} />
                     <CompanySelect companies={companies} value="" placeholder={t("الشركة")} />
                   </StateForm>
-                  <form action={dismissFacebookLead}>
+                  <ActionForm action={dismissFacebookLead}>
                     <input type="hidden" name="leadgen_id" value={e.leadgen_id} />
                     <button className="btn-ghost text-sm text-zinc-500">{t("تجاهل")}</button>
-                  </form>
+                  </ActionForm>
                 </div>
               </li>
             );

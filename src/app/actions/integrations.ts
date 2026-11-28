@@ -117,18 +117,21 @@ export async function addLeadForm(_prev: ActionState, form: FormData): Promise<A
   if (!/^\d{5,30}$/.test(formId)) return { error: t("رقم الفورم أرقام بس (من Meta Business Suite ← الفورمز)") };
   const supabase = await createClient();
   const { error } = await supabase.from("meta_lead_forms").upsert({ form_id: formId, company_id: company, name: String(form.get("name") ?? "").trim().slice(0, 80) || null });
-  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
   // Leads that arrived before the form was linked come in now.
   const { data: n } = await supabase.rpc("meta_retry_unmapped");
   revalidatePath("/admin/integrations");
   return { ok: n ? t("اتربط ✓ ودخل {0} ليد كانوا مستنيين", n) : t("اتربط ✓") };
 }
 
-export async function deleteLeadForm(form: FormData) {
+export async function deleteLeadForm(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("admin", "manager");
   const supabase = await createClient();
-  await supabase.from("meta_lead_forms").delete().eq("form_id", String(form.get("form_id") ?? ""));
+  const { data, error } = await supabase.from("meta_lead_forms").delete().eq("form_id", String(form.get("form_id") ?? "")).select("form_id");
+  if (error) return { error: `مقدرتش أمسح الفورم: ${error.message}` };
+  if (!data?.length) return { error: "الفورم مش موجود أو مش مسموحلك تمسحه" };
   revalidatePath("/admin/integrations");
+  return { ok: "اتمسح ✓" };
 }
 
 /** «ليدز فيسبوك»: one waiting lead from an unlinked form → the company picked for it. */
@@ -140,7 +143,7 @@ export async function assignFacebookLead(_prev: ActionState, form: FormData): Pr
   if (!/^[0-9a-f-]{36}$/i.test(company)) return { error: t("اختار الشركة") };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("meta_assign_lead", { p_leadgen: leadgen, p_company: company });
-  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
   revalidatePath("/admin/facebook-leads");
   const RESULT: Record<string, ActionState> = {
     created: { ok: t("✅ دخل على الشركة واتوزع") },
@@ -153,11 +156,14 @@ export async function assignFacebookLead(_prev: ActionState, form: FormData): Pr
   return RESULT[String(data)] ?? { error: t("⚠️ مشكلة") };
 }
 
-export async function dismissFacebookLead(form: FormData) {
+export async function dismissFacebookLead(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("admin", "manager");
   const supabase = await createClient();
-  await supabase.rpc("meta_dismiss_lead", { p_leadgen: String(form.get("leadgen_id") ?? "") });
+  const { data, error } = await supabase.rpc("meta_dismiss_lead", { p_leadgen: String(form.get("leadgen_id") ?? "") });
+  if (error) return { error: `مقدرتش أشيله: ${error.message}` };
+  if (!data) return { error: "الليد ده اتوزع أو اتشال قبل كده" };
   revalidatePath("/admin/facebook-leads");
+  return { ok: "اتشال ✓" };
 }
 
 /** «ليدز للتوزيع»: one waiting LineCRM lead (WhatsApp ads) → the company picked for it. */
@@ -169,7 +175,7 @@ export async function assignLineCrmLead(_prev: ActionState, form: FormData): Pro
   if (!/^[0-9a-f-]{36}$/i.test(company)) return { error: t("اختار الشركة") };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("linecrm_assign_lead", { p_event: event, p_company: company });
-  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
   revalidatePath("/admin/facebook-leads");
   const RESULT: Record<string, ActionState> = {
     created: { ok: t("✅ دخل على الشركة واتوزع") },
@@ -182,11 +188,14 @@ export async function assignLineCrmLead(_prev: ActionState, form: FormData): Pro
   return RESULT[String(data)] ?? { error: t("⚠️ مشكلة") };
 }
 
-export async function dismissLineCrmLead(form: FormData) {
+export async function dismissLineCrmLead(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("admin", "manager");
   const supabase = await createClient();
-  await supabase.rpc("linecrm_dismiss_lead", { p_event: String(form.get("event_id") ?? "") });
+  const { data, error } = await supabase.rpc("linecrm_dismiss_lead", { p_event: String(form.get("event_id") ?? "") });
+  if (error) return { error: `مقدرتش أشيله: ${error.message}` };
+  if (!data) return { error: "الليد ده اتوزع أو اتشال قبل كده" };
   revalidatePath("/admin/facebook-leads");
+  return { ok: "اتشال ✓" };
 }
 
 /** «ليدز للتوزيع»: every waiting LineCRM lead of one campaign → one company. */
@@ -199,7 +208,7 @@ export async function assignLineCrmMany(_prev: ActionState, form: FormData): Pro
   if (events.length === 0) return { error: t("مفيش ليدز") };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("linecrm_assign_many", { p_events: events, p_company: company });
-  if (error) return { error: t("مقدرتش أحفظ — جرّب تاني") };
+  if (error) return { error: `${t("مقدرتش أحفظ")}: ${error.message}` };
   revalidatePath("/admin/facebook-leads");
   const c = (data ?? {}) as Record<string, number>;
   const parts = [
@@ -230,14 +239,17 @@ export async function addCompanyKeyword(_prev: ActionState, form: FormData): Pro
   if (keyword.length < 2) return { error: t("الكلمة لازم تبقى حرفين على الأقل") };
   const supabase = await createClient();
   const { error } = await supabase.from("company_keywords").insert({ company_id: company, keyword });
-  if (error) return { error: error.code === "23505" ? t("الكلمة دي موجودة للشركة دي") : t("مقدرتش أحفظ — جرّب تاني") };
+  if (error) return { error: error.code === "23505" ? t("الكلمة دي موجودة للشركة دي") : `${t("مقدرتش أحفظ")}: ${error.message}` };
   revalidatePath("/admin/facebook-leads");
   return { ok: t("اتضافت ✓") };
 }
 
-export async function deleteCompanyKeyword(form: FormData) {
+export async function deleteCompanyKeyword(_prev: ActionState, form: FormData): Promise<ActionState> {
   await requireRole("admin", "manager");
   const supabase = await createClient();
-  await supabase.from("company_keywords").delete().eq("id", String(form.get("id") ?? ""));
+  const { data, error } = await supabase.from("company_keywords").delete().eq("id", String(form.get("id") ?? "")).select("id");
+  if (error) return { error: `مقدرتش أمسح الكلمة: ${error.message}` };
+  if (!data?.length) return { error: "الكلمة مش موجودة أو مش مسموحلك تمسحها" };
   revalidatePath("/admin/facebook-leads");
+  return { ok: "اتمسحت ✓" };
 }
