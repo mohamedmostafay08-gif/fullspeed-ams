@@ -19,10 +19,10 @@ type Item = { lead: Lead; time: string; note: string; tone: "red" | "amber" | "v
 const SELECT = "id, full_name, phone, status, attempts, created_at, callback_at, interview_at, interview_place, last_contact_at, companies(name, logo_path)";
 const OPEN = "(hired,rejected)";
 const TONE: Record<Item["tone"], string> = {
-  red: "border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-950/30",
-  amber: "border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/30",
-  violet: "border-violet-200 bg-violet-50/60 dark:border-violet-900/50 dark:bg-violet-950/30",
-  sky: "border-sky-200 bg-sky-50/60 dark:border-sky-900/50 dark:bg-sky-950/30",
+  red: "border-rose-200 bg-rose-50/70",
+  amber: "border-amber-200 bg-amber-50/70",
+  violet: "border-violet-200 bg-violet-50/60",
+  sky: "border-sky-200 bg-sky-50/60",
   zinc: "border-(--glass-line)",
 };
 

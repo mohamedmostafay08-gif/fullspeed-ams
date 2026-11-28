@@ -66,7 +66,7 @@ export default async function TemplatesPage() {
                   <button className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-600" aria-label={t("حذف")} title={t("حذف")}><Trash2 size={15} /></button>
                 </ActionForm>
               </div>
-              <p className="mt-3 rounded-2xl rounded-ss-sm bg-emerald-50 p-3 text-sm leading-6 whitespace-pre-line text-emerald-950 dark:text-emerald-900">{fillTemplate(tpl.body, SAMPLE)}</p>
+              <p className="mt-3 rounded-2xl rounded-ss-sm bg-emerald-50 p-3 text-sm leading-6 whitespace-pre-line text-emerald-900">{fillTemplate(tpl.body, SAMPLE)}</p>
             </article>
           ))}
         </section>

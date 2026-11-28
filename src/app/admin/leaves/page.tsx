@@ -70,7 +70,7 @@ export default async function AdminLeavesPage({ searchParams }: PageProps<"/admi
       <PageHeader title={t("الإجازات والأذونات")} subtitle={t("الأجنت بيطلب، والتيم ليدر بتاعه أو المدير يوافق. التيم ليدر بيوافقله المدير أو الأدمن.")} />
       <SubTabs tabs={ATTENDANCE_TABS} current="/admin/leaves" />
       {outToday.length > 0 && (
-        <p className="mb-4 rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-100">
+        <p className="mb-4 rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900">
           🌴 {t("في إجازة النهارده:")} <b>{outToday.map((l) => l.person?.full_name).join("، ")}</b>
         </p>
       )}

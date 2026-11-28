@@ -124,7 +124,7 @@ export async function ViewToggle({ base, query, view }: { base: string; query: s
   const t = await getT();
   const href = (v: string) => `${base}?${[query, v === "board" ? "view=board" : ""].filter(Boolean).join("&")}`;
   const cls = (active: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${active ? "bg-ink text-white dark:bg-zinc-800" : "text-zinc-500 hover:text-ink"}`;
+    `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${active ? "bg-ink text-white dark:bg-zinc-800 dark:text-zinc-50" : "text-zinc-500 hover:text-ink"}`;
   return (
     <div className="inline-flex rounded-xl border border-zinc-200 bg-white p-1" role="tablist">
       <Link href={href("table")} className={cls(view === "table")} role="tab" aria-selected={view === "table"}>

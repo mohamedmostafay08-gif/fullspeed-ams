@@ -14,6 +14,9 @@ const LABEL: Record<Theme, string> = { system: "حسب الجهاز", light: "ف
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
   root.dataset.theme = theme;
+  // The head script owns the logic (and the OS listener), so the toggle and the first paint agree.
+  const apply = (window as Window & { __applyTheme?: () => void }).__applyTheme;
+  if (apply) return apply();
   const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   root.classList.toggle("dark", dark);
 }
